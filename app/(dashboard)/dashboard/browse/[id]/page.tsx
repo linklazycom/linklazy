@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { MetricChip } from "@/components/ui/metric-chip";
+import { RequestLinkForm } from "@/components/orders/request-link-form";
 
 interface SiteDetail {
   id: string;
@@ -150,11 +151,11 @@ export default function SiteDetailPage({
               <p className="text-sm text-muted">{site.guidelines}</p>
             </div>
           )}
-          <Button size="lg">Request this link</Button>
-          <p className="mt-2 text-xs text-muted">
-            Order creation is built in Sprint 4 — this button will start the
-            exchange/payment flow.
-          </p>
+          <RequestLinkForm
+            siteId={site.id}
+            acceptsExchange={site.accepts_exchange}
+            acceptsPaid={site.accepts_paid}
+          />
         </>
       )}
     </div>
