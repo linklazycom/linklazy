@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Logo } from "@/components/ui/logo";
+import { SidebarNav } from "@/components/layout/sidebar-nav";
 
 const NAV = [
   { href: "/admin", label: "Overview" },
@@ -16,22 +18,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="flex min-h-screen">
       <aside className="w-56 shrink-0 border-r border-line bg-white p-6">
-        <Link href="/" className="mb-8 block font-display text-lg font-semibold">
-          LinkLazy <span className="text-xs font-normal text-muted">Admin</span>
+        <Link href="/" className="mb-1 block">
+          <Logo size={24} />
         </Link>
-        <nav className="space-y-1">
-          {NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="block rounded-chip px-3 py-2 text-sm text-ink hover:bg-paper"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <p className="mb-7 text-xs text-muted">Admin</p>
+        <SidebarNav items={NAV} />
       </aside>
-      <main className="flex-1 p-8">{children}</main>
+      <main className="flex-1 bg-paper p-8">{children}</main>
     </div>
   );
 }

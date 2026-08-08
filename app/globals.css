@@ -14,7 +14,7 @@ body {
 
 /* Signature element: the "metric chip" — a small monospace badge used
    throughout the product wherever a verified site statistic appears
-   (DA, DR, traffic, price). This is the one recurring visual motif. */
+   (DA, DR, traffic, price). */
 .metric-chip {
   @apply inline-flex items-center gap-1 rounded-chip border border-line
          bg-white px-2 py-1 font-mono text-xs tracking-tight text-ink;
@@ -28,9 +28,15 @@ body {
   @apply border-amber/30 bg-amber-soft text-amber;
 }
 
+/* Brand gradient text — used sparingly, for the "Lazy" half of the
+   wordmark and a handful of hero headlines. Not for body copy. */
+.brand-gradient-text {
+  @apply bg-brand-gradient bg-clip-text text-transparent;
+}
+
 /* Visible keyboard focus, respected everywhere */
 :focus-visible {
-  outline: 2px solid #00B187;
+  outline: 2px solid #6D35F9;
   outline-offset: 2px;
 }
 

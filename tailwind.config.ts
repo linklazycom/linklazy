@@ -1,8 +1,9 @@
 import type { Config } from "tailwindcss";
 
-// Design tokens — "verified ledger" direction:
-// A trust/audit aesthetic for an SEO-professional audience, built around
-// metric chips (DA/DR/traffic) as the recurring visual motif.
+// Design tokens — matches the LinkLazy logo: a navy wordmark with a
+// blue → violet → magenta gradient mark. The gradient is the brand's
+// one signature visual element, used sparingly (logo, primary CTA,
+// active states) against a clean white/near-white product surface.
 const config: Config = {
   content: [
     "./app/**/*.{ts,tsx}",
@@ -12,19 +13,25 @@ const config: Config = {
     extend: {
       colors: {
         ink: {
-          DEFAULT: "#0F1720", // near-black navy — primary text / dark surfaces
-          soft: "#1C2733",
+          DEFAULT: "#0A0E27", // near-black navy, matches the logo wordmark
+          soft: "#1C2242",
         },
-        paper: "#F6F5F1", // quiet off-white background (not warm cream)
+        paper: "#FAFAFC", // clean near-white background
+        brand: {
+          blue: "#2C75FC",
+          violet: "#6D35F9",
+          magenta: "#B23CFC",
+          soft: "#F1EEFE", // pale tint for backgrounds/badges
+        },
         signal: {
-          DEFAULT: "#00B187", // verified / accepted / positive metric
-          soft: "#E3F6EF",
+          DEFAULT: "#16A34A", // verified / accepted (kept separate from brand gradient for clarity)
+          soft: "#EAFBF1",
         },
         amber: {
-          DEFAULT: "#E8A33D", // CTA / pending / price
+          DEFAULT: "#E8A33D", // price / pending
           soft: "#FBEEDA",
         },
-        line: "#DEDBD1", // hairline borders on paper
+        line: "#E4E1F0",
         muted: "#6B7280",
       },
       fontFamily: {
@@ -34,6 +41,9 @@ const config: Config = {
       },
       borderRadius: {
         chip: "6px",
+      },
+      backgroundImage: {
+        "brand-gradient": "linear-gradient(135deg, #2C75FC 0%, #6D35F9 55%, #B23CFC 100%)",
       },
     },
   },

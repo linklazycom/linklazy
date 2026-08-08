@@ -32,6 +32,9 @@ export const metadata: Metadata = {
   },
   description:
     "LinkLazy is a vetted marketplace for exchanging and buying backlinks between verified sites, with transparent metrics and escrow-protected orders.",
+  openGraph: {
+    images: ["/logo.png"],
+  },
 };
 
 export default async function RootLayout({
