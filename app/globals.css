@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-display: "Fraunces", serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+body {
+  @apply bg-paper text-ink font-body antialiased;
+}
+
+/* Signature element: the "metric chip" — a small monospace badge used
+   throughout the product wherever a verified site statistic appears
+   (DA, DR, traffic, price). This is the one recurring visual motif. */
+.metric-chip {
+  @apply inline-flex items-center gap-1 rounded-chip border border-line
+         bg-white px-2 py-1 font-mono text-xs tracking-tight text-ink;
+}
+
+.metric-chip[data-tone="verified"] {
+  @apply border-signal/30 bg-signal-soft text-signal;
+}
+
+.metric-chip[data-tone="price"] {
+  @apply border-amber/30 bg-amber-soft text-amber;
+}
+
+/* Visible keyboard focus, respected everywhere */
+:focus-visible {
+  outline: 2px solid #00B187;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
