@@ -1,0 +1,83 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { Field } from "@/components/ui/field";
+import { Button } from "@/components/ui/button";
+
+const SIMPLE_STRING_KEYS = [
+  { key: "contact_email", label: "Contact email" },
+  { key: "ga_measurement_id", label: "Google Analytics 4 Measurement ID", placeholder: "G-XXXXXXX" },
+  { key: "gsc_verification_code", label: "Google Search Console verification code", placeholder: "content value from the HTML tag method" },
+  { key: "bing_verification_code", label: "Bing Webmaster Tools verification code" },
+  { key: "pinterest_verification_code", label: "Pinterest domain verification code" },
+  { key: "yandex_verification_code", label: "Yandex Webmaster verification code" },
+];
+
+export default function AdminSettingsPage() {
+  const supabase = createClient();
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState<string | null>(null);
+  const [saved, setSaved] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function load() {
+      const { data } = await supabase
+        .from("site_settings")
+        .select("key, value")
+        .in("key", SIMPLE_STRING_KEYS.map((k) => k.key));
+      const map: Record<string, string> = {};
+      for (const row of data ?? []) {
+        map[row.key] = typeof row.value === "string" ? row.value : JSON.stringify(row.value);
+      }
+      setValues(map);
+    }
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function handleSave(key: string) {
+    setSaving(key);
+    setSaved(null);
+    await fetch("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key, value: values[key] ?? "" }),
+    });
+    setSaving(null);
+    setSaved(key);
+  }
+
+  return (
+    <div className="max-w-2xl">
+      <h1 className="mb-2 font-display text-2xl font-medium">Platform settings</h1>
+      <p className="mb-8 text-sm text-muted">
+        These verification codes get injected into the site&apos;s
+        &lt;head&gt; on every page, so you can verify domain ownership with
+        Google Search Console, Bing, Pinterest, and Yandex without touching
+        code. Nav and footer links are managed via the{" "}
+        <code>site_settings</code> table (<code>nav_links</code>,{" "}
+        <code>footer_links</code>) in Supabase for now.
+      </p>
+
+      <div className="space-y-5">
+        {SIMPLE_STRING_KEYS.map(({ key, label, placeholder }) => (
+          <div key={key} className="flex items-end gap-2">
+            <div className="flex-1">
+              <Field
+                id={key}
+                label={label}
+                placeholder={placeholder}
+                value={values[key] ?? ""}
+                onChange={(e) => setValues((v) => ({ ...v, [key]: e.target.value }))}
+              />
+            </div>
+            <Button size="sm" onClick={() => handleSave(key)} disabled={saving === key}>
+              {saving === key ? "Saving…" : saved === key ? "Saved" : "Save"}
+            </Button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

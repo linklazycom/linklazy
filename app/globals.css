@@ -41,3 +41,34 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Article body styling for blog posts (rendered from Markdown) */
+.article-content {
+  @apply text-[15px] leading-7 text-ink;
+}
+.article-content h2 {
+  @apply mt-8 mb-3 font-display text-xl font-medium;
+}
+.article-content h3 {
+  @apply mt-6 mb-2 font-display text-lg font-medium;
+}
+.article-content p {
+  @apply mb-4;
+}
+.article-content ul,
+.article-content ol {
+  @apply mb-4 ml-5 list-disc space-y-1;
+}
+.article-content a {
+  @apply text-ink underline;
+}
+.article-content strong {
+  @apply font-semibold;
+}
+.article-content table {
+  @apply mb-4 w-full border-collapse text-sm;
+}
+.article-content th,
+.article-content td {
+  @apply border border-line px-3 py-2 text-left;
+}

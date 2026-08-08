@@ -5,18 +5,6 @@ import { MetricChip } from "@/components/ui/metric-chip";
 export default function HomePage() {
   return (
     <main className="mx-auto max-w-5xl px-6 py-16">
-      <nav className="mb-20 flex items-center justify-between">
-        <span className="font-display text-lg font-semibold">LinkLazy</span>
-        <div className="flex items-center gap-3">
-          <Link href="/login" className="text-sm text-muted hover:text-ink">
-            Log in
-          </Link>
-          <Link href="/register">
-            <Button size="sm">Get started</Button>
-          </Link>
-        </div>
-      </nav>
-
       <section className="mb-16">
         <p className="mb-4 font-mono text-xs uppercase tracking-widest text-muted">
           Verified backlink exchange

@@ -82,6 +82,19 @@ export default function OrderDetailPage({
     load();
   }
 
+  async function handlePay() {
+    setBusy(true);
+    setError(null);
+    const res = await fetch(`/api/orders/${id}/pay`, { method: "POST" });
+    const body = await res.json();
+    if (!res.ok) {
+      setError(body.error ?? "Could not start payment.");
+      setBusy(false);
+      return;
+    }
+    window.location.href = body.redirectUrl;
+  }
+
   if (!order || !userId) return <p className="text-muted">Loading…</p>;
 
   const isSeller = order.seller_id === userId;
@@ -123,7 +136,15 @@ export default function OrderDetailPage({
         </div>
       )}
 
-      {isSeller && ["awaiting_seller_site", "in_progress", "pending_payment"].includes(order.status) && (
+      {isBuyer && order.status === "pending_payment" && (
+        <div className="mb-6">
+          <Button onClick={handlePay} disabled={busy}>
+            {busy ? "Redirecting…" : "Pay with bKash"}
+          </Button>
+        </div>
+      )}
+
+      {isSeller && ["awaiting_seller_site", "in_progress"].includes(order.status) && (
         <form onSubmit={handleDeliver} className="mb-6 space-y-4 rounded-chip border border-line bg-white p-5">
           <h2 className="text-sm font-medium">Submit delivery proof</h2>
           <Field id="proof_url" name="proof_url" label="Published page URL" placeholder="https://yoursite.com/post-with-link" required />
