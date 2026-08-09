@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { MetricChip } from "@/components/ui/metric-chip";
 import { Field } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
+import { SellerTierBadge } from "@/components/reviews/seller-tier-badge";
 
 interface Filters {
   niche?: string;
@@ -42,7 +43,7 @@ export default async function BrowsePage({
 
   let query = supabase
     .from("sites")
-    .select("id, domain, niche, da, dr, organic_traffic, price_amount, link_type, accepts_exchange, accepts_paid")
+    .select("id, owner_id, domain, niche, da, dr, organic_traffic, price_amount, link_type, accepts_exchange, accepts_paid")
     .eq("status", "approved");
 
   if (filters.niche) query = query.ilike("niche", `%${filters.niche}%`);
@@ -53,6 +54,12 @@ export default async function BrowsePage({
   if (filters.exchange_only === "1") query = query.eq("accepts_exchange", true);
 
   const { data: sites } = await query.order("da", { ascending: false, nullsFirst: false });
+
+  const ownerIds = [...new Set((sites ?? []).map((s) => s.owner_id))];
+  const { data: sellerProfiles } = ownerIds.length
+    ? await supabase.from("profiles").select("id, seller_tier").in("id", ownerIds)
+    : { data: [] };
+  const tierByOwner = new Map((sellerProfiles ?? []).map((p) => [p.id, p.seller_tier]));
 
   const quota = profile?.buyer_views_quota ?? 0;
   const used = profile?.buyer_views_used ?? 0;
@@ -116,8 +123,9 @@ export default async function BrowsePage({
           return (
             <div key={site.id} className="rounded-chip border border-line bg-white p-4">
               <div className="mb-2 flex items-center justify-between">
-                <span className="font-medium">
+                <span className="flex items-center gap-2 font-medium">
                   {unlocked || !isFree ? site.domain : "Site details locked"}
+                  <SellerTierBadge tier={tierByOwner.get(site.owner_id) ?? null} />
                 </span>
                 {site.accepts_exchange && <MetricChip label="Exchange" value="Available" tone="verified" />}
               </div>

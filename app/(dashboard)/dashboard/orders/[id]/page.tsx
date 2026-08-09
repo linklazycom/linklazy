@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { MetricChip } from "@/components/ui/metric-chip";
 import { ChatWindow } from "@/components/orders/chat-window";
+import { ReviewForm } from "@/components/reviews/review-form";
 
 interface OrderDetail {
   id: string;
@@ -33,6 +34,7 @@ export default function OrderDetailPage({
   const [userId, setUserId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasReviewed, setHasReviewed] = useState(false);
 
   async function load() {
     const {
@@ -42,6 +44,14 @@ export default function OrderDetailPage({
 
     const { data } = await supabase.from("orders").select("*").eq("id", id).single();
     setOrder(data as OrderDetail);
+
+    const { data: existingReview } = await supabase
+      .from("reviews")
+      .select("id")
+      .eq("order_id", id)
+      .eq("reviewer_id", user!.id)
+      .maybeSingle();
+    setHasReviewed(Boolean(existingReview));
   }
 
   useEffect(() => {
@@ -164,10 +174,18 @@ export default function OrderDetailPage({
       )}
 
       {order.status === "accepted" && (
-        <p className="mb-6 text-sm text-signal">
-          Order accepted{isBuyer && order.price_amount ? " — payment released to the seller." : "."}{" "}
-          You can now leave a review.
-        </p>
+        <>
+          <p className="mb-4 text-sm text-signal">
+            Order accepted{isBuyer && order.price_amount ? " — payment released to the seller." : "."}
+          </p>
+          {!hasReviewed ? (
+            <div className="mb-6">
+              <ReviewForm orderId={id} onDone={load} />
+            </div>
+          ) : (
+            <p className="mb-6 text-sm text-muted">You&apos;ve already reviewed this order.</p>
+          )}
+        </>
       )}
 
       {error && <p className="mb-4 text-sm text-red-600">{error}</p>}

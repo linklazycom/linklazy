@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { MetricChip } from "@/components/ui/metric-chip";
 import { RequestLinkForm } from "@/components/orders/request-link-form";
+import { SellerTierBadge } from "@/components/reviews/seller-tier-badge";
+import { ReviewsList } from "@/components/reviews/reviews-list";
 
 interface SiteDetail {
   id: string;
@@ -13,6 +15,7 @@ interface SiteDetail {
   domain: string;
   niche: string;
   language: string;
+  owner_id: string;
   da: number | null;
   pa: number | null;
   dr: number | null;
@@ -31,6 +34,18 @@ interface SiteDetail {
   guidelines: string | null;
 }
 
+interface SellerInfo {
+  seller_tier: string | null;
+  response_rate: number | null;
+}
+
+interface Review {
+  id: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+}
+
 export default function SiteDetailPage({
   params,
 }: {
@@ -39,6 +54,8 @@ export default function SiteDetailPage({
   const { id } = usePromise(params);
   const supabase = createClient();
   const [site, setSite] = useState<SiteDetail | null>(null);
+  const [seller, setSeller] = useState<SellerInfo | null>(null);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [unlocked, setUnlocked] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,19 +73,40 @@ export default function SiteDetailPage({
       .eq("related_site_id", id)
       .maybeSingle();
 
+    let siteData: SiteDetail | null = null;
+
     if (existing) {
       setUnlocked(true);
       const { data: s } = await supabase.from("sites").select("*").eq("id", id).single();
-      setSite(s as SiteDetail);
+      siteData = s as SiteDetail;
     } else {
       // Show a metrics-only teaser without the URL/guidelines.
       const { data: s } = await supabase
         .from("sites")
-        .select("id, niche, da, pa, dr, organic_traffic, price_amount, accepts_exchange, accepts_paid, link_type")
+        .select("id, owner_id, niche, da, pa, dr, organic_traffic, price_amount, accepts_exchange, accepts_paid, link_type")
         .eq("id", id)
         .single();
-      setSite(s as SiteDetail);
+      siteData = s as SiteDetail;
     }
+    setSite(siteData);
+
+    if (siteData?.owner_id) {
+      const { data: sellerData } = await supabase
+        .from("profiles")
+        .select("seller_tier, response_rate")
+        .eq("id", siteData.owner_id)
+        .single();
+      setSeller(sellerData);
+
+      const { data: reviewData } = await supabase
+        .from("reviews")
+        .select("id, rating, comment, created_at")
+        .eq("reviewee_id", siteData.owner_id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      setReviews((reviewData as Review[]) ?? []);
+    }
+
     setLoading(false);
   }
 
@@ -92,8 +130,9 @@ export default function SiteDetailPage({
 
   return (
     <div className="max-w-2xl">
-      <h1 className="mb-1 font-display text-2xl font-medium">
+      <h1 className="mb-1 flex items-center gap-2 font-display text-2xl font-medium">
         {unlocked ? site.domain : "Site details"}
+        <SellerTierBadge tier={seller?.seller_tier ?? null} />
       </h1>
 
       <div className="mb-6 flex flex-wrap gap-2">
@@ -158,6 +197,11 @@ export default function SiteDetailPage({
           />
         </>
       )}
+
+      <div className="mt-8">
+        <h2 className="mb-3 font-display text-lg font-medium">Seller reviews</h2>
+        <ReviewsList reviews={reviews} />
+      </div>
     </div>
   );
 }
