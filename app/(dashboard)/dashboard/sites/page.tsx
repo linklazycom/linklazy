@@ -70,6 +70,14 @@ export default async function MySitesPage() {
             >
               Manage link slots
             </Link>
+            {site.status === "approved" && (
+              <Link
+                href={`/dashboard/sites/${site.id}/matches`}
+                className="mt-3 ml-4 inline-block text-sm text-brand-violet underline"
+              >
+                Find exchange partners
+              </Link>
+            )}
           </div>
         ))}
       </div>
