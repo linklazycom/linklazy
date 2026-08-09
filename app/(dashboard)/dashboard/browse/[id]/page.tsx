@@ -8,6 +8,7 @@ import { MetricChip } from "@/components/ui/metric-chip";
 import { RequestLinkForm } from "@/components/orders/request-link-form";
 import { SellerTierBadge } from "@/components/reviews/seller-tier-badge";
 import { ReviewsList } from "@/components/reviews/reviews-list";
+import { WatchlistButton } from "@/components/watchlist/watchlist-button";
 
 interface SiteDetail {
   id: string;
@@ -134,6 +135,9 @@ export default function SiteDetailPage({
         {unlocked ? site.domain : "Site details"}
         <SellerTierBadge tier={seller?.seller_tier ?? null} />
       </h1>
+      <div className="mb-4">
+        <WatchlistButton siteId={site.id} />
+      </div>
 
       <div className="mb-6 flex flex-wrap gap-2">
         <MetricChip label="Niche" value={site.niche} />

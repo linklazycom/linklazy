@@ -4,6 +4,8 @@ import { MetricChip } from "@/components/ui/metric-chip";
 import { Field } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { SellerTierBadge } from "@/components/reviews/seller-tier-badge";
+import { WatchlistButton } from "@/components/watchlist/watchlist-button";
+import { SaveSearchButton } from "@/components/watchlist/save-search-button";
 
 interface Filters {
   niche?: string;
@@ -12,6 +14,7 @@ interface Filters {
   price_max?: string;
   link_type?: string;
   exchange_only?: string;
+  [key: string]: string | undefined;
 }
 
 export default async function BrowsePage({
@@ -112,10 +115,14 @@ export default async function BrowsePage({
           <input type="checkbox" name="exchange_only" value="1" defaultChecked={filters.exchange_only === "1"} />
           Exchange only
         </label>
-        <div className="col-span-2 flex items-end md:col-span-1">
+        <div className="col-span-2 flex items-end gap-2 md:col-span-1">
           <Button type="submit" className="w-full">Filter</Button>
         </div>
       </form>
+
+      <div className="mb-6 flex justify-end">
+        <SaveSearchButton filters={filters} />
+      </div>
 
       <div className="space-y-3">
         {sites?.map((site) => {
@@ -146,6 +153,9 @@ export default async function BrowsePage({
                   {unlocked ? "View details" : "Unlock & view"}
                 </Button>
               </Link>
+              <div className="mt-2">
+                <WatchlistButton siteId={site.id} />
+              </div>
             </div>
           );
         })}
