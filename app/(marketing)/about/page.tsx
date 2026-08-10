@@ -1,14 +1,29 @@
 import type { Metadata } from "next";
+import Image from "next/image";
+import { PexelsCredit } from "@/components/ui/pexels-credit";
+import { searchPexelsPhoto } from "@/lib/pexels";
 
 export const metadata: Metadata = {
   title: "About",
   description: "Why we built LinkLazy — a vetted marketplace for backlink exchange.",
 };
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const photo = await searchPexelsPhoto("team working office collaboration");
+
   return (
     <main className="mx-auto max-w-2xl px-6 py-16">
       <h1 className="mb-6 font-display text-3xl font-medium">About LinkLazy</h1>
+
+      {photo && (
+        <div className="mb-6">
+          <div className="relative aspect-[16/9] overflow-hidden rounded-chip">
+            <Image src={photo.url} alt={photo.alt} fill className="object-cover" unoptimized />
+          </div>
+          <PexelsCredit photographer={photo.photographer} photographerUrl={photo.photographerUrl} className="mt-2" />
+        </div>
+      )}
+
       <div className="space-y-4 text-sm leading-7 text-ink">
         <p>
           Link building is one of the most time-consuming parts of SEO — and

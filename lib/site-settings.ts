@@ -7,7 +7,7 @@ export interface NavLink {
 
 const DEFAULTS: Record<string, unknown> = {
   nav_links: [
-    { label: "Browse Sites", href: "/dashboard/browse" },
+    { label: "Browse Sites", href: "/browse" },
     { label: "Pricing", href: "/pricing" },
     { label: "Blog", href: "/blog" },
   ],

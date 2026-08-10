@@ -1,6 +1,9 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { MetricChip } from "@/components/ui/metric-chip";
+import { PexelsCredit } from "@/components/ui/pexels-credit";
+import { searchPexelsPhoto } from "@/lib/pexels";
 
 const FEATURES = [
   {
@@ -17,7 +20,9 @@ const FEATURES = [
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const heroPhoto = await searchPexelsPhoto("web analytics dashboard laptop");
+
   return (
     <main>
       <section className="relative overflow-hidden">
@@ -25,29 +30,51 @@ export default function HomePage() {
           className="pointer-events-none absolute inset-0 opacity-[0.06]"
           style={{ background: "radial-gradient(ellipse at top, #6D35F9, transparent 60%)" }}
         />
-        <div className="relative mx-auto max-w-5xl px-6 py-20">
-          <p className="mb-4 font-mono text-xs uppercase tracking-widest text-brand-violet">
-            Verified backlink exchange
-          </p>
-          <h1 className="max-w-3xl font-display text-5xl font-medium leading-[1.1] tracking-tight">
-            Trade backlinks with sites whose numbers you can{" "}
-            <span className="brand-gradient-text">actually check</span>.
-          </h1>
-          <p className="mt-6 max-w-xl text-lg text-muted">
-            Every listing carries verified metrics and an ownership check.
-            Exchange links directly, or pay for placement — either way,
-            delivery is proven before money or links move.
-          </p>
-          <div className="mt-8 flex items-center gap-4">
-            <Link href="/register">
-              <Button size="lg">List your site</Button>
-            </Link>
-            <Link href="/register">
-              <Button size="lg" variant="secondary">
-                Browse sites
-              </Button>
-            </Link>
+        <div className="relative mx-auto grid max-w-5xl items-center gap-10 px-6 py-20 md:grid-cols-2">
+          <div>
+            <p className="mb-4 font-mono text-xs uppercase tracking-widest text-brand-violet">
+              Verified backlink exchange
+            </p>
+            <h1 className="font-display text-5xl font-medium leading-[1.1] tracking-tight">
+              Trade backlinks with sites whose numbers you can{" "}
+              <span className="brand-gradient-text">actually check</span>.
+            </h1>
+            <p className="mt-6 max-w-xl text-lg text-muted">
+              Every listing carries verified metrics and an ownership check.
+              Exchange links directly, or pay for placement — either way,
+              delivery is proven before money or links move.
+            </p>
+            <div className="mt-8 flex items-center gap-4">
+              <Link href="/register">
+                <Button size="lg">List your site</Button>
+              </Link>
+              <Link href="/browse">
+                <Button size="lg" variant="secondary">
+                  Browse sites
+                </Button>
+              </Link>
+            </div>
           </div>
+
+          {heroPhoto && (
+            <div>
+              <div className="relative aspect-[4/3] overflow-hidden rounded-chip shadow-lg">
+                <Image
+                  src={heroPhoto.url}
+                  alt={heroPhoto.alt}
+                  fill
+                  className="object-cover"
+                  unoptimized
+                  priority
+                />
+              </div>
+              <PexelsCredit
+                photographer={heroPhoto.photographer}
+                photographerUrl={heroPhoto.photographerUrl}
+                className="mt-2"
+              />
+            </div>
+          )}
         </div>
       </section>
 

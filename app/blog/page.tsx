@@ -1,7 +1,9 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { ArticleCover } from "@/components/blog/article-cover";
+import { searchPexelsPhoto } from "@/lib/pexels";
 
 export const metadata: Metadata = {
   title: "Blog",
@@ -12,9 +14,16 @@ export default async function BlogIndexPage() {
   const supabase = await createClient();
   const { data: articles } = await supabase
     .from("articles")
-    .select("slug, title, meta_description, published_at")
+    .select("slug, title, meta_description, target_keyword, published_at")
     .eq("status", "published")
     .order("published_at", { ascending: false });
+
+  const withPhotos = await Promise.all(
+    (articles ?? []).map(async (article) => ({
+      ...article,
+      photo: await searchPexelsPhoto(article.target_keyword || article.title),
+    }))
+  );
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-16">
@@ -28,13 +37,25 @@ export default async function BlogIndexPage() {
       </p>
 
       <div className="grid gap-6 sm:grid-cols-2">
-        {articles?.map((article) => (
+        {withPhotos.map((article) => (
           <Link
             key={article.slug}
             href={`/blog/${article.slug}`}
             className="group overflow-hidden rounded-chip border border-line bg-white transition-shadow hover:shadow-md"
           >
-            <ArticleCover seed={article.slug} className="aspect-[600/315] w-full" />
+            {article.photo ? (
+              <div className="relative aspect-[600/315] w-full overflow-hidden">
+                <Image
+                  src={article.photo.url}
+                  alt={article.photo.alt}
+                  fill
+                  className="object-cover transition-transform group-hover:scale-105"
+                  unoptimized
+                />
+              </div>
+            ) : (
+              <ArticleCover seed={article.slug} className="aspect-[600/315] w-full" />
+            )}
             <div className="p-5">
               <h2 className="mb-2 font-display text-lg font-medium group-hover:text-brand-violet">
                 {article.title}
@@ -50,7 +71,7 @@ export default async function BlogIndexPage() {
             </div>
           </Link>
         ))}
-        {!articles?.length && <p className="text-muted">No articles published yet.</p>}
+        {!withPhotos.length && <p className="text-muted">No articles published yet.</p>}
       </div>
     </main>
   );

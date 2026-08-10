@@ -33,6 +33,7 @@ export default function OrderDetailPage({
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [showDisputeForm, setShowDisputeForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasReviewed, setHasReviewed] = useState(false);
 
@@ -103,6 +104,27 @@ export default function OrderDetailPage({
       return;
     }
     window.location.href = body.redirectUrl;
+  }
+
+  async function handleDispute(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    const form = new FormData(e.currentTarget);
+    const res = await fetch(`/api/orders/${id}/dispute`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason: form.get("reason") }),
+    });
+    if (!res.ok) {
+      const body = await res.json();
+      setError(typeof body.error === "string" ? body.error : "Could not open a dispute.");
+      setBusy(false);
+      return;
+    }
+    setShowDisputeForm(false);
+    setBusy(false);
+    load();
   }
 
   if (!order || !userId) return <p className="text-muted">Loading…</p>;
@@ -186,6 +208,47 @@ export default function OrderDetailPage({
             <p className="mb-6 text-sm text-muted">You&apos;ve already reviewed this order.</p>
           )}
         </>
+      )}
+
+      {order.status === "disputed" && (
+        <div className="mb-6 rounded-chip border border-amber/40 bg-amber-soft p-4 text-sm">
+          This order is under dispute. An admin will review it and reach a
+          decision — you don&apos;t need to do anything else here.
+        </div>
+      )}
+
+      {!["accepted", "disputed", "cancelled", "refunded"].includes(order.status) && (
+        <div className="mb-6">
+          {!showDisputeForm ? (
+            <button
+              type="button"
+              onClick={() => setShowDisputeForm(true)}
+              className="text-sm text-muted underline"
+            >
+              Something wrong? Report a problem
+            </button>
+          ) : (
+            <form onSubmit={handleDispute} className="space-y-3 rounded-chip border border-line bg-white p-5">
+              <h2 className="text-sm font-medium">Report a problem with this order</h2>
+              <textarea
+                name="reason"
+                required
+                minLength={10}
+                rows={3}
+                placeholder="What went wrong? An admin will review this."
+                className="w-full rounded-chip border border-line px-3 py-2 text-sm outline-none focus:border-brand-violet"
+              />
+              <div className="flex gap-2">
+                <Button type="submit" size="sm" variant="secondary" disabled={busy}>
+                  {busy ? "Submitting…" : "Open a dispute"}
+                </Button>
+                <Button type="button" size="sm" variant="ghost" onClick={() => setShowDisputeForm(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          )}
+        </div>
       )}
 
       {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
