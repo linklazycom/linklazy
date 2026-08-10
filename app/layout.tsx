@@ -60,6 +60,20 @@ export default async function RootLayout({
         {(settings.yandex_verification_code as string) && (
           <meta name="yandex-verification" content={settings.yandex_verification_code as string} />
         )}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "LinkLazy",
+              url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://linklazy.com",
+              logo: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://linklazy.com"}/logo.png`,
+              description:
+                "A vetted marketplace for exchanging and buying backlinks between verified sites.",
+            }),
+          }}
+        />
       </head>
       <body>
         {children}
