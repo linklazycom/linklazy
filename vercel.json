@@ -3,6 +3,14 @@
     {
       "path": "/api/cron/search-alerts",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/link-checker",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/subscription-renew",
+      "schedule": "0 5 * * *"
     }
   ]
 }
