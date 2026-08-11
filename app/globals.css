@@ -78,3 +78,19 @@ body {
 .article-content td {
   @apply border border-line px-3 py-2 text-left;
 }
+.article-content thead th {
+  @apply bg-paper font-medium;
+}
+/* Blockquotes double as "key takeaway" highlight boxes throughout
+   articles — a recurring visual break from plain paragraphs. */
+.article-content blockquote {
+  @apply my-6 rounded-chip border-l-4 border-brand-violet bg-brand-soft px-5 py-4 text-[15px] italic text-ink;
+}
+.article-content blockquote p {
+  @apply mb-0;
+}
+/* A section-break graphic (brand gradient bar) usable between major
+   sections of long articles — no external image/credit needed. */
+.article-content hr {
+  @apply my-10 h-1 w-24 rounded-full border-0 bg-brand-gradient;
+}
