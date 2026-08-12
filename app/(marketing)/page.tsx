@@ -2,7 +2,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { MetricChip } from "@/components/ui/metric-chip";
-import { PexelsCredit } from "@/components/ui/pexels-credit";
 import { searchPexelsPhoto } from "@/lib/pexels";
 
 const FEATURES = [
@@ -57,21 +56,14 @@ export default async function HomePage() {
           </div>
 
           {heroPhoto && (
-            <div>
-              <div className="relative aspect-[4/3] overflow-hidden rounded-chip shadow-lg">
-                <Image
-                  src={heroPhoto.url}
-                  alt={heroPhoto.alt}
-                  fill
-                  className="object-cover"
-                  unoptimized
-                  priority
-                />
-              </div>
-              <PexelsCredit
-                photographer={heroPhoto.photographer}
-                photographerUrl={heroPhoto.photographerUrl}
-                className="mt-2"
+            <div className="relative aspect-[4/3] overflow-hidden rounded-chip shadow-lg">
+              <Image
+                src={heroPhoto.url}
+                alt={heroPhoto.alt}
+                fill
+                className="object-cover"
+                unoptimized
+                priority
               />
             </div>
           )}

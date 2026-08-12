@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { PexelsCredit } from "@/components/ui/pexels-credit";
 import { searchPexelsPhoto } from "@/lib/pexels";
 
 export const metadata: Metadata = {
@@ -16,11 +15,8 @@ export default async function AboutPage() {
       <h1 className="mb-6 font-display text-3xl font-medium">About LinkLazy</h1>
 
       {photo && (
-        <div className="mb-6">
-          <div className="relative aspect-[16/9] overflow-hidden rounded-chip">
-            <Image src={photo.url} alt={photo.alt} fill className="object-cover" unoptimized />
-          </div>
-          <PexelsCredit photographer={photo.photographer} photographerUrl={photo.photographerUrl} className="mt-2" />
+        <div className="relative mb-6 aspect-[16/9] overflow-hidden rounded-chip">
+          <Image src={photo.url} alt={photo.alt} fill className="object-cover" unoptimized />
         </div>
       )}
 
