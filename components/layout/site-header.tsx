@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
+import { MobileNav } from "@/components/layout/mobile-nav";
 import type { NavLink } from "@/lib/site-settings";
 
 export function SiteHeader({ navLinks }: { navLinks: NavLink[] }) {
@@ -17,7 +18,7 @@ export function SiteHeader({ navLinks }: { navLinks: NavLink[] }) {
             </Link>
           ))}
         </nav>
-        <div className="flex items-center gap-3">
+        <div className="hidden items-center gap-3 md:flex">
           <Link href="/login" className="text-sm text-muted hover:text-ink">
             Log in
           </Link>
@@ -25,6 +26,7 @@ export function SiteHeader({ navLinks }: { navLinks: NavLink[] }) {
             <Button size="sm">Get started</Button>
           </Link>
         </div>
+        <MobileNav navLinks={navLinks} />
       </div>
     </header>
   );
