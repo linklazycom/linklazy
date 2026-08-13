@@ -77,7 +77,13 @@ export default async function RootLayout({
         />
       </head>
       <body>
-        <NavigationProgress />
+        {/* FIX: NavigationProgress uses useSearchParams(), which Next.js
+            requires to be wrapped in <Suspense> — without this the build
+            throws "useSearchParams() should be wrapped in a suspense
+            boundary". */}
+        <Suspense fallback={null}>
+          <NavigationProgress />
+        </Suspense>
         {children}
         <Suspense fallback={null}>
           <PageViewTracker />
@@ -99,4 +105,3 @@ export default async function RootLayout({
     </html>
   );
 }
-
