@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -15,6 +16,8 @@ export default function RegisterPage() {
   const [role, setRole] = useState<"buyer" | "seller" | "both">("buyer");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const refCode = searchParams.get("ref");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -34,9 +37,22 @@ export default function RegisterPage() {
     }
 
     // The `handle_new_user` trigger creates the profiles row automatically.
-    // We update its role here based on what the person picked at sign-up.
+    // We update its role (and optionally referred_by) here after the fact.
     if (data.user) {
-      await supabase.from("profiles").update({ role }).eq("id", data.user.id);
+      const updates: { role: typeof role; referred_by?: string } = { role };
+
+      if (refCode) {
+        const res = await fetch(`/api/referral/resolve?code=${encodeURIComponent(refCode)}`);
+        const { referrerId } = await res.json();
+
+        // Ignore a self-referral or an invalid/unknown code silently —
+        // signup still succeeds either way.
+        if (referrerId && referrerId !== data.user.id) {
+          updates.referred_by = referrerId;
+        }
+      }
+
+      await supabase.from("profiles").update(updates).eq("id", data.user.id);
     }
 
     router.push("/dashboard");
@@ -46,6 +62,11 @@ export default function RegisterPage() {
   return (
     <div>
       <h1 className="mb-6 font-display text-xl font-medium">Create an account</h1>
+      {refCode && (
+        <p className="mb-4 rounded-chip border border-brand-violet/30 bg-brand-soft px-3 py-2 text-xs text-ink">
+          You were referred by a LinkLazy member — thanks for signing up!
+        </p>
+      )}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="fullName" className="mb-1 block text-sm text-muted">

@@ -10,12 +10,14 @@ import { NotificationBell } from "@/components/layout/notification-bell";
 const NAV = [
   { href: "/dashboard", label: "Overview" },
   { href: "/dashboard/sites", label: "My sites" },
+  { href: "/dashboard/analytics", label: "My analytics" },
   { href: "/browse", label: "Browse" },
   { href: "/dashboard/matches", label: "Exchange matches" },
   { href: "/dashboard/watchlist", label: "Watchlist" },
   { href: "/dashboard/saved-searches", label: "Saved searches" },
   { href: "/dashboard/messages", label: "Messages" },
   { href: "/dashboard/orders", label: "Orders" },
+  { href: "/dashboard/referrals", label: "Referrals" },
   { href: "/dashboard/support", label: "My tickets" },
   { href: "/dashboard/billing", label: "Billing" },
 ];
