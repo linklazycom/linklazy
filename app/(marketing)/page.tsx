@@ -4,18 +4,27 @@ import { Button } from "@/components/ui/button";
 import { MetricChip } from "@/components/ui/metric-chip";
 import { searchPexelsPhoto } from "@/lib/pexels";
 
+// Each feature now carries its own tone so the row isn't three identical
+// gradient squares — reuses the existing brand/signal/amber tokens already
+// defined in tailwind.config.ts, nothing new introduced.
 const FEATURES = [
   {
     title: "Ownership verified",
     body: "Every listing proves control of the site — a meta tag, DNS record, or file check — before it goes live.",
+    iconBg: "bg-signal-soft",
+    iconColor: "text-signal",
   },
   {
     title: "Metrics you can trust",
     body: "DA, DR, traffic, referring domains, and spam score shown up front, re-checked over time.",
+    iconBg: "bg-brand-soft",
+    iconColor: "text-brand-violet",
   },
   {
     title: "Escrow-protected orders",
     body: "Payment is held until you confirm the link is live and correct — never released blind.",
+    iconBg: "bg-amber-soft",
+    iconColor: "text-amber",
   },
 ];
 
@@ -25,10 +34,24 @@ export default async function HomePage() {
   return (
     <main>
       <section className="relative overflow-hidden">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.06]"
-          style={{ background: "radial-gradient(ellipse at top, #6D35F9, transparent 60%)" }}
-        />
+        {/* Was a single radial-gradient at opacity-[0.06] — nearly invisible.
+            Now three overlapping brand-color blobs at a visible-but-still-
+            subtle opacity, echoing the logo's blue→violet→magenta gradient
+            without touching body text/background colors. */}
+        <div className="pointer-events-none absolute inset-0">
+          <div
+            className="absolute -top-20 -left-20 h-[420px] w-[420px] rounded-full opacity-[0.18] blur-3xl"
+            style={{ background: "#2C75FC" }}
+          />
+          <div
+            className="absolute -top-10 right-0 h-[380px] w-[380px] rounded-full opacity-[0.16] blur-3xl"
+            style={{ background: "#6D35F9" }}
+          />
+          <div
+            className="absolute bottom-[-140px] left-1/3 h-[360px] w-[360px] rounded-full opacity-[0.14] blur-3xl"
+            style={{ background: "#B23CFC" }}
+          />
+        </div>
         <div className="relative mx-auto grid max-w-5xl items-center gap-10 px-6 py-20 md:grid-cols-2">
           <div>
             <p className="mb-4 font-mono text-xs uppercase tracking-widest text-brand-violet">
@@ -56,7 +79,7 @@ export default async function HomePage() {
           </div>
 
           {heroPhoto && (
-            <div className="relative aspect-[4/3] overflow-hidden rounded-chip shadow-lg">
+            <div className="relative aspect-[4/3] overflow-hidden rounded-chip shadow-lg ring-1 ring-brand-violet/10">
               <Image
                 src={heroPhoto.url}
                 alt={heroPhoto.alt}
@@ -89,7 +112,11 @@ export default async function HomePage() {
           <div className="grid gap-8 md:grid-cols-3">
             {FEATURES.map((f) => (
               <div key={f.title}>
-                <div className="mb-3 h-8 w-8 rounded-chip bg-brand-gradient" />
+                <div
+                  className={`mb-3 flex h-10 w-10 items-center justify-center rounded-chip ${f.iconBg} ${f.iconColor} font-display text-lg font-semibold`}
+                >
+                  ✓
+                </div>
                 <p className="mb-2 font-display text-lg font-medium">{f.title}</p>
                 <p className="text-sm text-muted">{f.body}</p>
               </div>
@@ -98,7 +125,8 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-5xl px-6 py-16 text-center">
+      <section className="relative mx-auto max-w-5xl overflow-hidden px-6 py-16 text-center">
+        <div className="absolute inset-0 -z-10 bg-brand-gradient opacity-[0.05]" />
         <h2 className="mb-3 font-display text-2xl font-medium">
           Ready to build cleaner backlinks?
         </h2>
