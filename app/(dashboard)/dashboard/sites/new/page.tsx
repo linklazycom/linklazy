@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Field } from "@/components/ui/field";
+import { SelectField } from "@/components/ui/select-field";
+import { NICHES } from "@/lib/niches";
 import { Button } from "@/components/ui/button";
 
 export default function NewSitePage() {
@@ -73,7 +75,7 @@ export default function NewSitePage() {
             <div className="col-span-2">
               <Field id="url" name="url" label="Site URL" placeholder="https://example.com" required />
             </div>
-            <Field id="niche" name="niche" label="Niche" placeholder="Home & Garden" required />
+            <SelectField id="niche" name="niche" label="Niche" options={NICHES} required />
             <Field id="language" name="language" label="Language" defaultValue="en" />
           </div>
         </div>

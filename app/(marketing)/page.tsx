@@ -4,9 +4,6 @@ import { Button } from "@/components/ui/button";
 import { MetricChip } from "@/components/ui/metric-chip";
 import { searchPexelsPhoto } from "@/lib/pexels";
 
-// Each feature now carries its own tone so the row isn't three identical
-// gradient squares — reuses the existing brand/signal/amber tokens already
-// defined in tailwind.config.ts, nothing new introduced.
 const FEATURES = [
   {
     title: "Ownership verified",
@@ -28,16 +25,65 @@ const FEATURES = [
   },
 ];
 
+const STEPS = [
+  {
+    n: "1",
+    title: "Browse or list",
+    body: "Browse verified sites for free, or list your own in a few minutes — no cost to get approved.",
+  },
+  {
+    n: "2",
+    title: "Exchange or order",
+    body: "Trade links directly with a relevant site, or place a paid order with escrow protection.",
+  },
+  {
+    n: "3",
+    title: "Confirm delivery",
+    body: "Payment releases to the seller only after you confirm the link is live and matches the order.",
+  },
+];
+
+const FAQS = [
+  {
+    q: "How is LinkLazy different from a regular backlink seller?",
+    a: "Every listing goes through an ownership check before it's approved, and metrics are shown transparently. Paid orders are escrow-protected, so funds only release once delivery is confirmed — you're not paying blind.",
+  },
+  {
+    q: "Is it free to list my site?",
+    a: "Yes. Listing is free under the Commission plan — LinkLazy only takes a percentage when you complete a paid order. A flat Monthly plan is also available if you'd rather pay 0% commission.",
+  },
+  {
+    q: "What happens if a seller doesn't deliver?",
+    a: "Escrow protects you — funds are only released once you confirm the link is live and correct. If there's a dispute, our moderation team reviews it before any payout.",
+  },
+  {
+    q: "Can I exchange links without paying?",
+    a: "Yes — many listings accept direct exchanges alongside or instead of paid placements. You can filter for exchange-only sites when browsing.",
+  },
+];
+
 export default async function HomePage() {
   const heroPhoto = await searchPexelsPhoto("web analytics dashboard laptop");
 
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: FAQS.map((f) => ({
+      "@type": "Question",
+      name: f.q,
+      acceptedAnswer: { "@type": "Answer", text: f.a },
+    })),
+  };
+
   return (
     <main>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+
+      {/* Hero */}
       <section className="relative overflow-hidden">
-        {/* Was a single radial-gradient at opacity-[0.06] — nearly invisible.
-            Now three overlapping brand-color blobs at a visible-but-still-
-            subtle opacity, echoing the logo's blue→violet→magenta gradient
-            without touching body text/background colors. */}
         <div className="pointer-events-none absolute inset-0">
           <div
             className="absolute -top-20 -left-20 h-[420px] w-[420px] rounded-full opacity-[0.18] blur-3xl"
@@ -64,7 +110,8 @@ export default async function HomePage() {
             <p className="mt-6 max-w-xl text-lg text-muted">
               Every listing carries verified metrics and an ownership check.
               Exchange links directly, or pay for placement — either way,
-              delivery is proven before money or links move.
+              delivery is proven before money or links move. No guessing
+              whether a "DA 50" site is real or an expired-domain shell.
             </p>
             <div className="mt-8 flex items-center gap-4">
               <Link href="/register">
@@ -93,6 +140,7 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* Sample listing */}
       <section className="mx-auto max-w-5xl px-6 pb-16">
         <div className="rounded-chip border border-line bg-white p-8 shadow-sm">
           <p className="mb-4 text-sm text-muted">A listing looks like this:</p>
@@ -107,6 +155,7 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* Features */}
       <section className="border-t border-line bg-white">
         <div className="mx-auto max-w-5xl px-6 py-16">
           <div className="grid gap-8 md:grid-cols-3">
@@ -125,6 +174,64 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* How it works */}
+      <section className="mx-auto max-w-5xl px-6 py-16">
+        <h2 className="mb-2 text-center font-display text-2xl font-medium">How it works</h2>
+        <p className="mx-auto mb-10 max-w-md text-center text-muted">
+          From browsing to a live link, in three steps.
+        </p>
+        <div className="grid gap-8 md:grid-cols-3">
+          {STEPS.map((s) => (
+            <div key={s.n} className="relative rounded-chip border border-line bg-white p-6">
+              <span className="brand-gradient-text font-display text-3xl font-semibold">
+                {s.n}
+              </span>
+              <p className="mb-2 mt-2 font-display text-lg font-medium">{s.title}</p>
+              <p className="text-sm text-muted">{s.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Social proof */}
+      <section className="border-t border-line bg-white">
+        <div className="mx-auto max-w-5xl px-6 py-16 text-center">
+          <p className="mb-8 font-mono text-xs uppercase tracking-widest text-muted">
+            Built for people who actually check before they buy
+          </p>
+          <div className="grid gap-6 sm:grid-cols-3">
+            <div className="rounded-chip border border-line p-6">
+              <p className="font-display text-3xl font-semibold text-brand-violet">100%</p>
+              <p className="mt-1 text-sm text-muted">Ownership-verified listings</p>
+            </div>
+            <div className="rounded-chip border border-line p-6">
+              <p className="font-display text-3xl font-semibold text-signal">Escrow</p>
+              <p className="mt-1 text-sm text-muted">Protected on every paid order</p>
+            </div>
+            <div className="rounded-chip border border-line p-6">
+              <p className="font-display text-3xl font-semibold text-amber">Free</p>
+              <p className="mt-1 text-sm text-muted">To browse and list your site</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="mx-auto max-w-3xl px-6 py-16">
+        <h2 className="mb-8 text-center font-display text-2xl font-medium">
+          Frequently asked questions
+        </h2>
+        <div className="flex flex-col gap-6">
+          {FAQS.map((f) => (
+            <div key={f.q}>
+              <p className="font-medium">{f.q}</p>
+              <p className="mt-1 text-sm text-muted">{f.a}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Final CTA */}
       <section className="relative mx-auto max-w-5xl overflow-hidden px-6 py-16 text-center">
         <div className="absolute inset-0 -z-10 bg-brand-gradient opacity-[0.05]" />
         <h2 className="mb-3 font-display text-2xl font-medium">

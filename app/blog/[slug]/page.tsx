@@ -4,6 +4,7 @@ import Image from "next/image";
 import { marked } from "marked";
 import { createClient } from "@/lib/supabase/server";
 import { ArticleCover } from "@/components/blog/article-cover";
+import { BlogSidebar } from "@/components/blog/blog-sidebar";
 import { searchPexelsPhoto } from "@/lib/pexels";
 
 export async function generateMetadata({
@@ -58,14 +59,23 @@ export default async function ArticlePage({
       ) : (
         <ArticleCover seed={slug} className="h-64 w-full object-cover md:h-80" />
       )}
-      <div className="mx-auto max-w-2xl px-6 py-12">
-        <h1 className="mb-2 font-display text-3xl font-medium">{article.title}</h1>
-        {article.published_at && (
-          <p className="mb-8 text-xs text-muted">
-            {new Date(article.published_at).toLocaleDateString()}
-          </p>
-        )}
-        <div className="article-content" dangerouslySetInnerHTML={{ __html: html }} />
+      <div className="mx-auto grid max-w-5xl gap-10 px-6 py-12 lg:grid-cols-[1fr_280px]">
+        <div className="max-w-2xl">
+          <h1 className="mb-2 font-display text-3xl font-medium">{article.title}</h1>
+          {article.published_at && (
+            <p className="mb-8 text-xs text-muted">
+              {new Date(article.published_at).toLocaleDateString()}
+            </p>
+          )}
+          <div className="article-content" dangerouslySetInnerHTML={{ __html: html }} />
+        </div>
+        <div className="hidden lg:block">
+          <BlogSidebar excludeSlug={slug} />
+        </div>
+        {/* Sidebar also shown below the article on mobile instead of hidden entirely */}
+        <div className="lg:hidden">
+          <BlogSidebar excludeSlug={slug} />
+        </div>
       </div>
     </main>
   );
