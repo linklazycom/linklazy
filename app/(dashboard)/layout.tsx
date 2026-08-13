@@ -5,6 +5,7 @@ import { Logo } from "@/components/ui/logo";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { LogoutButton } from "@/components/layout/logout-button";
 import { MobileSidebarShell } from "@/components/layout/mobile-sidebar-shell";
+import { NotificationBell } from "@/components/layout/notification-bell";
 
 const NAV = [
   { href: "/dashboard", label: "Overview" },
@@ -13,6 +14,7 @@ const NAV = [
   { href: "/dashboard/matches", label: "Exchange matches" },
   { href: "/dashboard/watchlist", label: "Watchlist" },
   { href: "/dashboard/saved-searches", label: "Saved searches" },
+  { href: "/dashboard/messages", label: "Messages" },
   { href: "/dashboard/orders", label: "Orders" },
   { href: "/dashboard/support", label: "My tickets" },
   { href: "/dashboard/billing", label: "Billing" },
@@ -61,7 +63,12 @@ export default async function DashboardLayout({
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
       <MobileSidebarShell>{sidebarContent}</MobileSidebarShell>
-      <main className="flex-1 bg-paper p-4 md:p-8">{children}</main>
+      <main className="flex-1 bg-paper p-4 md:p-8">
+        <div className="mb-4 flex justify-end">
+          <NotificationBell userId={user.id} />
+        </div>
+        {children}
+      </main>
     </div>
   );
 }

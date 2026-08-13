@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
 import { Logo } from "@/components/ui/logo";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { LogoutButton } from "@/components/layout/logout-button";
 import { MobileSidebarShell } from "@/components/layout/mobile-sidebar-shell";
+import { NotificationBell } from "@/components/layout/notification-bell";
 
 const NAV = [
   { href: "/admin", label: "Overview" },
@@ -16,7 +18,12 @@ const NAV = [
   { href: "/admin/settings", label: "Settings" },
 ];
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const sidebarContent = (
     <>
       <Link href="/" className="mb-1 block">
@@ -37,7 +44,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
       <MobileSidebarShell>{sidebarContent}</MobileSidebarShell>
-      <main className="flex-1 bg-paper p-4 md:p-8">{children}</main>
+      <main className="flex-1 bg-paper p-4 md:p-8">
+        {user && (
+          <div className="mb-4 flex justify-end">
+            <NotificationBell userId={user.id} />
+          </div>
+        )}
+        {children}
+      </main>
     </div>
   );
 }
