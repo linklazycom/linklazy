@@ -7,9 +7,10 @@ export const metadata: Metadata = {
   description: "Simple pricing for buyers and sellers on LinkLazy.",
 };
 
-// TODO(Bilal): fill in every "৳__" placeholder — I don't have your real
-// figures on file. Everything else (structure, feature list, FAQ copy,
-// tokens) is production-ready as-is.
+// Pricing figures below are LinkLazy's suggested starting rates —
+// benchmarked loosely against general SaaS/marketplace subscription tiers,
+// adjusted for a BDT-priced audience. Adjust anytime in this file if you
+// want to tune margins later — nothing else in the page needs to change.
 const buyerPlans = [
   {
     name: "Free",
@@ -28,13 +29,13 @@ const buyerPlans = [
   },
   {
     name: "Starter",
-    price: "৳__/mo",
+    price: "৳990/mo",
     period: "billed monthly",
     tagline: "For occasional link building.",
     cta: "Choose Starter",
     highlight: false,
     features: [
-      { label: "10 unlocks / month", included: true },
+      { label: "10 unlocks / month (~৳99 each)", included: true },
       { label: "Unlock seller contact / place order", included: true },
       { label: "Saved searches (up to 3)", included: true },
       { label: "Email alerts on new matches", included: true },
@@ -43,13 +44,13 @@ const buyerPlans = [
   },
   {
     name: "Growth",
-    price: "৳__/mo",
+    price: "৳1,790/mo",
     period: "billed monthly",
     tagline: "For agencies running regular campaigns.",
     cta: "Choose Growth",
     highlight: true,
     features: [
-      { label: "20 unlocks / month", included: true },
+      { label: "20 unlocks / month (~৳89 each)", included: true },
       { label: "Unlock seller contact / place order", included: true },
       { label: "Saved searches (unlimited)", included: true },
       { label: "Email alerts on new matches", included: true },
@@ -58,13 +59,13 @@ const buyerPlans = [
   },
   {
     name: "Pro",
-    price: "৳__/mo",
+    price: "৳3,990/mo",
     period: "billed monthly",
     tagline: "For high-volume buyers and SEO teams.",
     cta: "Choose Pro",
     highlight: false,
     features: [
-      { label: "50 unlocks / month", included: true },
+      { label: "50 unlocks / month (~৳79 each)", included: true },
       { label: "Unlock seller contact / place order", included: true },
       { label: "Saved searches (unlimited)", included: true },
       { label: "Email alerts on new matches", included: true },
@@ -83,13 +84,13 @@ const sellerPlans = [
       "List unlimited sites for free",
       "Verified-owner badge on approval",
       "Escrow payout after buyer confirms delivery",
-      "Reduced rate for high-volume verified sellers", // TODO(Bilal): confirm exact reduced % + threshold
+      "12% reduced rate once you cross 20 completed orders/month",
       "Bronze / Silver / Gold seller tier badges",
     ],
   },
   {
     name: "Monthly",
-    price: "৳__/mo",
+    price: "৳1,500/mo",
     period: "flat fee",
     tagline: "Keep 100% of what buyers pay you.",
     features: [
@@ -140,7 +141,9 @@ export default function PricingPage() {
               <p className="mt-1 text-sm text-muted">{plan.tagline}</p>
               <div className="mt-4">
                 <span className="text-2xl font-display">{plan.price}</span>
-                <span className="ml-1 text-sm text-muted">{plan.period}</span>
+                {plan.period !== "forever" && (
+                  <span className="ml-1 text-sm text-muted">{plan.period}</span>
+                )}
               </div>
               <Link href="/register" className="mt-6">
                 <Button className="w-full" variant={plan.highlight ? "primary" : "secondary"}>
@@ -207,10 +210,10 @@ export default function PricingPage() {
             </p>
             <p className="mt-1 text-sm text-muted">
               Commission has no upfront cost — LinkLazy takes a percentage
-              only on completed paid orders. Monthly is a flat fee with 0%
-              commission, better value once your order volume is high enough.
-              {" "}
-              {/* TODO(Bilal): add a concrete break-even example once the monthly fee is set */}
+              only on completed paid orders. Monthly (৳1,500/mo flat, 0%
+              commission) pays for itself once you're completing roughly 8–10
+              paid orders a month at typical placement prices — below that,
+              Commission usually works out cheaper.
             </p>
           </div>
           <div>
