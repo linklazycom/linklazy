@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email";
 import { getSiteSettings } from "@/lib/site-settings";
@@ -19,11 +20,20 @@ export async function POST(request: Request) {
   }
 
   const { name, email, subject, message } = parsed.data;
+
+  // If the visitor happens to be logged in, link the ticket to their
+  // account so it shows up under Dashboard → My Tickets. Guests (no
+  // session) still get a working ticket via the access_token flow.
+  const sessionClient = await createClient();
+  const {
+    data: { user },
+  } = await sessionClient.auth.getUser();
+
   const supabase = createServiceClient();
 
   const { data: ticket, error: ticketError } = await supabase
     .from("support_tickets")
-    .insert({ name, email, subject })
+    .insert({ name, email, subject, user_id: user?.id ?? null })
     .select("id, access_token")
     .single();
 

@@ -14,6 +14,7 @@ const NAV = [
   { href: "/dashboard/watchlist", label: "Watchlist" },
   { href: "/dashboard/saved-searches", label: "Saved searches" },
   { href: "/dashboard/orders", label: "Orders" },
+  { href: "/dashboard/support", label: "My tickets" },
   { href: "/dashboard/billing", label: "Billing" },
 ];
 
