@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import "./globals.css";
 import { getSiteSettings } from "@/lib/site-settings";
 import { PageViewTracker } from "@/components/analytics/page-view-tracker";
+import { NavigationProgress } from "@/components/layout/navigation-progress";
 
 const display = Fraunces({
   subsets: ["latin"],
@@ -76,6 +77,7 @@ export default async function RootLayout({
         />
       </head>
       <body>
+        <NavigationProgress />
         {children}
         <Suspense fallback={null}>
           <PageViewTracker />
