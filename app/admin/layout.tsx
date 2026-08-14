@@ -18,6 +18,7 @@ const NAV = [
   { href: "/admin/support", label: "Support tickets" },
   { href: "/admin/withdrawals", label: "Withdrawals" },
   { href: "/admin/ppv-unlocks", label: "Pay-per-view unlocks" },
+  { href: "/admin/wallet-ledger", label: "Wallet ledger" },
   { href: "/admin/coupons", label: "Coupons" },
   { href: "/admin/settings", label: "Settings" },
 ];
