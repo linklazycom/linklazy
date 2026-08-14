@@ -17,6 +17,7 @@ const NAV = [
   { href: "/dashboard/saved-searches", label: "Saved searches" },
   { href: "/dashboard/messages", label: "Messages" },
   { href: "/dashboard/orders", label: "Orders" },
+  { href: "/dashboard/press-releases", label: "Press releases" },
   { href: "/dashboard/referrals", label: "Referrals" },
   { href: "/dashboard/support", label: "My tickets" },
   { href: "/dashboard/billing", label: "Billing" },

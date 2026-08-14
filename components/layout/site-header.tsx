@@ -17,6 +17,11 @@ export function SiteHeader({ navLinks }: { navLinks: NavLink[] }) {
               {link.label}
             </Link>
           ))}
+          {!navLinks.some((link) => link.href === "/press-releases") && (
+            <Link href="/press-releases" className="text-sm text-muted hover:text-ink">
+              Press releases
+            </Link>
+          )}
         </nav>
         <div className="hidden items-center gap-3 md:flex">
           <Link href="/login" className="text-sm text-muted hover:text-ink">

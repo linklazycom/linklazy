@@ -22,6 +22,7 @@ interface NavLink {
 
 const DEFAULT_NAV_LINKS: NavLink[] = [
   { label: "Browse Sites", href: "/browse" },
+  { label: "Press releases", href: "/press-releases" },
   { label: "Niches", href: "/niches" },
   { label: "Pricing", href: "/pricing" },
   { label: "Blog", href: "/blog" },

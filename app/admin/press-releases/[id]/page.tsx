@@ -1,0 +1,11 @@
+import { notFound } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { MetricChip } from "@/components/ui/metric-chip";
+import { AdminOrderStatus } from "@/components/press-releases/admin-order-status";
+
+export default async function AdminPressReleaseDetail({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params; const supabase = await createClient();
+  const { data: order } = await supabase.from("press_release_orders").select("*, profiles:user_id(full_name), press_release_order_items(product_name, unit_price)").eq("id", id).single();
+  if (!order) notFound(); const client = order.profiles as unknown as { full_name: string | null; email?: string | null } | null;
+  return <div className="mx-auto max-w-4xl"><div className="mb-6"><p className="text-sm text-muted">Press release request</p><h1 className="font-display text-2xl font-medium">{order.headline}</h1></div><div className="grid gap-6 lg:grid-cols-[1fr_320px]"><div className="space-y-5 rounded-chip border border-line bg-white p-5"><div className="flex flex-wrap gap-2"><MetricChip label="Client" value={client?.full_name ?? client?.email ?? "Unknown"}/><MetricChip label="Total" value={`৳${Number(order.total_amount).toLocaleString()}`} tone="price" /></div><dl className="space-y-4 text-sm"><div><dt className="text-muted">Website</dt><dd><a className="underline" href={order.website_url} target="_blank">{order.website_url}</a></dd></div><div><dt className="text-muted">Target URL</dt><dd><a className="underline" href={order.target_url} target="_blank">{order.target_url}</a></dd></div><div><dt className="text-muted">Brief</dt><dd className="mt-1 whitespace-pre-wrap">{order.summary}</dd></div>{order.notes && <div><dt className="text-muted">Notes</dt><dd className="mt-1 whitespace-pre-wrap">{order.notes}</dd></div>}<div><dt className="text-muted">Selected options</dt><dd className="mt-2 flex flex-wrap gap-2">{(order.press_release_order_items as unknown as { product_name: string; unit_price: number }[] | null)?.map((item) => <MetricChip key={item.product_name} label={item.product_name} value={`৳${Number(item.unit_price).toLocaleString()}`} />)}</dd></div></dl></div><AdminOrderStatus orderId={order.id} currentStatus={order.status} currentAdminNote={order.admin_note} /></div></div>;
+}

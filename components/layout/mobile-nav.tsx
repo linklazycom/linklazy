@@ -56,6 +56,11 @@ export function MobileNav({ navLinks }: { navLinks: NavLink[] }) {
                   {link.label}
                 </Link>
               ))}
+              {!navLinks.some((link) => link.href === "/press-releases") && (
+                <Link href="/press-releases" onClick={() => setOpen(false)} className="rounded-chip px-3 py-3 text-base text-ink hover:bg-white">
+                  Press releases
+                </Link>
+              )}
             </nav>
             <div className="flex flex-col gap-3 border-t border-line px-6 py-6">
               <Link href="/login" onClick={() => setOpen(false)}>

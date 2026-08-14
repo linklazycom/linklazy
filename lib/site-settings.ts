@@ -8,6 +8,7 @@ export interface NavLink {
 const DEFAULTS: Record<string, unknown> = {
   nav_links: [
     { label: "Browse Sites", href: "/browse" },
+    { label: "Press releases", href: "/press-releases" },
     { label: "Niches", href: "/niches" },
     { label: "Pricing", href: "/pricing" },
     { label: "Blog", href: "/blog" },
