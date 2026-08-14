@@ -68,7 +68,20 @@ export default async function TermsPage() {
           </p>
         </section>
         <section>
-          <h2 className="mb-2 font-display text-lg font-medium">6. Disputes</h2>
+          <h2 className="mb-2 font-display text-lg font-medium">6. Referral program</h2>
+          <p>
+            Users may earn a commission credit — currently 50% of LinkLazy's
+            commission on a referred user's completed paid orders — by
+            referring new users with their unique referral link. Referral
+            credits are informational account balances until a withdrawal
+            process is made available; LinkLazy reserves the right to adjust
+            the referral commission rate, and to withhold or reverse credits
+            found to result from fraudulent, self-referred, or abusive
+            signups.
+          </p>
+        </section>
+        <section>
+          <h2 className="mb-2 font-display text-lg font-medium">7. Disputes</h2>
           <p>
             If a buyer and seller cannot resolve an issue directly through
             in-platform messaging, either party may open a dispute for admin
@@ -78,7 +91,7 @@ export default async function TermsPage() {
           </p>
         </section>
         <section>
-          <h2 className="mb-2 font-display text-lg font-medium">7. Account suspension</h2>
+          <h2 className="mb-2 font-display text-lg font-medium">8. Account suspension</h2>
           <p>
             We may suspend or terminate accounts that violate these terms,
             submit fraudulent listings, repeatedly fail to deliver on orders,
@@ -86,7 +99,7 @@ export default async function TermsPage() {
           </p>
         </section>
         <section>
-          <h2 className="mb-2 font-display text-lg font-medium">8. Limitation of liability</h2>
+          <h2 className="mb-2 font-display text-lg font-medium">9. Limitation of liability</h2>
           <p>
             LinkLazy is provided &quot;as is.&quot; We are not liable for any
             indirect, incidental, or consequential damages arising from your
@@ -96,7 +109,7 @@ export default async function TermsPage() {
           </p>
         </section>
         <section>
-          <h2 className="mb-2 font-display text-lg font-medium">9. Changes to these terms</h2>
+          <h2 className="mb-2 font-display text-lg font-medium">10. Changes to these terms</h2>
           <p>
             We may update these terms from time to time. Continued use of
             the platform after changes take effect constitutes acceptance of
@@ -104,7 +117,7 @@ export default async function TermsPage() {
           </p>
         </section>
         <section>
-          <h2 className="mb-2 font-display text-lg font-medium">10. Contact</h2>
+          <h2 className="mb-2 font-display text-lg font-medium">11. Contact</h2>
           <p>
             Questions about these terms can be sent to{" "}
             <a href={`mailto:${email}`} className="underline">

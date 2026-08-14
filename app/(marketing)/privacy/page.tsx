@@ -59,7 +59,40 @@ export default async function PrivacyPage() {
           </p>
         </section>
         <section>
-          <h2 className="mb-2 font-display text-lg font-medium">5. Data retention</h2>
+          <h2 className="mb-2 font-display text-lg font-medium">5. Support tickets</h2>
+          <p>
+            When you contact support, we store your name, email, and message
+            history to respond to your request. If you're logged in, your
+            ticket is linked to your account so you can view it under My
+            Tickets; if you contact us as a guest, your ticket is accessible
+            only via a private link containing a unique access token. Support
+            ticket data is retained to maintain a record of past support
+            interactions and is not shared outside the team handling your
+            request.
+          </p>
+        </section>
+        <section>
+          <h2 className="mb-2 font-display text-lg font-medium">6. Notifications</h2>
+          <p>
+            We generate in-platform notifications (such as order updates, new
+            exchange matches, reviews, and messages) based on activity on
+            your account and the accounts of users you transact with. These
+            notifications are visible only to the account they belong to.
+          </p>
+        </section>
+        <section>
+          <h2 className="mb-2 font-display text-lg font-medium">7. Referral program</h2>
+          <p>
+            If you participate in our referral program, we associate new
+            accounts that sign up using your referral link with your
+            account, and track commission credits earned from their
+            completed paid orders. This data is used solely to calculate and
+            display your referral earnings and is not shared with the
+            referred user beyond what's necessary to operate the program.
+          </p>
+        </section>
+        <section>
+          <h2 className="mb-2 font-display text-lg font-medium">8. Data retention</h2>
           <p>
             We retain account and transaction data for as long as your
             account is active and as needed to comply with legal obligations,
@@ -67,7 +100,7 @@ export default async function PrivacyPage() {
           </p>
         </section>
         <section>
-          <h2 className="mb-2 font-display text-lg font-medium">6. Your rights</h2>
+          <h2 className="mb-2 font-display text-lg font-medium">9. Your rights</h2>
           <p>
             You may request access to, correction of, or deletion of your
             personal data by contacting us at{" "}
@@ -79,7 +112,7 @@ export default async function PrivacyPage() {
           </p>
         </section>
         <section>
-          <h2 className="mb-2 font-display text-lg font-medium">7. Changes to this policy</h2>
+          <h2 className="mb-2 font-display text-lg font-medium">10. Changes to this policy</h2>
           <p>
             We may update this policy from time to time. Material changes
             will be reflected by an updated &quot;last updated&quot; date on
@@ -87,7 +120,7 @@ export default async function PrivacyPage() {
           </p>
         </section>
         <section>
-          <h2 className="mb-2 font-display text-lg font-medium">8. Contact</h2>
+          <h2 className="mb-2 font-display text-lg font-medium">11. Contact</h2>
           <p>
             Questions about this policy can be sent to{" "}
             <a href={`mailto:${email}`} className="underline">
