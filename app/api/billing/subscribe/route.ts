@@ -105,9 +105,16 @@ export async function POST(request: Request) {
       context: `subscription:${subscription.id}`,
       discount_amount: originalAmount - amount,
     });
-    await serviceClient.rpc("increment_coupon_redemption_count", { coupon_id_input: appliedCouponId }).catch(() => {
-      // Fallback if the RPC helper doesn't exist — best-effort increment.
-    });
+
+    // FIX: .rpc()'s return type doesn't support chaining .catch() directly
+    // (Supabase's typed builder overload issue) — try/catch instead.
+    try {
+      await serviceClient.rpc("increment_coupon_redemption_count", {
+        coupon_id_input: appliedCouponId,
+      });
+    } catch {
+      // Best-effort increment — a failure here shouldn't block checkout.
+    }
   }
 
   // Free plans (amount 0, including a 100%-off coupon) skip the payment gateway entirely.
