@@ -25,6 +25,7 @@ export default function BillingPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [busyPlan, setBusyPlan] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [couponCode, setCouponCode] = useState("");
 
   async function load() {
     const {
@@ -49,7 +50,11 @@ export default function BillingPage() {
     const res = await fetch("/api/billing/subscribe", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ kind, plan }),
+      body: JSON.stringify({
+        kind,
+        plan,
+        coupon_code: couponCode.trim() || undefined,
+      }),
     });
     const body = await res.json();
     if (!res.ok) {
@@ -73,6 +78,20 @@ export default function BillingPage() {
   return (
     <div className="max-w-2xl">
       <h1 className="mb-6 font-display text-2xl font-medium">Billing</h1>
+
+      <div className="mb-6 max-w-xs">
+        <label htmlFor="coupon" className="mb-1 block text-sm text-muted">
+          Coupon code (optional)
+        </label>
+        <input
+          id="coupon"
+          value={couponCode}
+          onChange={(e) => setCouponCode(e.target.value)}
+          placeholder="e.g. WELCOME20"
+          className="w-full rounded-chip border border-line px-3 py-2 text-sm outline-none focus:border-signal"
+        />
+        <p className="mt-1 text-xs text-muted">Applied automatically when you choose a plan below.</p>
+      </div>
 
       {canBuy && (
         <div className="mb-10">

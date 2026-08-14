@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { createBkashPayment } from "@/lib/bkash/client";
 import { z } from "zod";
 
 const subscribeSchema = z.object({
   kind: z.enum(["buyer", "seller"]),
   plan: z.enum(["starter", "growth", "pro", "monthly"]),
+  coupon_code: z.string().trim().max(50).optional(),
 });
 
 export async function POST(request: Request) {
@@ -20,7 +22,7 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
-  const { kind, plan } = parsed.data;
+  const { kind, plan, coupon_code } = parsed.data;
 
   const settingKey =
     kind === "buyer" ? `buyer_plan_${plan}` : "seller_monthly_price";
@@ -38,6 +40,38 @@ export async function POST(request: Request) {
     views = config?.views;
   } else {
     amount = Number(setting?.value ?? 0);
+  }
+
+  const originalAmount = amount;
+
+  // Optional coupon — validated + redeemed server-side so the discount
+  // can't be forged by sending a different amount from the client.
+  let appliedCouponId: string | null = null;
+  if (coupon_code && amount > 0) {
+    const serviceClient = createServiceClient();
+    const { data: coupon } = await serviceClient
+      .from("coupons")
+      .select("id, discount_type, discount_value, max_redemptions, redemption_count, active, expires_at")
+      .eq("code", coupon_code.trim().toUpperCase())
+      .maybeSingle();
+
+    const isValid =
+      coupon &&
+      coupon.active &&
+      (!coupon.expires_at || new Date(coupon.expires_at) >= new Date()) &&
+      (coupon.max_redemptions === null || coupon.redemption_count < coupon.max_redemptions);
+
+    if (!isValid) {
+      return NextResponse.json({ error: "Invalid, expired, or fully-used coupon code." }, { status: 400 });
+    }
+
+    const discount =
+      coupon.discount_type === "percent"
+        ? Math.round(amount * (coupon.discount_value / 100))
+        : Math.min(amount, Math.round(coupon.discount_value));
+
+    amount = Math.max(0, amount - discount);
+    appliedCouponId = coupon.id;
   }
 
   const now = new Date();
@@ -61,7 +95,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: subError?.message ?? "Could not create subscription" }, { status: 500 });
   }
 
-  // Free plans (amount 0) skip the payment gateway entirely.
+  // Coupon redemption is recorded regardless of amount, right after the
+  // subscription exists to reference in `context`.
+  if (appliedCouponId) {
+    const serviceClient = createServiceClient();
+    await serviceClient.from("coupon_redemptions").insert({
+      coupon_id: appliedCouponId,
+      user_id: user.id,
+      context: `subscription:${subscription.id}`,
+      discount_amount: originalAmount - amount,
+    });
+    await serviceClient.rpc("increment_coupon_redemption_count", { coupon_id_input: appliedCouponId }).catch(() => {
+      // Fallback if the RPC helper doesn't exist — best-effort increment.
+    });
+  }
+
+  // Free plans (amount 0, including a 100%-off coupon) skip the payment gateway entirely.
   if (amount <= 0) {
     if (kind === "buyer") {
       await supabase
