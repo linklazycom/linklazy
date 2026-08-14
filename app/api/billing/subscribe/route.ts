@@ -105,7 +105,6 @@ export async function POST(request: Request) {
       context: `subscription:${subscription.id}`,
       discount_amount: originalAmount - amount,
     });
-
     // FIX: .rpc()'s return type doesn't support chaining .catch() directly
     // (Supabase's typed builder overload issue) — try/catch instead.
     try {
