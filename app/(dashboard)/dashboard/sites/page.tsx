@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { MetricChip } from "@/components/ui/metric-chip";
+import { PayPerViewSettings } from "@/components/sites/pay-per-view-settings";
 
 const STATUS_TONE: Record<string, "verified" | "price" | "default"> = {
   approved: "verified",
@@ -18,7 +19,9 @@ export default async function MySitesPage() {
 
   const { data: sites } = await supabase
     .from("sites")
-    .select("id, domain, niche, status, da, dr, organic_traffic, price_amount")
+    .select(
+      "id, domain, niche, status, da, dr, organic_traffic, price_amount, pay_per_view_enabled, view_price, access_duration_days"
+    )
     .eq("owner_id", user!.id)
     .order("created_at", { ascending: false });
 
@@ -77,6 +80,14 @@ export default async function MySitesPage() {
               >
                 Find exchange partners
               </Link>
+            )}
+            {site.status === "approved" && (
+              <PayPerViewSettings
+                siteId={site.id}
+                initialEnabled={site.pay_per_view_enabled}
+                initialPrice={site.view_price}
+                initialDurationDays={site.access_duration_days}
+              />
             )}
           </div>
         ))}

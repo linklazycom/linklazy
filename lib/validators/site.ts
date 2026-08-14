@@ -28,6 +28,10 @@ export const siteSubmissionSchema = z.object({
     .default("in_content"),
   turnaround_hours: z.coerce.number().int().min(1).default(48),
   guidelines: z.string().trim().max(2000).optional(),
+
+  pay_per_view_enabled: z.boolean().default(false),
+  view_price: z.coerce.number().int().min(50).max(500).optional(),
+  access_duration_days: z.coerce.number().int().min(1).optional(), // omit/null = lifetime
 });
 
 export type SiteSubmissionInput = z.infer<typeof siteSubmissionSchema>;

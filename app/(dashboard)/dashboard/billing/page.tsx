@@ -12,7 +12,10 @@ interface Profile {
   buyer_views_used: number;
   buyer_plan_renews_at: string | null;
   seller_plan: string | null;
+  wallet_balance: number;
 }
+
+const TOPUP_AMOUNTS = [100, 300, 500, 1000];
 
 const BUYER_PLANS = [
   { id: "starter", name: "Starter", views: 10 },
@@ -26,6 +29,9 @@ export default function BillingPage() {
   const [busyPlan, setBusyPlan] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [couponCode, setCouponCode] = useState("");
+  const [topupAmount, setTopupAmount] = useState<number | "">("");
+  const [topupBusy, setTopupBusy] = useState(false);
+  const [walletMessage, setWalletMessage] = useState<string | null>(null);
 
   async function load() {
     const {
@@ -33,7 +39,9 @@ export default function BillingPage() {
     } = await supabase.auth.getUser();
     const { data } = await supabase
       .from("profiles")
-      .select("role, buyer_plan, buyer_views_quota, buyer_views_used, buyer_plan_renews_at, seller_plan")
+      .select(
+        "role, buyer_plan, buyer_views_quota, buyer_views_used, buyer_plan_renews_at, seller_plan, wallet_balance"
+      )
       .eq("id", user!.id)
       .single();
     setProfile(data as Profile);
@@ -41,8 +49,34 @@ export default function BillingPage() {
 
   useEffect(() => {
     load();
+    const params = new URLSearchParams(window.location.search);
+    const walletStatus = params.get("wallet");
+    if (walletStatus === "success") setWalletMessage("Wallet topped up successfully.");
+    else if (walletStatus === "error") setWalletMessage("Top-up failed. Please try again.");
+    else if (walletStatus === "cancelled") setWalletMessage("Top-up was cancelled.");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function topUpWallet() {
+    if (!topupAmount || topupAmount < 50) {
+      setError("Minimum top-up is ৳50.");
+      return;
+    }
+    setTopupBusy(true);
+    setError(null);
+    const res = await fetch("/api/wallet/topup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: topupAmount }),
+    });
+    const body = await res.json();
+    if (!res.ok) {
+      setError(body.error ?? "Could not start top-up.");
+      setTopupBusy(false);
+      return;
+    }
+    window.location.href = body.redirectUrl;
+  }
 
   async function subscribe(kind: "buyer" | "seller", plan: string) {
     setBusyPlan(plan);
@@ -78,6 +112,45 @@ export default function BillingPage() {
   return (
     <div className="max-w-2xl">
       <h1 className="mb-6 font-display text-2xl font-medium">Billing</h1>
+
+      {walletMessage && (
+        <p className="mb-4 rounded-chip border border-line bg-white px-3 py-2 text-sm">{walletMessage}</p>
+      )}
+
+      <div className="mb-10 max-w-md rounded-chip border border-line bg-white p-4">
+        <h2 className="mb-1 font-display text-lg font-medium">Wallet</h2>
+        <p className="mb-3 text-sm text-muted">
+          Load your wallet to pay per-site for listings owners have enabled for pay-per-view — no
+          subscription needed. Also used to pay out your earnings if you're a seller.
+        </p>
+        <div className="mb-3">
+          <MetricChip label="Balance" value={`৳${profile.wallet_balance}`} tone="price" />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {TOPUP_AMOUNTS.map((amt) => (
+            <Button
+              key={amt}
+              size="sm"
+              variant={topupAmount === amt ? "primary" : "secondary"}
+              onClick={() => setTopupAmount(amt)}
+            >
+              ৳{amt}
+            </Button>
+          ))}
+          <input
+            type="number"
+            min={50}
+            max={50000}
+            value={topupAmount}
+            onChange={(e) => setTopupAmount(e.target.value ? Number(e.target.value) : "")}
+            placeholder="Custom amount"
+            className="w-32 rounded-chip border border-line px-3 py-1.5 text-sm outline-none focus:border-signal"
+          />
+          <Button size="sm" onClick={topUpWallet} disabled={topupBusy}>
+            {topupBusy ? "Redirecting…" : "Top up with bKash"}
+          </Button>
+        </div>
+      </div>
 
       <div className="mb-6 max-w-xs">
         <label htmlFor="coupon" className="mb-1 block text-sm text-muted">

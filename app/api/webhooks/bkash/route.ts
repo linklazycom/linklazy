@@ -12,13 +12,16 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const paymentID = url.searchParams.get("paymentID");
   const status = url.searchParams.get("status"); // success | failure | cancel
-  const kind = url.searchParams.get("kind"); // "subscription" | null (= order)
+  const kind = url.searchParams.get("kind"); // "subscription" | "wallet_topup" | null (= order)
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
   const supabase = createServiceClient();
 
   if (kind === "subscription") {
     return handleSubscriptionCallback(request, supabase, paymentID, status, siteUrl);
+  }
+  if (kind === "wallet_topup") {
+    return handleWalletTopupCallback(request, supabase, paymentID, status, siteUrl);
   }
   return handleOrderCallback(supabase, paymentID, url.searchParams.get("order_id"), status, siteUrl);
 }
@@ -118,5 +121,72 @@ async function handleSubscriptionCallback(
   } catch {
     await supabase.from("payments").update({ status: "failed" }).eq("provider_txn_id", paymentID);
     return NextResponse.redirect(`${siteUrl}/dashboard/billing?payment=error`);
+  }
+}
+
+async function handleWalletTopupCallback(
+  request: Request,
+  supabase: ReturnType<typeof createServiceClient>,
+  paymentID: string | null,
+  status: string | null,
+  siteUrl: string
+) {
+  const url = new URL(request.url);
+  const userId = url.searchParams.get("user_id");
+  const amount = Number(url.searchParams.get("amount"));
+
+  if (!paymentID || !userId || !amount) {
+    return NextResponse.redirect(`${siteUrl}/dashboard/billing?wallet=error`);
+  }
+
+  if (status !== "success") {
+    await supabase.from("payments").update({ status: "failed" }).eq("provider_txn_id", paymentID);
+    return NextResponse.redirect(`${siteUrl}/dashboard/billing?wallet=cancelled`);
+  }
+
+  // Idempotency guard: if this payment was already credited (e.g. bKash retries
+  // the callback), don't double-credit the wallet.
+  const { data: existingPayment } = await supabase
+    .from("payments")
+    .select("status")
+    .eq("provider_txn_id", paymentID)
+    .single();
+
+  if (existingPayment?.status === "released") {
+    return NextResponse.redirect(`${siteUrl}/dashboard/billing?wallet=success`);
+  }
+
+  try {
+    const result = await executeBkashPayment(paymentID);
+
+    await supabase
+      .from("payments")
+      .update({ status: "released", raw_response: result as unknown as Record<string, unknown> })
+      .eq("provider_txn_id", paymentID);
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("wallet_balance")
+      .eq("id", userId)
+      .single();
+
+    const newBalance = (profile?.wallet_balance ?? 0) + amount;
+
+    await supabase.from("profiles").update({ wallet_balance: newBalance }).eq("id", userId);
+
+    await supabase.from("wallet_ledger").insert({
+      user_id: userId,
+      type: "topup",
+      amount,
+      balance_after: newBalance,
+      provider: "bkash",
+      provider_txn_id: paymentID,
+      notes: "Wallet top-up via bKash",
+    });
+
+    return NextResponse.redirect(`${siteUrl}/dashboard/billing?wallet=success`);
+  } catch {
+    await supabase.from("payments").update({ status: "failed" }).eq("provider_txn_id", paymentID);
+    return NextResponse.redirect(`${siteUrl}/dashboard/billing?wallet=error`);
   }
 }

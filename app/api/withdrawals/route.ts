@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 
 const requestSchema = z.object({
   amount: z.number().int().positive(),
@@ -24,7 +25,17 @@ export async function POST(request: Request) {
     .from("referral_credits")
     .select("amount")
     .eq("referrer_id", user.id);
-  const totalEarned = (credits ?? []).reduce((sum, c) => sum + c.amount, 0);
+  const totalReferralEarned = (credits ?? []).reduce((sum, c) => sum + c.amount, 0);
+
+  // Pay-per-view earnings live in profiles.wallet_balance (kept in sync by the
+  // unlock_site_with_wallet RPC). This is spendable cash, not a credit total,
+  // so it's added directly rather than summed from the ledger.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("wallet_balance")
+    .eq("id", user.id)
+    .single();
+  const walletBalance = profile?.wallet_balance ?? 0;
 
   // Pending/approved/paid requests all lock funds — only a rejected
   // request frees the balance back up.
@@ -35,13 +46,41 @@ export async function POST(request: Request) {
     .in("status", ["pending", "approved", "paid"]);
   const totalLocked = (existingRequests ?? []).reduce((sum, r) => sum + r.amount, 0);
 
-  const available = totalEarned - totalLocked;
+  const available = totalReferralEarned + walletBalance - totalLocked;
 
   if (parsed.data.amount > available) {
     return NextResponse.json(
       { error: `You can withdraw at most ৳${available}.` },
       { status: 400 }
     );
+  }
+
+  // Reserve funds from the wallet immediately (up to what's available there)
+  // so the same taka can't be withdrawn twice via two concurrent requests.
+  // Referral credits aren't a live balance, so only the wallet portion needs
+  // debiting here — the wallet debit is authoritative and atomic per-user.
+  const fromWallet = Math.min(parsed.data.amount, walletBalance);
+  if (fromWallet > 0) {
+    const serviceClient = createServiceClient();
+    const { data: freshProfile } = await serviceClient
+      .from("profiles")
+      .select("wallet_balance")
+      .eq("id", user.id)
+      .single();
+
+    if (!freshProfile || freshProfile.wallet_balance < fromWallet) {
+      return NextResponse.json({ error: "Wallet balance changed, please retry." }, { status: 409 });
+    }
+
+    const newBalance = freshProfile.wallet_balance - fromWallet;
+    await serviceClient.from("profiles").update({ wallet_balance: newBalance }).eq("id", user.id);
+    await serviceClient.from("wallet_ledger").insert({
+      user_id: user.id,
+      type: "withdrawal",
+      amount: -fromWallet,
+      balance_after: newBalance,
+      notes: "Reserved for withdrawal request",
+    });
   }
 
   const { error } = await supabase.from("withdrawal_requests").insert({

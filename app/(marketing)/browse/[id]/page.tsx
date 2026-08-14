@@ -32,6 +32,8 @@ interface SiteDetail {
   placement: string;
   turnaround_hours: number;
   guidelines: string | null;
+  pay_per_view_enabled: boolean;
+  view_price: number | null;
 }
 
 interface SellerInfo {
@@ -58,6 +60,7 @@ export default function PublicSiteDetailPage({
   const [unlocked, setUnlocked] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [buyerPlan, setBuyerPlan] = useState<string | null>(null);
+  const [walletBalance, setWalletBalance] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -72,25 +75,40 @@ export default function PublicSiteDetailPage({
     if (user) {
       const { data: profile } = await supabase
         .from("profiles")
-        .select("buyer_plan")
+        .select("buyer_plan, wallet_balance")
         .eq("id", user.id)
         .single();
       setBuyerPlan(profile?.buyer_plan ?? "free");
+      setWalletBalance(profile?.wallet_balance ?? 0);
 
-      const { data: existing } = await supabase
+      const { data: existingQuotaUnlock } = await supabase
         .from("credits_ledger")
         .select("id")
         .eq("user_id", user.id)
         .eq("type", "unlock_spend")
         .eq("related_site_id", id)
         .maybeSingle();
-      unlockedNow = Boolean(existing);
+
+      const { data: existingWalletUnlock } = await supabase
+        .from("site_unlocks")
+        .select("id, expires_at")
+        .eq("buyer_id", user.id)
+        .eq("site_id", id)
+        .order("unlocked_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const walletUnlockActive =
+        existingWalletUnlock &&
+        (!existingWalletUnlock.expires_at || new Date(existingWalletUnlock.expires_at) > new Date());
+
+      unlockedNow = Boolean(existingQuotaUnlock) || Boolean(walletUnlockActive);
     }
     setUnlocked(unlockedNow);
 
     const selectFields = unlockedNow
       ? "*"
-      : "id, owner_id, niche, da, pa, dr, organic_traffic, price_amount, accepts_exchange, accepts_paid, link_type";
+      : "id, owner_id, niche, da, pa, dr, organic_traffic, price_amount, accepts_exchange, accepts_paid, link_type, pay_per_view_enabled, view_price";
     const { data: s } = await supabase.from("sites").select(selectFields).eq("id", id).single();
     const siteData = s as unknown as SiteDetail;
     setSite(siteData);
@@ -120,10 +138,14 @@ export default function PublicSiteDetailPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  async function handleUnlock() {
+  async function handleUnlock(method: "quota" | "wallet" = "quota") {
     setError(null);
     setBusy(true);
-    const res = await fetch(`/api/browse/${id}/unlock`, { method: "POST" });
+    const res = await fetch(`/api/browse/${id}/unlock`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ method }),
+    });
     const body = await res.json();
     setBusy(false);
     if (!res.ok) {
@@ -162,23 +184,46 @@ export default function PublicSiteDetailPage({
         <div className="rounded-chip border border-line bg-white p-6 text-center">
           <p className="mb-4 text-sm text-muted">
             {!isLoggedIn
-              ? "Log in with a paid plan to see the site URL, full metrics, seller guidelines, and place an order."
-              : isFree
+              ? "Log in to see the site URL, full metrics, seller guidelines, and place an order."
+              : isFree && !(site.pay_per_view_enabled && site.view_price != null)
                 ? "Upgrade to a paid plan to unlock this listing and place an order."
-                : "Unlock this listing to see the site URL, referring domains, backlink count, and seller guidelines. This uses one of your plan's monthly views."}
+                : "Unlock this listing to see the site URL, referring domains, backlink count, and seller guidelines."}
           </p>
           {!isLoggedIn ? (
             <Link href="/register">
               <Button>Log in / Sign up</Button>
             </Link>
-          ) : isFree ? (
-            <Link href="/dashboard/billing">
-              <Button>View plans</Button>
-            </Link>
           ) : (
-            <Button onClick={handleUnlock} disabled={busy}>
-              {busy ? "Unlocking…" : "View Site (1 view)"}
-            </Button>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {isFree ? (
+                <Link href="/dashboard/billing">
+                  <Button>View plans</Button>
+                </Link>
+              ) : (
+                <Button onClick={() => handleUnlock("quota")} disabled={busy}>
+                  {busy ? "Unlocking…" : "View Site (1 view)"}
+                </Button>
+              )}
+              {site.pay_per_view_enabled && site.view_price != null && (
+                <Button
+                  variant="secondary"
+                  onClick={() => handleUnlock("wallet")}
+                  disabled={busy || walletBalance < site.view_price}
+                >
+                  {busy
+                    ? "Unlocking…"
+                    : `Pay ৳${site.view_price} from wallet`}
+                </Button>
+              )}
+            </div>
+          )}
+          {isLoggedIn && site.pay_per_view_enabled && site.view_price != null && walletBalance < site.view_price && (
+            <p className="mt-2 text-xs text-muted">
+              Wallet balance ৳{walletBalance} — not enough to pay ৳{site.view_price}.{" "}
+              <Link href="/dashboard/billing" className="underline">
+                Top up
+              </Link>
+            </p>
           )}
           {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
         </div>
