@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { MetricChip } from "@/components/ui/metric-chip";
@@ -21,7 +21,7 @@ type Ticket = {
   created_at: string;
 };
 
-export default function TicketThreadPage() {
+function TicketThread() {
   const { id } = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
@@ -128,5 +128,15 @@ export default function TicketThreadPage() {
         </Button>
       </form>
     </main>
+  );
+}
+
+// FIX: useSearchParams() must be wrapped in <Suspense> in Next.js App
+// Router — same issue as /register. Logic moved into TicketThread above.
+export default function TicketThreadPage() {
+  return (
+    <Suspense fallback={<main className="mx-auto max-w-2xl px-6 py-16 text-sm text-muted">Loading…</main>}>
+      <TicketThread />
+    </Suspense>
   );
 }

@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
@@ -136,5 +136,17 @@ export default function RegisterPage() {
         </Link>
       </p>
     </div>
+  );
+}
+
+// FIX: useSearchParams() must be wrapped in <Suspense> in Next.js App
+// Router, or the build fails with "useSearchParams() should be wrapped
+// in a suspense boundary" — the form logic was moved into RegisterForm
+// above so this default export can provide that boundary.
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterForm />
+    </Suspense>
   );
 }
