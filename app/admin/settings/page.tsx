@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { NavLinksEditor } from "@/components/dashboard/nav-links-editor";
 
 const SIMPLE_STRING_KEYS = [
+  { key: "bdt_per_usd", label: "BDT per USD exchange rate", placeholder: "125" },
   { key: "contact_email", label: "Contact email" },
   { key: "ga_measurement_id", label: "Google Analytics 4 Measurement ID", placeholder: "G-XXXXXXX" },
   { key: "gsc_verification_code", label: "Google Search Console verification code", placeholder: "content value from the HTML tag method" },

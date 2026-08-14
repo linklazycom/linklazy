@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { useCurrency } from "@/components/currency/currency-provider";
 
 export interface PressReleaseProduct {
   id: string;
@@ -23,8 +24,10 @@ export function PressReleaseOrderForm({ products }: { products: PressReleaseProd
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const { currency, rate } = useCurrency();
   const total = useMemo(() => products.filter((p) => selected.includes(p.id)).reduce((sum, p) => sum + Number(p.price_amount), 0) * quantity, [products, selected, quantity]);
   const groups = ["Premium News Media", "Top-tier News Media", "Writing Packages"];
+  const money = (amount: number) => currency === "USD" ? `$${(amount / rate).toFixed(2)}` : `৳${amount.toLocaleString()}`;
 
   function toggle(id: string) {
     setSelected((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
@@ -58,7 +61,7 @@ export function PressReleaseOrderForm({ products }: { products: PressReleaseProd
             <span className="min-w-0 flex-1"><span className="flex flex-wrap items-center gap-2 font-medium">{product.name}{product.featured && <span className="rounded-full bg-signal px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">Popular</span>}</span>
               {product.description && <span className="mt-1 block text-sm text-muted">{product.description}</span>}
               <span className="mt-2 block text-xs text-muted">{product.outlet_count ? `${product.outlet_count}+ outlets` : "Writing service"}{product.domain_authority ? ` · DA ${product.domain_authority}+` : ""}{product.monthly_visitors ? ` · ${product.monthly_visitors} monthly visitors` : ""}</span>
-            </span><span className="text-right"><span className="block font-mono text-sm font-medium">৳{Number(product.price_amount).toLocaleString()}</span><span className="mt-1 block text-[10px] uppercase tracking-wide text-muted">per release</span></span>
+            </span><span className="text-right"><span className="block font-mono text-sm font-medium">{money(Number(product.price_amount))}</span><span className="mt-1 block text-[10px] uppercase tracking-wide text-muted">per release</span></span>
           </label>)}
         </div>
       </section>;
@@ -72,6 +75,6 @@ export function PressReleaseOrderForm({ products }: { products: PressReleaseProd
       <label className="text-sm font-medium md:col-span-2">Additional notes <span className="font-normal text-muted">(optional)</span><textarea name="notes" maxLength={2000} className="mt-1.5 min-h-20 w-full rounded-chip border border-line px-3 py-2 font-normal" placeholder="Brand guidelines, embargo, or other requirements" /></label></div>
     </section>
     {error && <p className="rounded-chip bg-red-50 p-3 text-sm text-red-700">{error}</p>}{message && <p className="rounded-chip bg-signal-soft p-3 text-sm text-signal">{message}</p>}
-    <div className="sticky bottom-4 z-[1] flex flex-wrap items-center justify-between gap-4 rounded-xl border border-ink/10 bg-ink p-4 text-white shadow-xl"><span><span className="block text-[10px] font-semibold tracking-[.14em] text-white/55">CAMPAIGN ESTIMATE</span><span className="mt-1 block font-mono text-2xl font-medium">৳{total.toLocaleString()}</span><span className="mt-1 block text-xs text-white/60">{selected.length} option{selected.length === 1 ? "" : "s"} selected · reviewed before publishing</span></span><Button disabled={submitting || !selected.length} type="submit" className="bg-white text-ink hover:bg-white/90">{submitting ? "Sending request…" : "Send campaign request →"}</Button></div>
+    <div className="sticky bottom-4 z-[1] flex flex-wrap items-center justify-between gap-4 rounded-xl border border-ink/10 bg-ink p-4 text-white shadow-xl"><span><span className="block text-[10px] font-semibold tracking-[.14em] text-white/55">CAMPAIGN ESTIMATE</span><span className="mt-1 block font-mono text-2xl font-medium">{money(total)}</span><span className="mt-1 block text-xs text-white/60">{selected.length} option{selected.length === 1 ? "" : "s"} selected · reviewed before publishing</span></span><Button disabled={submitting || !selected.length} type="submit" className="bg-white text-ink hover:bg-white/90">{submitting ? "Sending request…" : "Send campaign request →"}</Button></div>
   </form>;
 }

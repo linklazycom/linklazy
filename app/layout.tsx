@@ -6,6 +6,7 @@ import "./globals.css";
 import { getSiteSettings } from "@/lib/site-settings";
 import { PageViewTracker } from "@/components/analytics/page-view-tracker";
 import { NavigationProgress } from "@/components/layout/navigation-progress";
+import { CurrencyProvider } from "@/components/currency/currency-provider";
 
 const display = Fraunces({
   subsets: ["latin"],
@@ -84,7 +85,7 @@ export default async function RootLayout({
         <Suspense fallback={null}>
           <NavigationProgress />
         </Suspense>
-        {children}
+        <CurrencyProvider>{children}</CurrencyProvider>
         <Suspense fallback={null}>
           <PageViewTracker />
         </Suspense>

@@ -7,6 +7,7 @@ import { Field } from "@/components/ui/field";
 import { MetricChip } from "@/components/ui/metric-chip";
 import { ChatWindow } from "@/components/orders/chat-window";
 import { ReviewForm } from "@/components/reviews/review-form";
+import { useCurrency } from "@/components/currency/currency-provider";
 
 interface OrderDetail {
   id: string;
@@ -36,6 +37,8 @@ export default function OrderDetailPage({
   const [showDisputeForm, setShowDisputeForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasReviewed, setHasReviewed] = useState(false);
+  const [paymentProvider, setPaymentProvider] = useState<"bkash" | "paypal">("bkash");
+  const { rate } = useCurrency();
 
   async function load() {
     const {
@@ -96,7 +99,7 @@ export default function OrderDetailPage({
   async function handlePay() {
     setBusy(true);
     setError(null);
-    const res = await fetch(`/api/orders/${id}/pay`, { method: "POST" });
+    const res = await fetch(`/api/orders/${id}/pay`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ provider: paymentProvider }) });
     const body = await res.json();
     if (!res.ok) {
       setError(body.error ?? "Could not start payment.");
@@ -169,10 +172,14 @@ export default function OrderDetailPage({
       )}
 
       {isBuyer && order.status === "pending_payment" && (
-        <div className="mb-6">
-          <Button onClick={handlePay} disabled={busy}>
-            {busy ? "Redirecting…" : "Pay with bKash"}
-          </Button>
+        <div className="mb-6 rounded-xl border border-line bg-white p-5">
+          <h2 className="font-medium">Choose a payment method</h2>
+          <p className="mt-1 text-sm text-muted">bKash charges in BDT; PayPal charges in USD at the platform exchange rate.</p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <button type="button" onClick={() => setPaymentProvider("bkash")} className={`rounded-chip border p-4 text-left ${paymentProvider === "bkash" ? "border-brand-violet bg-brand-soft" : "border-line"}`}><span className="block font-medium">bKash</span><span className="mt-1 block text-sm text-muted">৳{Number(order.price_amount).toLocaleString()} BDT</span></button>
+            <button type="button" onClick={() => setPaymentProvider("paypal")} className={`rounded-chip border p-4 text-left ${paymentProvider === "paypal" ? "border-brand-violet bg-brand-soft" : "border-line"}`}><span className="block font-medium">PayPal</span><span className="mt-1 block text-sm text-muted">${(Number(order.price_amount) / rate).toFixed(2)} USD</span></button>
+          </div>
+          <Button className="mt-4" onClick={handlePay} disabled={busy}>{busy ? "Redirecting…" : `Pay with ${paymentProvider === "bkash" ? "bKash (BDT)" : "PayPal (USD)"}`}</Button>
         </div>
       )}
 

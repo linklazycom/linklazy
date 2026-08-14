@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import type { NavLink } from "@/lib/site-settings";
+import { CurrencyToggle } from "@/components/currency/currency-provider";
 
 export function SiteHeader({ navLinks }: { navLinks: NavLink[] }) {
   return (
@@ -24,6 +25,7 @@ export function SiteHeader({ navLinks }: { navLinks: NavLink[] }) {
           )}
         </nav>
         <div className="hidden items-center gap-3 md:flex">
+          <CurrencyToggle />
           <Link href="/login" className="text-sm text-muted hover:text-ink">
             Log in
           </Link>
