@@ -55,7 +55,9 @@ export default async function PublicBrowsePage({
 
   let query = supabase
     .from("sites")
-    .select("id, owner_id, domain, niche, da, dr, organic_traffic, price_amount, link_type, accepts_exchange, accepts_paid")
+    .select(
+      "id, owner_id, domain, niche, da, dr, organic_traffic, price_amount, link_type, accepts_exchange, accepts_paid, pay_per_view_enabled, view_price"
+    )
     .eq("status", "approved");
 
   if (filters.niche) query = query.ilike("niche", `%${filters.niche}%`);
@@ -150,6 +152,9 @@ export default async function PublicBrowsePage({
                   <SellerTierBadge tier={tierByOwner.get(site.owner_id) ?? null} />
                 </span>
                 {site.accepts_exchange && <MetricChip label="Exchange" value="Available" tone="verified" />}
+                {site.pay_per_view_enabled && site.view_price != null && (
+                  <MetricChip label="Pay-per-view" value={`৳${site.view_price}`} tone="price" />
+                )}
               </div>
               <div className="mb-3 flex flex-wrap gap-2">
                 <MetricChip label="Niche" value={site.niche} />

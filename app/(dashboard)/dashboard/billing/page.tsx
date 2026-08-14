@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { MetricChip } from "@/components/ui/metric-chip";
@@ -118,7 +119,12 @@ export default function BillingPage() {
       )}
 
       <div className="mb-10 max-w-md rounded-chip border border-line bg-white p-4">
-        <h2 className="mb-1 font-display text-lg font-medium">Wallet</h2>
+        <div className="mb-1 flex items-center justify-between">
+          <h2 className="font-display text-lg font-medium">Wallet</h2>
+          <Link href="/dashboard/wallet" className="text-sm text-brand-blue underline">
+            View history
+          </Link>
+        </div>
         <p className="mb-3 text-sm text-muted">
           Load your wallet to pay per-site for listings owners have enabled for pay-per-view — no
           subscription needed. Also used to pay out your earnings if you're a seller.

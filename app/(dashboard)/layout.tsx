@@ -21,6 +21,7 @@ const NAV = [
   { href: "/dashboard/referrals", label: "Referrals" },
   { href: "/dashboard/support", label: "My tickets" },
   { href: "/dashboard/billing", label: "Billing" },
+  { href: "/dashboard/wallet", label: "Wallet" },
 ];
 
 export default async function DashboardLayout({
