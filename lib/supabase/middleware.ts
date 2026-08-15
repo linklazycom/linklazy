@@ -40,6 +40,21 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  if (isDashboard && user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("is_suspended, is_banned")
+      .eq("id", user.id)
+      .single();
+
+    if (profile?.is_banned || profile?.is_suspended) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/suspended";
+      url.searchParams.set("reason", profile.is_banned ? "banned" : "suspended");
+      return NextResponse.redirect(url);
+    }
+  }
+
   if (isAdmin && user) {
     const { data: profile } = await supabase
       .from("profiles")
