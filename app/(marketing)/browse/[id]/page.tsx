@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { MetricChip } from "@/components/ui/metric-chip";
+import { DrBadge } from "@/components/sites/dr-badge";
 import { SellerTierBadge } from "@/components/reviews/seller-tier-badge";
 import { ReviewsList } from "@/components/reviews/reviews-list";
 import { maskDomain } from "@/lib/mask-domain";
@@ -20,6 +21,7 @@ interface SiteDetail {
   da: number | null;
   pa: number | null;
   dr: number | null;
+  dr_verified: number | null;
   organic_traffic: number | null;
   referring_domains: number | null;
   total_backlinks: number | null;
@@ -109,7 +111,7 @@ export default function PublicSiteDetailPage({
 
     const selectFields = unlockedNow
       ? "*"
-      : "id, owner_id, niche, da, pa, dr, organic_traffic, price_amount, accepts_exchange, accepts_paid, link_type, pay_per_view_enabled, view_price";
+      : "id, owner_id, niche, da, pa, dr, dr_verified, organic_traffic, price_amount, accepts_exchange, accepts_paid, link_type, pay_per_view_enabled, view_price";
     const { data: s } = await supabase.from("sites").select(selectFields).eq("id", id).single();
     const siteData = s as unknown as SiteDetail;
     setSite(siteData);
@@ -171,7 +173,7 @@ export default function PublicSiteDetailPage({
         <MetricChip label="Niche" value={site.niche} />
         {site.da != null && <MetricChip label="DA" value={site.da} />}
         {site.pa != null && <MetricChip label="PA" value={site.pa} />}
-        {site.dr != null && <MetricChip label="DR" value={site.dr} />}
+        <DrBadge selfReportedDr={site.dr} verifiedDr={site.dr_verified} />
         {site.organic_traffic != null && (
           <MetricChip label="Traffic" value={`${site.organic_traffic}/mo`} />
         )}

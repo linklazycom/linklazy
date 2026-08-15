@@ -5,6 +5,7 @@ import { MetricChip } from "@/components/ui/metric-chip";
 import { Field } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { SellerTierBadge } from "@/components/reviews/seller-tier-badge";
+import { DrBadge } from "@/components/sites/dr-badge";
 import { maskDomain } from "@/lib/mask-domain";
 
 export const metadata: Metadata = {
@@ -56,7 +57,7 @@ export default async function PublicBrowsePage({
   let query = supabase
     .from("sites")
     .select(
-      "id, owner_id, domain, niche, da, dr, organic_traffic, price_amount, link_type, accepts_exchange, accepts_paid, pay_per_view_enabled, view_price"
+      "id, owner_id, domain, niche, da, dr, dr_verified, organic_traffic, price_amount, link_type, accepts_exchange, accepts_paid, pay_per_view_enabled, view_price"
     )
     .eq("status", "approved");
 
@@ -159,7 +160,7 @@ export default async function PublicBrowsePage({
               <div className="mb-3 flex flex-wrap gap-2">
                 <MetricChip label="Niche" value={site.niche} />
                 {site.da != null && <MetricChip label="DA" value={site.da} />}
-                {site.dr != null && <MetricChip label="DR" value={site.dr} />}
+                <DrBadge selfReportedDr={site.dr} verifiedDr={site.dr_verified} />
                 {site.organic_traffic != null && (
                   <MetricChip label="Traffic" value={`${site.organic_traffic}/mo`} />
                 )}

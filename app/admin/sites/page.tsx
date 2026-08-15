@@ -7,7 +7,7 @@ export default async function AdminSitesQueuePage() {
   const { data: sites } = await supabase
     .from("sites")
     .select(
-      "id, domain, niche, status, da, dr, organic_traffic, owner_id, created_at, profiles:owner_id(full_name)"
+      "id, domain, niche, status, da, dr, dr_verified, organic_traffic, owner_id, created_at, profiles:owner_id(full_name)"
     )
     .eq("status", "pending")
     .order("created_at", { ascending: true });
@@ -36,7 +36,11 @@ export default async function AdminSitesQueuePage() {
             <div className="flex flex-wrap gap-2">
               <MetricChip label="Niche" value={site.niche} />
               {site.da != null && <MetricChip label="DA" value={site.da} />}
-              {site.dr != null && <MetricChip label="DR" value={site.dr} />}
+              {site.dr_verified != null ? (
+                <MetricChip label="DR" value={site.dr_verified} tone="verified" />
+              ) : (
+                site.dr != null && <MetricChip label="DR" value={site.dr} />
+              )}
               {site.organic_traffic != null && (
                 <MetricChip label="Traffic" value={`${site.organic_traffic}/mo`} />
               )}

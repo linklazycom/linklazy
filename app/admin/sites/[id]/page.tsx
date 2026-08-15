@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { MetricChip } from "@/components/ui/metric-chip";
+import { DrBadge } from "@/components/sites/dr-badge";
 
 interface SiteDetail {
   id: string;
@@ -16,6 +17,9 @@ interface SiteDetail {
   da: number | null;
   pa: number | null;
   dr: number | null;
+  dr_verified: number | null;
+  dr_verified_at: string | null;
+  dr_check_status: string | null;
   organic_traffic: number | null;
   referring_domains: number | null;
   total_backlinks: number | null;
@@ -46,6 +50,8 @@ export default function AdminSiteDetailPage({
   const [verification, setVerification] = useState<Verification | null>(null);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
+  const [drBusy, setDrBusy] = useState(false);
+  const [drMessage, setDrMessage] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -68,6 +74,22 @@ export default function AdminSiteDetailPage({
     setBusy(true);
     await fetch(`/api/sites/${id}/approve`, { method: "POST" });
     router.push("/admin/sites");
+  }
+
+  async function refreshDr() {
+    setDrBusy(true);
+    setDrMessage(null);
+    const res = await fetch(`/api/admin/sites/${id}/refresh-dr`, { method: "POST" });
+    const body = await res.json();
+    setDrBusy(false);
+    if (!res.ok) {
+      setDrMessage(body.error ?? "DR check failed.");
+      return;
+    }
+    setSite((prev) =>
+      prev ? { ...prev, dr_verified: body.dr_verified, dr_verified_at: new Date().toISOString() } : prev
+    );
+    setDrMessage(`Refreshed — DR ${body.dr_verified}.`);
   }
 
   async function reject() {
@@ -94,7 +116,7 @@ export default function AdminSiteDetailPage({
         <MetricChip label="Language" value={site.language} />
         {site.da != null && <MetricChip label="DA" value={site.da} />}
         {site.pa != null && <MetricChip label="PA" value={site.pa} />}
-        {site.dr != null && <MetricChip label="DR" value={site.dr} />}
+        <DrBadge selfReportedDr={site.dr} verifiedDr={site.dr_verified} />
         {site.organic_traffic != null && (
           <MetricChip label="Traffic" value={`${site.organic_traffic}/mo`} />
         )}
@@ -114,6 +136,19 @@ export default function AdminSiteDetailPage({
         )}
         <MetricChip label="Link type" value={site.link_type} />
         <MetricChip label="Placement" value={site.placement} />
+      </div>
+
+      <div className="mb-6 rounded-chip border border-line bg-white p-4">
+        <p className="mb-1 text-sm font-medium">Domain Rating (Ahrefs)</p>
+        <p className="mb-2 text-xs text-muted">
+          {site.dr_verified != null
+            ? `Last verified ${site.dr_verified_at ? new Date(site.dr_verified_at).toLocaleString() : "recently"}${site.dr_check_status === "failed" ? " — most recent re-check failed, showing last good value" : ""}.`
+            : "Not yet checked. The weekly cron will pick it up, or check now."}
+        </p>
+        <Button size="sm" variant="secondary" onClick={refreshDr} disabled={drBusy}>
+          {drBusy ? "Checking…" : "Re-check DR now"}
+        </Button>
+        {drMessage && <p className="mt-2 text-xs text-muted">{drMessage}</p>}
       </div>
 
       <div className="mb-6 rounded-chip border border-line bg-white p-4">

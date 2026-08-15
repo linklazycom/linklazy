@@ -23,6 +23,10 @@
     {
       "path": "/api/cron/release-ppv-earnings",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/dr-refresh",
+      "schedule": "0 2 * * 1"
     }
   ]
 }

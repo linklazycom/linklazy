@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { siteSubmissionSchema } from "@/lib/validators/site";
 import { generateVerificationToken } from "@/lib/verification";
+import { fetchDomainRating } from "@/lib/ahrefs";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -40,6 +41,29 @@ export async function POST(request: Request) {
     method: "meta_tag",
     token,
   });
+
+  // Best-effort DR check on submission, so sellers see the verified number
+  // right away instead of waiting for the weekly cron. We `await` this
+  // (rather than fire-and-forget) because on Vercel's serverless runtime a
+  // background promise can get killed once the response is sent — the
+  // 10s timeout inside fetchDomainRating keeps this from stalling the
+  // submit request too long. If it errors, dr_check_status just stays
+  // "pending" and the weekly cron picks it up later.
+  try {
+    const result = await fetchDomainRating(parsed.data.url);
+    if (result.ok && result.domainRating != null) {
+      await supabase
+        .from("sites")
+        .update({
+          dr_verified: result.domainRating,
+          dr_verified_at: new Date().toISOString(),
+          dr_check_status: "ok",
+        })
+        .eq("id", site.id);
+    }
+  } catch {
+    // Swallow — weekly cron is the safety net.
+  }
 
   return NextResponse.json({ id: site.id });
 }
