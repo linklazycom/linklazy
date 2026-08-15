@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Money } from "@/components/currency/money";
 import { CurrencyToggle } from "@/components/currency/currency-provider";
@@ -9,123 +10,36 @@ export const metadata: Metadata = {
   description: "Simple pricing for buyers and sellers on LinkLazy.",
 };
 
-// Pricing figures below are LinkLazy's suggested starting rates —
-// benchmarked loosely against general SaaS/marketplace subscription tiers,
-// adjusted for a BDT-priced audience. Adjust anytime in this file if you
-// want to tune margins later — nothing else in the page needs to change.
-// priceAmount is always in BDT — <Money> converts to USD on the page when
-// the visitor has switched currency via the toggle.
-const buyerPlans = [
-  {
-    name: "Free",
-    priceAmount: 0,
-    period: "forever",
-    tagline: "Browse the marketplace, no commitment.",
-    cta: "Sign up",
-    highlight: false,
-    features: [
-      { label: "Browse all verified listings & metrics", included: true },
-      { label: "Unlock seller contact / place order", included: false },
-      { label: "Saved searches", included: false },
-      { label: "Email alerts on new matches", included: false },
-      { label: "Escrow-protected checkout", included: true },
-    ],
-  },
-  {
-    name: "Starter",
-    priceAmount: 990,
-    period: "billed monthly",
-    tagline: "For occasional link building.",
-    cta: "Choose Starter",
-    highlight: false,
-    features: [
-      { label: "10 unlocks / month (~৳99 each)", included: true },
-      { label: "Unlock seller contact / place order", included: true },
-      { label: "Saved searches (up to 3)", included: true },
-      { label: "Email alerts on new matches", included: true },
-      { label: "Escrow-protected checkout", included: true },
-    ],
-  },
-  {
-    name: "Growth",
-    priceAmount: 1790,
-    period: "billed monthly",
-    tagline: "For agencies running regular campaigns.",
-    cta: "Choose Growth",
-    highlight: true,
-    features: [
-      { label: "20 unlocks / month (~৳89 each)", included: true },
-      { label: "Unlock seller contact / place order", included: true },
-      { label: "Saved searches (unlimited)", included: true },
-      { label: "Email alerts on new matches", included: true },
-      { label: "Escrow-protected checkout", included: true },
-    ],
-  },
-  {
-    name: "Pro",
-    priceAmount: 3990,
-    period: "billed monthly",
-    tagline: "For high-volume buyers and SEO teams.",
-    cta: "Choose Pro",
-    highlight: false,
-    features: [
-      { label: "50 unlocks / month (~৳79 each)", included: true },
-      { label: "Unlock seller contact / place order", included: true },
-      { label: "Saved searches (unlimited)", included: true },
-      { label: "Email alerts on new matches", included: true },
-      { label: "Escrow-protected checkout", included: true },
-    ],
-  },
-];
+interface Feature {
+  label: string;
+  included: boolean;
+}
 
-type SellerPlan =
-  | {
-      name: string;
-      priceLabel: string;
-      priceAmount?: undefined;
-      period: string;
-      tagline: string;
-      features: string[];
-    }
-  | {
-      name: string;
-      priceLabel?: undefined;
-      priceAmount: number;
-      period: string;
-      tagline: string;
-      features: string[];
-    };
+interface PricingPlan {
+  id: string;
+  name: string;
+  price_amount: number | null;
+  price_label: string | null;
+  period: string;
+  tagline: string;
+  cta_label: string | null;
+  highlight: boolean;
+  features: Feature[];
+}
 
-const sellerPlans: SellerPlan[] = [
-  {
-    name: "Commission",
-    priceLabel: "15–20%", // not a currency amount — left as-is
-    period: "per completed paid order",
-    tagline: "No upfront cost — pay only when you earn.",
-    features: [
-      "List unlimited sites for free",
-      "Verified-owner badge on approval",
-      "Escrow payout after buyer confirms delivery",
-      "12% reduced rate once you cross 20 completed orders/month",
-      "Bronze / Silver / Gold seller tier badges",
-    ],
-  },
-  {
-    name: "Monthly",
-    priceAmount: 1500,
-    period: "flat fee",
-    tagline: "Keep 100% of what buyers pay you.",
-    features: [
-      "Unlimited paid orders, 0% commission",
-      "Verified-owner badge on approval",
-      "Escrow payout after buyer confirms delivery",
-      "Priority placement in search results",
-      "Bronze / Silver / Gold seller tier badges",
-    ],
-  },
-];
+export default async function PricingPage() {
+  // Plan cards below are fully admin-editable at /admin/pricing — this page
+  // just renders whatever's marked active there, in display_order.
+  const supabase = await createClient();
+  const { data: plans } = await supabase
+    .from("pricing_plans")
+    .select("id, plan_group, name, price_amount, price_label, period, tagline, cta_label, highlight, features")
+    .eq("active", true)
+    .order("display_order", { ascending: true });
 
-export default function PricingPage() {
+  const buyerPlans = ((plans ?? []).filter((p) => p.plan_group === "buyer") as unknown) as PricingPlan[];
+  const sellerPlans = ((plans ?? []).filter((p) => p.plan_group === "seller") as unknown) as PricingPlan[];
+
   return (
     <main>
       <section className="relative overflow-hidden border-b border-line bg-white text-center">
@@ -150,7 +64,7 @@ export default function PricingPage() {
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {buyerPlans.map((plan) => (
             <div
-              key={plan.name}
+              key={plan.id}
               className={`flex flex-col rounded-chip border p-6 ${
                 plan.highlight
                   ? "border-brand-violet/30 bg-brand-soft"
@@ -166,16 +80,20 @@ export default function PricingPage() {
               <p className="mt-1 text-sm text-muted">{plan.tagline}</p>
               <div className="mt-4">
                 <span className="text-2xl font-display">
-                  <Money amount={plan.priceAmount} />
-                  {plan.period !== "forever" && <span className="text-lg">/mo</span>}
+                  {plan.price_label ?? (
+                    <>
+                      <Money amount={plan.price_amount ?? 0} />
+                      {plan.period !== "forever" && <span className="text-lg">/mo</span>}
+                    </>
+                  )}
                 </span>
-                {plan.period !== "forever" && (
+                {plan.period && plan.period !== "forever" && (
                   <span className="ml-1 text-sm text-muted">{plan.period}</span>
                 )}
               </div>
               <Link href="/register" className="mt-6">
                 <Button className="w-full" variant={plan.highlight ? "primary" : "secondary"}>
-                  {plan.cta}
+                  {plan.cta_label ?? "Choose plan"}
                 </Button>
               </Link>
               <ul className="mt-6 flex flex-col gap-2 text-sm">
@@ -192,6 +110,11 @@ export default function PricingPage() {
               </ul>
             </div>
           ))}
+          {!buyerPlans.length && (
+            <p className="col-span-full text-center text-muted">
+              No buyer plans configured yet — add some in the admin panel.
+            </p>
+          )}
         </div>
       </section>
 
@@ -200,32 +123,35 @@ export default function PricingPage() {
           <h2 className="mb-8 text-center font-display text-2xl font-medium">For sellers</h2>
           <div className="grid gap-6 sm:grid-cols-2">
             {sellerPlans.map((plan) => (
-              <div key={plan.name} className="flex flex-col rounded-chip border border-line p-6">
+              <div key={plan.id} className="flex flex-col rounded-chip border border-line p-6">
                 <p className="font-display text-lg font-medium">{plan.name} plan</p>
                 <p className="mt-1 text-sm text-muted">{plan.tagline}</p>
                 <div className="mt-4">
                   <span className="text-2xl font-display">
-                    {"priceAmount" in plan && plan.priceAmount !== undefined ? (
+                    {plan.price_label ?? (
                       <>
-                        <Money amount={plan.priceAmount} />
+                        <Money amount={plan.price_amount ?? 0} />
                         <span className="text-lg">/mo</span>
                       </>
-                    ) : (
-                      plan.priceLabel
                     )}
                   </span>
-                  <span className="ml-1 text-sm text-muted">{plan.period}</span>
+                  {plan.period && <span className="ml-1 text-sm text-muted">{plan.period}</span>}
                 </div>
                 <ul className="mt-6 flex flex-col gap-2 text-sm">
                   {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2">
+                    <li key={f.label} className="flex items-start gap-2">
                       <span className="text-signal">✓</span>
-                      <span className="text-ink">{f}</span>
+                      <span className="text-ink">{f.label}</span>
                     </li>
                   ))}
                 </ul>
               </div>
             ))}
+            {!sellerPlans.length && (
+              <p className="col-span-full text-center text-muted">
+                No seller plans configured yet — add some in the admin panel.
+              </p>
+            )}
           </div>
         </div>
       </section>
@@ -247,10 +173,10 @@ export default function PricingPage() {
             </p>
             <p className="mt-1 text-sm text-muted">
               Commission has no upfront cost — LinkLazy takes a percentage
-              only on completed paid orders. Monthly (<Money amount={1500} />/mo flat, 0%
-              commission) pays for itself once you're completing roughly 8–10
-              paid orders a month at typical placement prices — below that,
-              Commission usually works out cheaper.
+              only on completed paid orders. The Monthly plan pays for itself
+              once you're completing roughly 8–10 paid orders a month at
+              typical placement prices — below that, Commission usually works
+              out cheaper.
             </p>
           </div>
           <div>

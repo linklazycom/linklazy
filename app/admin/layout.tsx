@@ -14,6 +14,7 @@ const NAV = [
   { href: "/admin/disputes", label: "Disputes" },
   { href: "/admin/users", label: "Users" },
   { href: "/admin/articles", label: "Blog / CMS" },
+  { href: "/admin/pricing", label: "Pricing page" },
   { href: "/admin/analytics", label: "Analytics" },
   { href: "/admin/revenue", label: "Revenue" },
   { href: "/admin/support", label: "Support tickets" },
