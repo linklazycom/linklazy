@@ -18,7 +18,7 @@ const NAV_GROUPS: AdminNavGroup[] = [
   {
     label: "Marketplace",
     items: [
-      { href: "/admin/sites", label: "Site approvals" },
+      { href: "/admin/sites", label: "Sites" },
       { href: "/admin/orders", label: "Orders" },
       { href: "/admin/disputes", label: "Disputes" },
       { href: "/admin/press-releases", label: "Press releases" },

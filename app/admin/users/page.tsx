@@ -200,7 +200,9 @@ export default function AdminUsersPage() {
               <div key={u.id} className="rounded-chip border border-line bg-white p-4">
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <span className="font-medium">{u.full_name || "(no name)"}</span>
+                    <Link href={`/admin/users/${u.id}`} className="font-medium hover:underline">
+                      {u.full_name || "(no name)"}
+                    </Link>
                     {u.email && <span className="ml-2 text-sm text-muted">{u.email}</span>}
                   </div>
                   <div className="flex flex-wrap gap-2">
