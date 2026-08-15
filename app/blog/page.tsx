@@ -16,8 +16,11 @@ export default async function BlogIndexPage() {
     .eq("status", "published")
     .order("published_at", { ascending: false });
 
+  // Every article now has a real category (defaulting to "General" at
+  // write-time — see the migration + ArticleForm), so this list is just the
+  // distinct values already in the data, no runtime fallback needed.
   const categories = Array.from(
-    new Set((articles ?? []).map((a) => a.category || "Uncategorized"))
+    new Set((articles ?? []).map((a) => a.category || "General"))
   ).sort();
 
   return (
@@ -36,7 +39,7 @@ export default async function BlogIndexPage() {
           {categories.map((cat) => (
             <Link
               key={cat}
-              href={cat === "Uncategorized" ? "/blog" : `/blog/category/${encodeURIComponent(cat.toLowerCase().replace(/\s+/g, "-"))}`}
+              href={`/blog/category/${encodeURIComponent(cat.toLowerCase().replace(/\s+/g, "-"))}`}
               className="rounded-full border border-line bg-white px-3 py-1 text-xs font-medium text-ink hover:border-brand-violet"
             >
               {cat}

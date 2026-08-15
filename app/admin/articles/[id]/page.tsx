@@ -23,6 +23,7 @@ export default async function EditArticlePage({
           slug: article.slug,
           meta_description: article.meta_description ?? "",
           target_keyword: article.target_keyword ?? "",
+          category: article.category ?? "General",
           content: article.content,
           status: article.status,
         }}

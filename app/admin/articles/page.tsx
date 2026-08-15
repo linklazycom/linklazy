@@ -7,7 +7,7 @@ export default async function AdminArticlesPage() {
   const supabase = await createClient();
   const { data: articles } = await supabase
     .from("articles")
-    .select("id, title, slug, status, target_keyword, updated_at")
+    .select("id, title, slug, status, target_keyword, category, updated_at")
     .order("updated_at", { ascending: false });
 
   return (
@@ -19,6 +19,13 @@ export default async function AdminArticlesPage() {
         </Link>
       </div>
 
+      <Link
+        href="/admin/articles/categorize"
+        className="mb-6 inline-block text-sm text-brand-blue underline"
+      >
+        Bulk-categorize old articles →
+      </Link>
+
       <div className="space-y-3">
         {articles?.map((article) => (
           <Link
@@ -28,11 +35,14 @@ export default async function AdminArticlesPage() {
           >
             <div className="mb-1 flex items-center justify-between">
               <span className="font-medium">{article.title}</span>
-              <MetricChip
-                label="Status"
-                value={article.status}
-                tone={article.status === "published" ? "verified" : "price"}
-              />
+              <div className="flex gap-2">
+                <MetricChip label="Category" value={article.category ?? "General"} />
+                <MetricChip
+                  label="Status"
+                  value={article.status}
+                  tone={article.status === "published" ? "verified" : "price"}
+                />
+              </div>
             </div>
             <p className="text-xs text-muted">/blog/{article.slug}</p>
             {article.target_keyword && (

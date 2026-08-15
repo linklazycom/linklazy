@@ -7,6 +7,7 @@ const articleSchema = z.object({
   slug: z.string().trim().min(1).regex(/^[a-z0-9-]+$/, "Use lowercase letters, numbers, and hyphens only"),
   meta_description: z.string().trim().max(300).optional(),
   target_keyword: z.string().trim().max(200).optional(),
+  category: z.string().trim().min(1).max(80).default("General"),
   content: z.string().trim().min(1),
   status: z.enum(["draft", "published", "archived"]).default("draft"),
 });

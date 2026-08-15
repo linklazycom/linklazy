@@ -15,6 +15,7 @@ const NAV = [
   { href: "/admin/users", label: "Users" },
   { href: "/admin/articles", label: "Blog / CMS" },
   { href: "/admin/analytics", label: "Analytics" },
+  { href: "/admin/revenue", label: "Revenue" },
   { href: "/admin/support", label: "Support tickets" },
   { href: "/admin/withdrawals", label: "Withdrawals" },
   { href: "/admin/ppv-unlocks", label: "Pay-per-view unlocks" },

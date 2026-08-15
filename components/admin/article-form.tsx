@@ -11,9 +11,21 @@ export interface ArticleFormValues {
   slug: string;
   meta_description: string;
   target_keyword: string;
+  category: string;
   content: string;
   status: string;
 }
+
+// Suggested taxonomy for LinkLazy's blog — kept as suggestions (datalist),
+// not a rigid enum, so admin can still type a new category when needed.
+const SUGGESTED_CATEGORIES = [
+  "Link Building",
+  "Guest Posting",
+  "SEO Basics",
+  "Site Vetting",
+  "Platform Guides",
+  "General",
+];
 
 export function ArticleForm({ initial }: { initial?: ArticleFormValues }) {
   const router = useRouter();
@@ -30,6 +42,7 @@ export function ArticleForm({ initial }: { initial?: ArticleFormValues }) {
       slug: form.get("slug"),
       meta_description: form.get("meta_description"),
       target_keyword: form.get("target_keyword"),
+      category: form.get("category") || "General",
       content: form.get("content"),
       status: form.get("status"),
     };
@@ -64,6 +77,24 @@ export function ArticleForm({ initial }: { initial?: ArticleFormValues }) {
         label="Target keyword (low-competition)"
         defaultValue={initial?.target_keyword}
       />
+      <div>
+        <label htmlFor="category" className="mb-1 block text-sm text-muted">
+          Category
+        </label>
+        <input
+          id="category"
+          name="category"
+          list="category-suggestions"
+          defaultValue={initial?.category || "General"}
+          placeholder="General"
+          className="w-full rounded-chip border border-line px-3 py-2 text-sm outline-none focus:border-signal"
+        />
+        <datalist id="category-suggestions">
+          {SUGGESTED_CATEGORIES.map((c) => (
+            <option key={c} value={c} />
+          ))}
+        </datalist>
+      </div>
       <div>
         <label htmlFor="meta_description" className="mb-1 block text-sm text-muted">
           Meta description
