@@ -1,11 +1,11 @@
 /**
- * Ahrefs' public Domain Rating endpoint (free, no API key, since June 2026).
- * We still treat it as rate-limited: never call it in a tight loop without
- * a delay, and always cache the result on the site row instead of calling
- * live on every page render.
+ * Ahrefs' public Domain Rating endpoint. Free to use, but — despite some
+ * blog posts claiming otherwise — it DOES require a free Ahrefs APIv3 key
+ * sent as `Authorization: Bearer <token>`. Without it Ahrefs returns
+ * 401/403. Get a key at https://app.ahrefs.com/account/api-keys (free
+ * Ahrefs account, no card needed) and set it as AHREFS_API_KEY.
  *
- * Docs behavior observed: GET with `target` (domain or URL) + `output=json`
- * returns { domain_rating: { domain_rating: number } }.
+ * Docs: https://docs.ahrefs.com/en/api/reference/public/get-domain-rating-free
  */
 
 const AHREFS_DR_ENDPOINT = "https://api.ahrefs.com/v3/public/domain-rating-free";
@@ -32,18 +32,37 @@ function extractHostname(input: string): string {
  */
 export async function fetchDomainRating(domainOrUrl: string): Promise<DrResult> {
   const target = extractHostname(domainOrUrl);
+  const apiKey = process.env.AHREFS_API_KEY;
+
+  if (!apiKey) {
+    return {
+      ok: false,
+      domainRating: null,
+      error: "AHREFS_API_KEY is not set — get a free key at app.ahrefs.com/account/api-keys",
+    };
+  }
 
   try {
     const res = await fetch(
       `${AHREFS_DR_ENDPOINT}?target=${encodeURIComponent(target)}&output=json`,
       {
-        headers: { Accept: "application/json" },
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
         signal: AbortSignal.timeout(10_000),
       }
     );
 
     if (!res.ok) {
-      return { ok: false, domainRating: null, error: `HTTP ${res.status}` };
+      const status = res.status;
+      const hint =
+        status === 401 || status === 403
+          ? " — check that AHREFS_API_KEY is valid"
+          : status === 429
+            ? " — rate limited, will retry on next scheduled check"
+            : "";
+      return { ok: false, domainRating: null, error: `HTTP ${status}${hint}` };
     }
 
     const data = await res.json();
