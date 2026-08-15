@@ -1,28 +1,64 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Logo } from "@/components/ui/logo";
-import { SidebarNav } from "@/components/layout/sidebar-nav";
+import { AdminSidebarNav, type AdminNavGroup } from "@/components/layout/admin-sidebar-nav";
 import { LogoutButton } from "@/components/layout/logout-button";
 import { MobileSidebarShell } from "@/components/layout/mobile-sidebar-shell";
 import { NotificationBell } from "@/components/layout/notification-bell";
 
-const NAV = [
-  { href: "/admin", label: "Overview" },
-  { href: "/admin/sites", label: "Site approvals" },
-  { href: "/admin/orders", label: "Orders" },
-  { href: "/admin/press-releases", label: "Press releases" },
-  { href: "/admin/disputes", label: "Disputes" },
-  { href: "/admin/users", label: "Users" },
-  { href: "/admin/articles", label: "Blog / CMS" },
-  { href: "/admin/pricing", label: "Pricing page" },
-  { href: "/admin/analytics", label: "Analytics" },
-  { href: "/admin/revenue", label: "Revenue" },
-  { href: "/admin/support", label: "Support tickets" },
-  { href: "/admin/withdrawals", label: "Withdrawals" },
-  { href: "/admin/ppv-unlocks", label: "Pay-per-view unlocks" },
-  { href: "/admin/wallet-ledger", label: "Wallet ledger" },
-  { href: "/admin/coupons", label: "Coupons" },
-  { href: "/admin/settings", label: "Settings" },
+const NAV_GROUPS: AdminNavGroup[] = [
+  {
+    label: "Overview",
+    href: "/admin",
+    items: [
+      { href: "/admin/analytics", label: "Analytics" },
+      { href: "/admin/revenue", label: "Revenue" },
+    ],
+  },
+  {
+    label: "Marketplace",
+    items: [
+      { href: "/admin/sites", label: "Site approvals" },
+      { href: "/admin/orders", label: "Orders" },
+      { href: "/admin/disputes", label: "Disputes" },
+      { href: "/admin/press-releases", label: "Press releases" },
+    ],
+  },
+  {
+    label: "Users",
+    items: [
+      { href: "/admin/users", label: "All users" },
+      { href: "/admin/users/new", label: "Create user" },
+    ],
+  },
+  {
+    label: "Payments",
+    items: [
+      { href: "/admin/withdrawals", label: "Withdrawals" },
+      { href: "/admin/ppv-unlocks", label: "Pay-per-view unlocks" },
+      { href: "/admin/wallet-ledger", label: "Wallet ledger" },
+    ],
+  },
+  {
+    label: "Content",
+    items: [
+      { href: "/admin/articles", label: "Blog / CMS" },
+      { href: "/admin/articles/categorize", label: "Bulk-categorize articles" },
+    ],
+  },
+  {
+    label: "Support",
+    items: [{ href: "/admin/support", label: "Support tickets" }],
+  },
+  {
+    label: "Settings",
+    href: "/admin/settings",
+    items: [
+      { href: "/admin/settings", label: "General settings" },
+      { href: "/admin/pricing", label: "Pricing page" },
+      { href: "/admin/coupons", label: "Coupons" },
+    ],
+  },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -37,7 +73,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <Logo size={24} />
       </Link>
       <p className="mb-7 text-xs text-muted">Admin</p>
-      <SidebarNav items={NAV} />
+      <AdminSidebarNav groups={NAV_GROUPS} />
       <div className="mt-auto flex items-center gap-3 border-t border-line pt-4 text-xs text-muted">
         <Link href="/dashboard" className="hover:text-ink">
           Switch to dashboard
