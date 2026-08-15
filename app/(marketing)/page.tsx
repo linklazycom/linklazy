@@ -150,7 +150,7 @@ export default async function HomePage() {
             <MetricChip label="Traffic" value="12.4K/mo" />
             <MetricChip label="Niche" value="Home & Garden" />
             <MetricChip label="Ownership" value="Verified" tone="verified" />
-            <MetricChip label="Placement" value="৳1,200" tone="price" />
+            <MetricChip label="Placement" value={1200} tone="price" />
           </div>
         </div>
       </section>

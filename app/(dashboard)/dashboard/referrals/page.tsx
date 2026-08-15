@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { MetricChip } from "@/components/ui/metric-chip";
 import { ReferralLinkBox } from "@/components/dashboard/referral-link-box";
 import { WithdrawalForm } from "@/components/dashboard/withdrawal-form";
+import { Money } from "@/components/currency/money";
 
 export default async function ReferralsPage() {
   const supabase = await createClient();
@@ -57,8 +58,8 @@ export default async function ReferralsPage() {
       </div>
 
       <div className="mb-6 flex flex-wrap gap-2">
-        <MetricChip label="Total earned" value={`৳${totalEarned}`} tone="verified" />
-        <MetricChip label="Available to withdraw" value={`৳${available}`} tone="price" />
+        <MetricChip label="Total earned" value={totalEarned} tone="verified" />
+        <MetricChip label="Available to withdraw" value={available} tone="price" />
         <MetricChip label="Referral credits" value={credits?.length ?? 0} />
       </div>
 
@@ -76,7 +77,7 @@ export default async function ReferralsPage() {
                 <span className="text-muted">
                   {new Date(c.created_at).toLocaleDateString()} — order {c.order_id.slice(0, 8)}
                 </span>
-                <span className="font-medium">৳{c.amount}</span>
+                <span className="font-medium"><Money amount={c.amount} /></span>
               </li>
             ))}
           </ul>
@@ -99,7 +100,7 @@ export default async function ReferralsPage() {
               <span className="text-muted">
                 {new Date(w.requested_at).toLocaleDateString()}
               </span>
-              <span className="font-medium">৳{w.amount}</span>
+              <span className="font-medium"><Money amount={w.amount} /></span>
               <MetricChip label="Status" value={w.status} tone={statusTone[w.status]} />
             </li>
           ))}

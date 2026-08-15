@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Money } from "@/components/currency/money";
+import { CurrencyToggle } from "@/components/currency/currency-provider";
 
 export const metadata: Metadata = {
   title: "Pricing",
@@ -11,10 +13,12 @@ export const metadata: Metadata = {
 // benchmarked loosely against general SaaS/marketplace subscription tiers,
 // adjusted for a BDT-priced audience. Adjust anytime in this file if you
 // want to tune margins later — nothing else in the page needs to change.
+// priceAmount is always in BDT — <Money> converts to USD on the page when
+// the visitor has switched currency via the toggle.
 const buyerPlans = [
   {
     name: "Free",
-    price: "৳0",
+    priceAmount: 0,
     period: "forever",
     tagline: "Browse the marketplace, no commitment.",
     cta: "Sign up",
@@ -29,7 +33,7 @@ const buyerPlans = [
   },
   {
     name: "Starter",
-    price: "৳990/mo",
+    priceAmount: 990,
     period: "billed monthly",
     tagline: "For occasional link building.",
     cta: "Choose Starter",
@@ -44,7 +48,7 @@ const buyerPlans = [
   },
   {
     name: "Growth",
-    price: "৳1,790/mo",
+    priceAmount: 1790,
     period: "billed monthly",
     tagline: "For agencies running regular campaigns.",
     cta: "Choose Growth",
@@ -59,7 +63,7 @@ const buyerPlans = [
   },
   {
     name: "Pro",
-    price: "৳3,990/mo",
+    priceAmount: 3990,
     period: "billed monthly",
     tagline: "For high-volume buyers and SEO teams.",
     cta: "Choose Pro",
@@ -74,10 +78,28 @@ const buyerPlans = [
   },
 ];
 
-const sellerPlans = [
+type SellerPlan =
+  | {
+      name: string;
+      priceLabel: string;
+      priceAmount?: undefined;
+      period: string;
+      tagline: string;
+      features: string[];
+    }
+  | {
+      name: string;
+      priceLabel?: undefined;
+      priceAmount: number;
+      period: string;
+      tagline: string;
+      features: string[];
+    };
+
+const sellerPlans: SellerPlan[] = [
   {
     name: "Commission",
-    price: "15–20%",
+    priceLabel: "15–20%", // not a currency amount — left as-is
     period: "per completed paid order",
     tagline: "No upfront cost — pay only when you earn.",
     features: [
@@ -90,7 +112,7 @@ const sellerPlans = [
   },
   {
     name: "Monthly",
-    price: "৳1,500/mo",
+    priceAmount: 1500,
     period: "flat fee",
     tagline: "Keep 100% of what buyers pay you.",
     features: [
@@ -117,6 +139,9 @@ export default function PricingPage() {
             unlock contact details, place paid orders, or sell placements —
             every order is escrow-protected until delivery is confirmed.
           </p>
+          <div className="mt-4 flex justify-center">
+            <CurrencyToggle />
+          </div>
         </div>
       </section>
 
@@ -140,7 +165,10 @@ export default function PricingPage() {
               <p className="font-display text-lg font-medium">{plan.name}</p>
               <p className="mt-1 text-sm text-muted">{plan.tagline}</p>
               <div className="mt-4">
-                <span className="text-2xl font-display">{plan.price}</span>
+                <span className="text-2xl font-display">
+                  <Money amount={plan.priceAmount} />
+                  {plan.period !== "forever" && <span className="text-lg">/mo</span>}
+                </span>
                 {plan.period !== "forever" && (
                   <span className="ml-1 text-sm text-muted">{plan.period}</span>
                 )}
@@ -176,7 +204,16 @@ export default function PricingPage() {
                 <p className="font-display text-lg font-medium">{plan.name} plan</p>
                 <p className="mt-1 text-sm text-muted">{plan.tagline}</p>
                 <div className="mt-4">
-                  <span className="text-2xl font-display">{plan.price}</span>
+                  <span className="text-2xl font-display">
+                    {"priceAmount" in plan && plan.priceAmount !== undefined ? (
+                      <>
+                        <Money amount={plan.priceAmount} />
+                        <span className="text-lg">/mo</span>
+                      </>
+                    ) : (
+                      plan.priceLabel
+                    )}
+                  </span>
                   <span className="ml-1 text-sm text-muted">{plan.period}</span>
                 </div>
                 <ul className="mt-6 flex flex-col gap-2 text-sm">
@@ -210,7 +247,7 @@ export default function PricingPage() {
             </p>
             <p className="mt-1 text-sm text-muted">
               Commission has no upfront cost — LinkLazy takes a percentage
-              only on completed paid orders. Monthly (৳1,500/mo flat, 0%
+              only on completed paid orders. Monthly (<Money amount={1500} />/mo flat, 0%
               commission) pays for itself once you're completing roughly 8–10
               paid orders a month at typical placement prices — below that,
               Commission usually works out cheaper.

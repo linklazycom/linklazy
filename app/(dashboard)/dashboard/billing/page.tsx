@@ -130,7 +130,7 @@ export default function BillingPage() {
           subscription needed. Also used to pay out your earnings if you're a seller.
         </p>
         <div className="mb-3">
-          <MetricChip label="Balance" value={`৳${profile.wallet_balance}`} tone="price" />
+          <MetricChip label="Balance" value={profile.wallet_balance} tone="price" />
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {TOPUP_AMOUNTS.map((amt) => (

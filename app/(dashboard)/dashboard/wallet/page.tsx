@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { MetricChip } from "@/components/ui/metric-chip";
+import { Money } from "@/components/currency/money";
 
 const TYPE_LABEL: Record<string, string> = {
   topup: "Wallet top-up",
@@ -49,10 +50,8 @@ export default async function WalletPage() {
       </div>
 
       <div className="mb-6 flex flex-wrap gap-2">
-        <MetricChip label="Balance" value={`৳${profile?.wallet_balance ?? 0}`} tone="price" />
-        {pendingTotal > 0 && (
-          <MetricChip label="Pending earnings" value={`৳${pendingTotal}`} />
-        )}
+        <MetricChip label="Balance" value={profile?.wallet_balance ?? 0} tone="price" />
+        {pendingTotal > 0 && <MetricChip label="Pending earnings" value={pendingTotal} />}
       </div>
 
       {pendingEarnings && pendingEarnings.length > 0 && (
@@ -68,7 +67,7 @@ export default async function WalletPage() {
                 <div key={i} className="flex items-center justify-between text-sm">
                   <span>{site?.domain ?? "—"}</span>
                   <span className="text-muted">
-                    ৳{e.seller_earning} — releases{" "}
+                    <Money amount={e.seller_earning} /> — releases{" "}
                     {e.earning_release_at ? new Date(e.earning_release_at).toLocaleDateString() : "—"}
                   </span>
                 </div>
@@ -99,7 +98,7 @@ export default async function WalletPage() {
                 className={`font-mono text-sm ${entry.amount >= 0 ? "text-emerald-600" : "text-red-600"}`}
               >
                 {entry.amount >= 0 ? "+" : ""}
-                ৳{entry.amount}
+                <Money amount={entry.amount} />
               </span>
             </div>
           );

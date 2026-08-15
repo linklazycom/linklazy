@@ -153,7 +153,7 @@ export default async function PublicBrowsePage({
                 </span>
                 {site.accepts_exchange && <MetricChip label="Exchange" value="Available" tone="verified" />}
                 {site.pay_per_view_enabled && site.view_price != null && (
-                  <MetricChip label="Pay-per-view" value={`৳${site.view_price}`} tone="price" />
+                  <MetricChip label="Pay-per-view" value={site.view_price} tone="price" />
                 )}
               </div>
               <div className="mb-3 flex flex-wrap gap-2">

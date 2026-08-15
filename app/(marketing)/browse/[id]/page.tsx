@@ -8,6 +8,7 @@ import { MetricChip } from "@/components/ui/metric-chip";
 import { SellerTierBadge } from "@/components/reviews/seller-tier-badge";
 import { ReviewsList } from "@/components/reviews/reviews-list";
 import { maskDomain } from "@/lib/mask-domain";
+import { Money } from "@/components/currency/money";
 
 interface SiteDetail {
   id: string;
@@ -212,14 +213,19 @@ export default function PublicSiteDetailPage({
                 >
                   {busy
                     ? "Unlocking…"
-                    : `Pay ৳${site.view_price} from wallet`}
+                    : (
+                      <>
+                        Pay <Money amount={site.view_price} /> from wallet
+                      </>
+                    )}
                 </Button>
               )}
             </div>
           )}
           {isLoggedIn && site.pay_per_view_enabled && site.view_price != null && walletBalance < site.view_price && (
             <p className="mt-2 text-xs text-muted">
-              Wallet balance ৳{walletBalance} — not enough to pay ৳{site.view_price}.{" "}
+              Wallet balance <Money amount={walletBalance} /> — not enough to pay{" "}
+              <Money amount={site.view_price} />.{" "}
               <Link href="/dashboard/billing" className="underline">
                 Top up
               </Link>
