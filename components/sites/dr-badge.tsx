@@ -37,20 +37,23 @@ export function DrBadge({ selfReportedDr, verifiedDr, className }: Props) {
     return (
       <span
         className={cn(
-          "inline-flex items-center gap-1 rounded-chip px-2 py-1 text-xs font-medium",
+          "inline-flex items-center gap-1.5 rounded-chip px-2 py-1 text-xs font-medium",
           BAND_CLASSES[band],
           className
         )}
         title={`Domain Rating ${verifiedDr}, verified via Ahrefs — ${BAND_LABEL[band]}`}
       >
-        <svg viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3">
-          <path
-            fillRule="evenodd"
-            d="M16.7 5.3a1 1 0 010 1.4l-7.4 7.4a1 1 0 01-1.4 0L3.3 9.5a1 1 0 111.4-1.4l3.6 3.6 6.7-6.7a1 1 0 011.4 0z"
-            clipRule="evenodd"
-          />
-        </svg>
         DR {verifiedDr}
+        <span className="inline-flex items-center gap-0.5 font-semibold">
+          <svg viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3">
+            <path
+              fillRule="evenodd"
+              d="M16.7 5.3a1 1 0 010 1.4l-7.4 7.4a1 1 0 01-1.4 0L3.3 9.5a1 1 0 111.4-1.4l3.6 3.6 6.7-6.7a1 1 0 011.4 0z"
+              clipRule="evenodd"
+            />
+          </svg>
+          Verified
+        </span>
       </span>
     );
   }
