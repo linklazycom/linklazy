@@ -9,10 +9,14 @@ export function RequestLinkForm({
   siteId,
   acceptsExchange,
   acceptsPaid,
+  defaultTargetUrl,
+  defaultAnchorText,
 }: {
   siteId: string;
   acceptsExchange: boolean;
   acceptsPaid: boolean;
+  defaultTargetUrl?: string;
+  defaultAnchorText?: string;
 }) {
   const router = useRouter();
   const [orderType, setOrderType] = useState<"exchange" | "paid">(
@@ -90,8 +94,8 @@ export function RequestLinkForm({
         />
       )}
 
-      <Field id="target_url" name="target_url" label="Page to link to" placeholder="https://yoursite.com/page" required />
-      <Field id="anchor_text" name="anchor_text" label="Anchor text" placeholder="best gardening tools" required />
+      <Field id="target_url" name="target_url" label="Page to link to" placeholder="https://yoursite.com/page" required defaultValue={defaultTargetUrl} />
+      <Field id="anchor_text" name="anchor_text" label="Anchor text" placeholder="best gardening tools" required defaultValue={defaultAnchorText} />
       <div>
         <label htmlFor="notes" className="mb-1 block text-sm text-muted">
           Notes for the seller (optional)

@@ -6,6 +6,8 @@ import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { LogoutButton } from "@/components/layout/logout-button";
 import { MobileSidebarShell } from "@/components/layout/mobile-sidebar-shell";
 import { NotificationBell } from "@/components/layout/notification-bell";
+import { GlobalSearch } from "@/components/search/global-search";
+import { AdSlot } from "@/components/ads/ad-slot";
 
 const NAV = [
   { href: "/dashboard", label: "Overview" },
@@ -16,6 +18,7 @@ const NAV = [
   { href: "/dashboard/watchlist", label: "Watchlist" },
   { href: "/dashboard/saved-searches", label: "Saved searches" },
   { href: "/dashboard/messages", label: "Messages" },
+  { href: "/dashboard/inquiries", label: "Pre-sale inquiries" },
   { href: "/dashboard/orders", label: "Orders" },
   { href: "/dashboard/press-releases", label: "Press releases" },
   { href: "/dashboard/referrals", label: "Referrals" },
@@ -49,6 +52,7 @@ export default async function DashboardLayout({
       </Link>
       <SidebarNav items={NAV} />
       <div className="mt-auto border-t border-line pt-4 text-xs text-muted">
+        <AdSlot placement="dashboard_sidebar" />
         <Link href="/dashboard/profile" className="block hover:text-ink">
           {profile?.full_name ?? user.email}
         </Link>
@@ -68,7 +72,8 @@ export default async function DashboardLayout({
     <div className="flex min-h-screen flex-col md:flex-row">
       <MobileSidebarShell>{sidebarContent}</MobileSidebarShell>
       <main className="flex-1 bg-paper p-4 md:p-8">
-        <div className="mb-4 flex justify-end">
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <GlobalSearch browseHref="/dashboard/browse" className="max-w-sm" />
           <NotificationBell userId={user.id} />
         </div>
         {children}

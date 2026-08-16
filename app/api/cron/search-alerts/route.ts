@@ -106,5 +106,62 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json({ checked: searches.length, notified });
+  const priceDrops = await checkPriceDrops();
+
+  return NextResponse.json({
+    newListingAlerts: { checked: searches.length, notified },
+    priceDropAlerts: priceDrops,
+  });
+}
+
+/**
+ * Price-drop alerts, run in the same scheduled invocation: for every
+ * watchlist entry with a stored baseline price, check if the site's
+ * current price is now lower. If so, email once and reset the baseline
+ * to the new (lower) price so the buyer isn't re-notified for the same
+ * drop tomorrow — only a further drop from here triggers again.
+ */
+async function checkPriceDrops() {
+  const supabase = createServiceClient();
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+  const { data: watched } = await supabase
+    .from("watchlists")
+    .select("user_id, site_id, price_at_watch, sites(domain, price_amount)")
+    .not("price_at_watch", "is", null);
+
+  if (!watched?.length) return { checked: 0, notified: 0 };
+
+  let notified = 0;
+
+  for (const entry of watched) {
+    const site = entry.sites as unknown as { domain: string; price_amount: number | null } | null;
+    if (!site || site.price_amount == null || entry.price_at_watch == null) continue;
+    if (site.price_amount >= entry.price_at_watch) continue;
+
+    const { data: authUser } = await supabase.auth.admin.getUserById(entry.user_id);
+    const email = authUser?.user?.email;
+    if (!email) continue;
+
+    const result = await sendEmail({
+      to: email,
+      subject: `Price drop: ${site.domain} is now ৳${site.price_amount}`,
+      html: `
+        <p>A site on your watchlist dropped in price.</p>
+        <p><a href="${siteUrl}/dashboard/watchlist">${site.domain}</a> is now
+        ৳${site.price_amount} (was ৳${entry.price_at_watch}).</p>
+      `,
+    });
+
+    if (result.ok) {
+      notified++;
+      await supabase
+        .from("watchlists")
+        .update({ price_at_watch: site.price_amount, last_price_alert_at: new Date().toISOString() })
+        .eq("user_id", entry.user_id)
+        .eq("site_id", entry.site_id);
+    }
+  }
+
+  return { checked: watched.length, notified };
 }

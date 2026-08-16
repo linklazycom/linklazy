@@ -21,7 +21,7 @@ export default async function OrdersPage() {
 
   const { data: orders } = await supabase
     .from("orders")
-    .select("id, order_type, status, target_url, anchor_text, price_amount, buyer_id, seller_id, created_at, sites(domain)")
+    .select("id, site_id, order_type, status, target_url, anchor_text, price_amount, buyer_id, seller_id, created_at, sites(domain)")
     .or(`buyer_id.eq.${user!.id},seller_id.eq.${user!.id}`)
     .order("created_at", { ascending: false });
 
@@ -36,25 +36,37 @@ export default async function OrdersPage() {
           const role = order.buyer_id === user!.id ? "buyer" : "seller";
           // @ts-expect-error -- joined relation shape isn't in the placeholder Database type
           const domain = order.sites?.domain ?? "Site";
+          const reorderHref =
+            role === "buyer"
+              ? `/dashboard/browse/${order.site_id}?reorder_target=${encodeURIComponent(
+                  order.target_url
+                )}&reorder_anchor=${encodeURIComponent(order.anchor_text)}`
+              : null;
           return (
-            <Link
-              key={order.id}
-              href={`/dashboard/orders/${order.id}`}
-              className="block rounded-chip border border-line bg-white p-4 hover:border-ink"
-            >
-              <div className="mb-2 flex items-center justify-between">
-                <span className="font-medium">{domain}</span>
-                <MetricChip label="Status" value={order.status} tone={STATUS_TONE[order.status] ?? "default"} />
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <MetricChip label="Role" value={role} />
-                <MetricChip label="Type" value={order.order_type} />
-                {order.price_amount != null && (
-                  <MetricChip label="Price" value={order.price_amount} tone="price" />
-                )}
-                <MetricChip label="Anchor" value={order.anchor_text} />
-              </div>
-            </Link>
+            <div key={order.id} className="rounded-chip border border-line bg-white p-4">
+              <Link href={`/dashboard/orders/${order.id}`} className="block hover:opacity-80">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="font-medium">{domain}</span>
+                  <MetricChip label="Status" value={order.status} tone={STATUS_TONE[order.status] ?? "default"} />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <MetricChip label="Role" value={role} />
+                  <MetricChip label="Type" value={order.order_type} />
+                  {order.price_amount != null && (
+                    <MetricChip label="Price" value={order.price_amount} tone="price" />
+                  )}
+                  <MetricChip label="Anchor" value={order.anchor_text} />
+                </div>
+              </Link>
+              {reorderHref && (
+                <Link
+                  href={reorderHref}
+                  className="mt-2 inline-block text-xs text-brand-blue underline"
+                >
+                  Reorder — same target &amp; anchor
+                </Link>
+              )}
+            </div>
           );
         })}
       </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, use as usePromise } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { MetricChip } from "@/components/ui/metric-chip";
@@ -9,6 +10,7 @@ import { RequestLinkForm } from "@/components/orders/request-link-form";
 import { SellerTierBadge } from "@/components/reviews/seller-tier-badge";
 import { ReviewsList } from "@/components/reviews/reviews-list";
 import { WatchlistButton } from "@/components/watchlist/watchlist-button";
+import { MessageSellerButton } from "@/components/inquiries/message-seller-button";
 
 interface SiteDetail {
   id: string;
@@ -53,11 +55,15 @@ export default function SiteDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = usePromise(params);
+  const searchParams = useSearchParams();
+  const reorderTarget = searchParams.get("reorder_target") ?? undefined;
+  const reorderAnchor = searchParams.get("reorder_anchor") ?? undefined;
   const supabase = createClient();
   const [site, setSite] = useState<SiteDetail | null>(null);
   const [seller, setSeller] = useState<SellerInfo | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [unlocked, setUnlocked] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -65,6 +71,7 @@ export default function SiteDetailPage({
     const {
       data: { user },
     } = await supabase.auth.getUser();
+    setCurrentUserId(user?.id ?? null);
 
     const { data: existing } = await supabase
       .from("credits_ledger")
@@ -135,8 +142,11 @@ export default function SiteDetailPage({
         {unlocked ? site.domain : "Site details"}
         <SellerTierBadge tier={seller?.seller_tier ?? null} />
       </h1>
-      <div className="mb-4">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         <WatchlistButton siteId={site.id} />
+        {currentUserId && site.owner_id !== currentUserId && (
+          <MessageSellerButton siteId={site.id} />
+        )}
       </div>
 
       <div className="mb-6 flex flex-wrap gap-2">
@@ -198,6 +208,8 @@ export default function SiteDetailPage({
             siteId={site.id}
             acceptsExchange={site.accepts_exchange}
             acceptsPaid={site.accepts_paid}
+            defaultTargetUrl={reorderTarget}
+            defaultAnchorText={reorderAnchor}
           />
         </>
       )}

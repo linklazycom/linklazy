@@ -34,6 +34,7 @@ const DEFAULTS: Record<string, unknown> = {
   bing_verification_code: "",
   pinterest_verification_code: "",
   yandex_verification_code: "",
+  ads_enabled: "off",
 };
 
 /** Fetches every site_settings row and merges over the safe defaults. */

@@ -8,6 +8,7 @@ import { MetricChip } from "@/components/ui/metric-chip";
 import { DrBadge } from "@/components/sites/dr-badge";
 import { SellerTierBadge } from "@/components/reviews/seller-tier-badge";
 import { ReviewsList } from "@/components/reviews/reviews-list";
+import { AdSlot } from "@/components/ads/ad-slot";
 import { maskDomain } from "@/lib/mask-domain";
 import { Money } from "@/components/currency/money";
 
@@ -268,6 +269,7 @@ export default function PublicSiteDetailPage({
       <div className="mt-8">
         <h2 className="mb-3 font-display text-lg font-medium">Seller reviews</h2>
         <ReviewsList reviews={reviews} />
+        <AdSlot placement="site_detail_bottom" />
       </div>
     </main>
   );

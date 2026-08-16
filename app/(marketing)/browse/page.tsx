@@ -6,6 +6,7 @@ import { Field } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { SellerTierBadge } from "@/components/reviews/seller-tier-badge";
 import { DrBadge } from "@/components/sites/dr-badge";
+import { AdSlot } from "@/components/ads/ad-slot";
 import { maskDomain } from "@/lib/mask-domain";
 
 export const metadata: Metadata = {
@@ -81,6 +82,7 @@ export default async function PublicBrowsePage({
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
+      <AdSlot placement="browse_top" />
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-medium">Browse sites</h1>

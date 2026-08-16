@@ -12,9 +12,19 @@ export async function POST(
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const { error } = await supabase
-    .from("watchlists")
-    .upsert({ user_id: user.id, site_id: siteId }, { onConflict: "user_id,site_id" });
+  // Capture today's price as the baseline for price-drop alerts — the
+  // weekly cron compares the site's current price against this and resets
+  // it after notifying, so re-watching after a drop starts a fresh baseline.
+  const { data: site } = await supabase
+    .from("sites")
+    .select("price_amount")
+    .eq("id", siteId)
+    .single();
+
+  const { error } = await supabase.from("watchlists").upsert(
+    { user_id: user.id, site_id: siteId, price_at_watch: site?.price_amount ?? null },
+    { onConflict: "user_id,site_id" }
+  );
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true, watching: true });
