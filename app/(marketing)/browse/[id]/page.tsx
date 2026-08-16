@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { MetricChip } from "@/components/ui/metric-chip";
 import { DrBadge } from "@/components/sites/dr-badge";
 import { SellerTierBadge } from "@/components/reviews/seller-tier-badge";
+import { TrustBadges } from "@/components/reviews/trust-badges";
 import { ReviewsList } from "@/components/reviews/reviews-list";
 import { AdSlotClient } from "@/components/ads/ad-slot-client";
 import { maskDomain } from "@/lib/mask-domain";
@@ -42,6 +43,10 @@ interface SiteDetail {
 
 interface SellerInfo {
   seller_tier: string | null;
+  completion_rate: number | null;
+  avg_response_hours: number | null;
+  dispute_rate: number | null;
+  completed_order_count: number;
 }
 
 interface Review {
@@ -120,7 +125,7 @@ export default function PublicSiteDetailPage({
     if (siteData?.owner_id) {
       const { data: sellerData } = await supabase
         .from("profiles")
-        .select("seller_tier")
+        .select("seller_tier, completion_rate, avg_response_hours, dispute_rate, completed_order_count")
         .eq("id", siteData.owner_id)
         .single();
       setSeller(sellerData);
@@ -169,6 +174,15 @@ export default function PublicSiteDetailPage({
         {unlocked ? site.domain : maskDomain(site.domain ?? "hidden-site.com")}
         <SellerTierBadge tier={seller?.seller_tier ?? null} />
       </h1>
+      {seller && (
+        <TrustBadges
+          completionRate={seller.completion_rate}
+          avgResponseHours={seller.avg_response_hours}
+          disputeRate={seller.dispute_rate}
+          completedOrderCount={seller.completed_order_count ?? 0}
+          className="mb-3"
+        />
+      )}
 
       <div className="mb-6 flex flex-wrap gap-2">
         <MetricChip label="Niche" value={site.niche} />

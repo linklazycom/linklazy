@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { MetricChip } from "@/components/ui/metric-chip";
 import { RequestLinkForm } from "@/components/orders/request-link-form";
 import { SellerTierBadge } from "@/components/reviews/seller-tier-badge";
+import { TrustBadges } from "@/components/reviews/trust-badges";
 import { ReviewsList } from "@/components/reviews/reviews-list";
 import { WatchlistButton } from "@/components/watchlist/watchlist-button";
 import { MessageSellerButton } from "@/components/inquiries/message-seller-button";
@@ -40,6 +41,10 @@ interface SiteDetail {
 interface SellerInfo {
   seller_tier: string | null;
   response_rate: number | null;
+  completion_rate: number | null;
+  avg_response_hours: number | null;
+  dispute_rate: number | null;
+  completed_order_count: number;
 }
 
 interface Review {
@@ -101,7 +106,7 @@ export default function SiteDetailPage({
     if (siteData?.owner_id) {
       const { data: sellerData } = await supabase
         .from("profiles")
-        .select("seller_tier, response_rate")
+        .select("seller_tier, response_rate, completion_rate, avg_response_hours, dispute_rate, completed_order_count")
         .eq("id", siteData.owner_id)
         .single();
       setSeller(sellerData);
@@ -142,6 +147,15 @@ export default function SiteDetailPage({
         {unlocked ? site.domain : "Site details"}
         <SellerTierBadge tier={seller?.seller_tier ?? null} />
       </h1>
+      {seller && (
+        <TrustBadges
+          completionRate={seller.completion_rate}
+          avgResponseHours={seller.avg_response_hours}
+          disputeRate={seller.dispute_rate}
+          completedOrderCount={seller.completed_order_count ?? 0}
+          className="mb-3"
+        />
+      )}
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <WatchlistButton siteId={site.id} />
         {currentUserId && site.owner_id !== currentUserId && (

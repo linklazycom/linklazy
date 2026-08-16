@@ -27,6 +27,10 @@
     {
       "path": "/api/cron/dr-refresh",
       "schedule": "0 2 * * 1"
+    },
+    {
+      "path": "/api/cron/seller-metrics",
+      "schedule": "0 3 * * 1"
     }
   ]
 }

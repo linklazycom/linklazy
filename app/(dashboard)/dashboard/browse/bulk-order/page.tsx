@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { MetricChip } from "@/components/ui/metric-chip";
+import { PaymentProtectionBadge } from "@/components/trust/payment-protection-badge";
 
 interface SiteRow {
   id: string;
@@ -197,6 +198,9 @@ export default function BulkOrderPage() {
             <Button type="submit" disabled={submitting}>
               {submitting ? "Placing orders…" : `Place ${sites.length} order${sites.length > 1 ? "s" : ""}`}
             </Button>
+            <div>
+              <PaymentProtectionBadge />
+            </div>
           </form>
         </>
       )}

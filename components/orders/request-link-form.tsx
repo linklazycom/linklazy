@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { PaymentProtectionBadge } from "@/components/trust/payment-protection-badge";
 import { Field } from "@/components/ui/field";
 
 export function RequestLinkForm({
@@ -113,6 +114,11 @@ export function RequestLinkForm({
       <Button type="submit" size="lg" disabled={submitting}>
         {submitting ? "Sending…" : orderType === "paid" ? "Continue to payment" : "Send exchange request"}
       </Button>
+      {orderType === "paid" && (
+        <div>
+          <PaymentProtectionBadge />
+        </div>
+      )}
     </form>
   );
 }

@@ -25,6 +25,7 @@ const DEFAULTS: Record<string, unknown> = {
     Resources: [
       { label: "Blog", href: "/blog" },
       { label: "How it works", href: "/how-it-works" },
+      { label: "Trust & payment protection", href: "/trust" },
     ],
   },
   social_links: { facebook: "", twitter: "", linkedin: "" },
