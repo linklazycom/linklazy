@@ -4,8 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { MetricChip } from "@/components/ui/metric-chip";
 import { Field } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
-import { SellerTierBadge } from "@/components/reviews/seller-tier-badge";
-import { DrBadge } from "@/components/sites/dr-badge";
+import { SiteCard } from "@/components/sites/site-card";
 import { AdSlot } from "@/components/ads/ad-slot";
 import { maskDomain } from "@/lib/mask-domain";
 
@@ -58,7 +57,7 @@ export default async function PublicBrowsePage({
   let query = supabase
     .from("sites")
     .select(
-      "id, owner_id, domain, niche, da, dr, dr_verified, organic_traffic, price_amount, link_type, accepts_exchange, accepts_paid, pay_per_view_enabled, view_price"
+      "id, owner_id, domain, niche, da, dr, dr_verified, organic_traffic, price_amount, link_type, accepts_exchange, accepts_paid, pay_per_view_enabled, view_price, is_featured, created_at"
     )
     .eq("status", "approved");
 
@@ -69,7 +68,9 @@ export default async function PublicBrowsePage({
   if (filters.link_type) query = query.eq("link_type", filters.link_type);
   if (filters.exchange_only === "1") query = query.eq("accepts_exchange", true);
 
-  const { data: sites } = await query.order("da", { ascending: false, nullsFirst: false });
+  const { data: sites } = await query
+    .order("is_featured", { ascending: false })
+    .order("da", { ascending: false, nullsFirst: false });
 
   const ownerIds = [...new Set((sites ?? []).map((s) => s.owner_id))];
   const { data: sellerProfiles } = ownerIds.length
@@ -144,39 +145,18 @@ export default async function PublicBrowsePage({
         </div>
       </form>
 
-      <div className="space-y-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         {sites?.map((site) => {
           const unlocked = unlockedIds.has(site.id);
           return (
-            <div key={site.id} className="rounded-chip border border-line bg-white p-4">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="flex items-center gap-2 font-mono font-medium">
-                  {unlocked ? site.domain : maskDomain(site.domain)}
-                  <SellerTierBadge tier={tierByOwner.get(site.owner_id) ?? null} />
-                </span>
-                {site.accepts_exchange && <MetricChip label="Exchange" value="Available" tone="verified" />}
-                {site.pay_per_view_enabled && site.view_price != null && (
-                  <MetricChip label="Pay-per-view" value={site.view_price} tone="price" />
-                )}
-              </div>
-              <div className="mb-3 flex flex-wrap gap-2">
-                <MetricChip label="Niche" value={site.niche} />
-                {site.da != null && <MetricChip label="DA" value={site.da} />}
-                <DrBadge selfReportedDr={site.dr} verifiedDr={site.dr_verified} />
-                {site.organic_traffic != null && (
-                  <MetricChip label="Traffic" value={`${site.organic_traffic}/mo`} />
-                )}
-                {site.price_amount != null && (
-                  <MetricChip label="Price" value={site.price_amount} tone="price" />
-                )}
-                <MetricChip label="Type" value={site.link_type} />
-              </div>
-              <Link href={`/browse/${site.id}`}>
-                <Button size="sm" variant="secondary">
-                  {unlocked ? "View details" : "View Site"}
-                </Button>
-              </Link>
-            </div>
+            <SiteCard
+              key={site.id}
+              site={site}
+              href={`/browse/${site.id}`}
+              sellerTier={tierByOwner.get(site.owner_id) ?? null}
+              displayDomain={unlocked ? site.domain : maskDomain(site.domain)}
+              ctaLabel={unlocked ? "View details" : "View Site"}
+            />
           );
         })}
         {!sites?.length && <p className="text-muted">No sites match these filters.</p>}

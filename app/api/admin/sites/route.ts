@@ -28,7 +28,7 @@ export async function GET(request: Request) {
   let query = supabase
     .from("sites")
     .select(
-      "id, domain, niche, status, da, dr, dr_verified, dr_check_status, organic_traffic, owner_id, created_at, profiles:owner_id(full_name)",
+      "id, domain, niche, status, da, dr, dr_verified, dr_check_status, organic_traffic, owner_id, created_at, is_featured, profiles:owner_id(full_name)",
       { count: "exact" }
     )
     .order("created_at", { ascending: false })

@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { MetricChip } from "@/components/ui/metric-chip";
 import { Field } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
-import { SellerTierBadge } from "@/components/reviews/seller-tier-badge";
+import { SiteCard } from "@/components/sites/site-card";
 import { WatchlistButton } from "@/components/watchlist/watchlist-button";
 import { SaveSearchButton } from "@/components/watchlist/save-search-button";
 import { BulkOrderSelector } from "@/components/sites/bulk-order-selector";
@@ -48,7 +48,7 @@ export default async function BrowsePage({
 
   let query = supabase
     .from("sites")
-    .select("id, owner_id, domain, niche, da, dr, dr_verified, organic_traffic, price_amount, link_type, accepts_exchange, accepts_paid")
+    .select("id, owner_id, domain, niche, da, dr, dr_verified, organic_traffic, price_amount, link_type, accepts_exchange, accepts_paid, is_featured, created_at")
     .eq("status", "approved");
 
   if (filters.niche) query = query.ilike("niche", `%${filters.niche}%`);
@@ -58,7 +58,9 @@ export default async function BrowsePage({
   if (filters.link_type) query = query.eq("link_type", filters.link_type);
   if (filters.exchange_only === "1") query = query.eq("accepts_exchange", true);
 
-  const { data: sites } = await query.order("da", { ascending: false, nullsFirst: false });
+  const { data: sites } = await query
+    .order("is_featured", { ascending: false })
+    .order("da", { ascending: false, nullsFirst: false });
 
   const ownerIds = [...new Set((sites ?? []).map((s) => s.owner_id))];
   const { data: sellerProfiles } = ownerIds.length
@@ -131,39 +133,19 @@ export default async function BrowsePage({
       {!isFree ? (
         <BulkOrderSelector sites={sites ?? []} tierByOwner={tierByOwner} currentUserId={user!.id} />
       ) : (
-        <div className="space-y-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           {sites?.map((site) => {
             const unlocked = unlockedIds.has(site.id);
             return (
-              <div key={site.id} className="rounded-chip border border-line bg-white p-4">
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="flex items-center gap-2 font-medium">
-                    {unlocked || !isFree ? site.domain : "Site details locked"}
-                    <SellerTierBadge tier={tierByOwner.get(site.owner_id) ?? null} />
-                  </span>
-                  {site.accepts_exchange && <MetricChip label="Exchange" value="Available" tone="verified" />}
-                </div>
-                <div className="mb-3 flex flex-wrap gap-2">
-                  <MetricChip label="Niche" value={site.niche} />
-                  {site.da != null && <MetricChip label="DA" value={site.da} />}
-                  {site.dr != null && <MetricChip label="DR" value={site.dr} />}
-                  {site.organic_traffic != null && (
-                    <MetricChip label="Traffic" value={`${site.organic_traffic}/mo`} />
-                  )}
-                  {site.price_amount != null && (
-                    <MetricChip label="Price" value={site.price_amount} tone="price" />
-                  )}
-                  <MetricChip label="Type" value={site.link_type} />
-                </div>
-                <Link href={`/dashboard/browse/${site.id}`}>
-                  <Button size="sm" variant="secondary">
-                    {unlocked ? "View details" : "Unlock & view"}
-                  </Button>
-                </Link>
-                <div className="mt-2">
-                  <WatchlistButton siteId={site.id} />
-                </div>
-              </div>
+              <SiteCard
+                key={site.id}
+                site={site}
+                href={`/dashboard/browse/${site.id}`}
+                sellerTier={tierByOwner.get(site.owner_id) ?? null}
+                displayDomain={unlocked || !isFree ? site.domain : "Site details locked"}
+                ctaLabel={unlocked ? "View details" : "Unlock & view"}
+                actions={<WatchlistButton siteId={site.id} />}
+              />
             );
           })}
           {!sites?.length && <p className="text-muted">No sites match these filters.</p>}

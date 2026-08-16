@@ -1,44 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { MetricChip } from "@/components/ui/metric-chip";
-import { SellerTierBadge } from "@/components/reviews/seller-tier-badge";
 import { WatchlistButton } from "@/components/watchlist/watchlist-button";
-import { DrBadge } from "@/components/sites/dr-badge";
-
-interface SiteCard {
-  id: string;
-  owner_id: string;
-  domain: string;
-  niche: string;
-  da: number | null;
-  dr: number | null;
-  dr_verified: number | null;
-  organic_traffic: number | null;
-  price_amount: number | null;
-  link_type: string;
-  accepts_exchange: boolean;
-  accepts_paid: boolean;
-}
+import { SiteCard, type SiteCardData } from "@/components/sites/site-card";
 
 const MAX_BULK = 10;
 
 /**
- * Renders the same site cards as before, but with a checkbox for sites
- * that accept paid orders (bulk order only supports "paid" — exchange
- * orders need a per-site buyer_site_id pick, which doesn't fit a batch
- * flow cleanly). Selecting sites reveals a floating bar to jump to the
- * bulk order review page with the selection carried in the URL.
+ * Same shared SiteCard as the rest of Browse Sites, but with a checkbox
+ * (for sites that accept paid orders) rendered before the domain name, and
+ * a floating bar that appears once something's selected. Selecting sites
+ * reveals the bar to jump to the bulk order review page with the
+ * selection carried in the URL.
  */
 export function BulkOrderSelector({
   sites,
   tierByOwner,
   currentUserId,
 }: {
-  sites: SiteCard[];
+  sites: SiteCardData[];
   tierByOwner: Map<string, string | null>;
   currentUserId: string;
 }) {
@@ -63,45 +45,28 @@ export function BulkOrderSelector({
 
   return (
     <div className="pb-20">
-      <div className="space-y-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         {sites.map((site) => {
           const canBulk = site.accepts_paid && site.owner_id !== currentUserId;
           return (
-            <div key={site.id} className="rounded-chip border border-line bg-white p-4">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="flex items-center gap-2 font-mono font-medium">
-                  {canBulk && (
-                    <input
-                      type="checkbox"
-                      checked={selected.has(site.id)}
-                      onChange={() => toggle(site.id)}
-                      disabled={!selected.has(site.id) && selected.size >= MAX_BULK}
-                      title="Select for bulk order"
-                    />
-                  )}
-                  {site.domain}
-                  <SellerTierBadge tier={tierByOwner.get(site.owner_id) ?? null} />
-                </span>
-                <WatchlistButton siteId={site.id} />
-              </div>
-              <div className="mb-3 flex flex-wrap gap-2">
-                <MetricChip label="Niche" value={site.niche} />
-                {site.da != null && <MetricChip label="DA" value={site.da} />}
-                <DrBadge selfReportedDr={site.dr} verifiedDr={site.dr_verified} />
-                {site.organic_traffic != null && (
-                  <MetricChip label="Traffic" value={`${site.organic_traffic}/mo`} />
-                )}
-                {site.price_amount != null && (
-                  <MetricChip label="Price" value={site.price_amount} tone="price" />
-                )}
-                <MetricChip label="Type" value={site.link_type} />
-              </div>
-              <Link href={`/dashboard/browse/${site.id}`}>
-                <Button size="sm" variant="secondary">
-                  View Site
-                </Button>
-              </Link>
-            </div>
+            <SiteCard
+              key={site.id}
+              site={site}
+              href={`/dashboard/browse/${site.id}`}
+              sellerTier={tierByOwner.get(site.owner_id) ?? null}
+              actions={<WatchlistButton siteId={site.id} />}
+              leading={
+                canBulk ? (
+                  <input
+                    type="checkbox"
+                    checked={selected.has(site.id)}
+                    onChange={() => toggle(site.id)}
+                    disabled={!selected.has(site.id) && selected.size >= MAX_BULK}
+                    title="Select for bulk order"
+                  />
+                ) : undefined
+              }
+            />
           );
         })}
         {!sites.length && <p className="text-muted">No sites match these filters.</p>}

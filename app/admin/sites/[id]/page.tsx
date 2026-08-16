@@ -32,6 +32,7 @@ interface SiteDetail {
   placement: string;
   guidelines: string | null;
   owner_id: string;
+  is_featured: boolean;
 }
 
 interface AccountOption {
@@ -65,6 +66,7 @@ export default function AdminSiteDetailPage({
   const [newOwner, setNewOwner] = useState<AccountOption | null>(null);
   const [reassignBusy, setReassignBusy] = useState(false);
   const [reassignMessage, setReassignMessage] = useState<string | null>(null);
+  const [featuredBusy, setFeaturedBusy] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -146,6 +148,19 @@ export default function AdminSiteDetailPage({
     setReassignMessage(`Reassigned to ${newOwner.full_name || newOwner.email}.`);
   }
 
+  async function toggleFeatured() {
+    if (!site) return;
+    setFeaturedBusy(true);
+    const next = !site.is_featured;
+    const res = await fetch(`/api/admin/sites/${id}/featured`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ is_featured: next }),
+    });
+    setFeaturedBusy(false);
+    if (res.ok) setSite((prev) => (prev ? { ...prev, is_featured: next } : prev));
+  }
+
   if (!site) return <p className="text-muted">Loading…</p>;
 
   return (
@@ -212,6 +227,17 @@ export default function AdminSiteDetailPage({
             recommended.
           </p>
         )}
+      </div>
+
+      <div className="mb-6 rounded-chip border border-line bg-white p-4">
+        <p className="mb-1 text-sm font-medium">Homepage / Browse highlight</p>
+        <p className="mb-3 text-xs text-muted">
+          Featured sites show a gradient top-bar and a "★ Featured" badge, and sort first in
+          Browse Sites. Use this to spotlight sites you want buyers to notice.
+        </p>
+        <Button size="sm" variant={site.is_featured ? "primary" : "secondary"} onClick={toggleFeatured} disabled={featuredBusy}>
+          {featuredBusy ? "Updating…" : site.is_featured ? "★ Featured — click to unfeature" : "Mark as Featured"}
+        </Button>
       </div>
 
       <div className="mb-6 rounded-chip border border-line bg-white p-4">
