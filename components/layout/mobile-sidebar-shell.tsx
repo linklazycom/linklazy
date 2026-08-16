@@ -1,9 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 
 export function MobileSidebarShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+
+  // FIX: previously the whole drawer content was wrapped in a single
+  // `onClick={() => setOpen(false)}` div. That meant tapping the
+  // <summary> toggle inside AdminSidebarNav (used to expand a nav
+  // group) bubbled up and closed the entire drawer before the group
+  // could open — making the admin menu feel unresponsive on mobile.
+  // Auto-closing on route change (actual navigation) instead fixes
+  // that while still closing the drawer once a link is followed.
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
 
   return (
     <>
@@ -13,7 +26,7 @@ export function MobileSidebarShell({ children }: { children: React.ReactNode }) 
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Open menu"
-          className="flex h-9 w-9 items-center justify-center rounded-chip border border-line"
+          className="flex h-11 w-11 items-center justify-center rounded-chip border border-line active:bg-paper"
         >
           <svg width="18" height="14" viewBox="0 0 18 14" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M0 1H18M0 7H18M0 13H18" stroke="currentColor" strokeWidth="1.5" />
@@ -35,13 +48,13 @@ export function MobileSidebarShell({ children }: { children: React.ReactNode }) 
               type="button"
               onClick={() => setOpen(false)}
               aria-label="Close menu"
-              className="mb-4 flex h-9 w-9 items-center justify-center self-end rounded-chip border border-line"
+              className="mb-4 flex h-11 w-11 items-center justify-center self-end rounded-chip border border-line active:bg-paper"
             >
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" strokeWidth="1.5" />
               </svg>
             </button>
-            <div onClick={() => setOpen(false)}>{children}</div>
+            {children}
           </aside>
         </div>
       )}

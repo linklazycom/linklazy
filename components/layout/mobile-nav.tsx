@@ -4,18 +4,19 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { GlobalSearch } from "@/components/search/global-search";
 import type { NavLink } from "@/lib/site-settings";
 
 export function MobileNav({ navLinks }: { navLinks: NavLink[] }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="md:hidden">
+    <div>
       <button
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Open menu"
-        className="flex h-9 w-9 items-center justify-center rounded-chip border border-line"
+        className="flex h-11 w-11 items-center justify-center rounded-chip border border-line active:bg-white"
       >
         <svg width="18" height="14" viewBox="0 0 18 14" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M0 1H18M0 7H18M0 13H18" stroke="currentColor" strokeWidth="1.5" />
@@ -44,6 +45,9 @@ export function MobileNav({ navLinks }: { navLinks: NavLink[] }) {
                   <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" strokeWidth="1.5" />
                 </svg>
               </button>
+            </div>
+            <div className="px-6 pt-4">
+              <GlobalSearch browseHref="/browse" className="max-w-none" placeholder="Search sites…" />
             </div>
             <nav className="flex flex-col gap-1 px-6 py-6">
               {navLinks.map((link) => (

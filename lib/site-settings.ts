@@ -6,12 +6,13 @@ export interface NavLink {
 }
 
 const DEFAULTS: Record<string, unknown> = {
+  // Kept short on purpose — the header row also holds the search box, logo,
+  // currency toggle, and auth buttons. Niches/Pricing/Blog live in the
+  // footer's Resources column instead (see footer_links below) so the
+  // header doesn't overflow/wrap on smaller desktop widths.
   nav_links: [
     { label: "Browse Sites", href: "/browse" },
     { label: "Press releases", href: "/press-releases" },
-    { label: "Niches", href: "/niches" },
-    { label: "Pricing", href: "/pricing" },
-    { label: "Blog", href: "/blog" },
   ],
   footer_links: {
     Company: [
@@ -23,6 +24,8 @@ const DEFAULTS: Record<string, unknown> = {
       { label: "Terms & Conditions", href: "/terms" },
     ],
     Resources: [
+      { label: "Niches", href: "/niches" },
+      { label: "Pricing", href: "/pricing" },
       { label: "Blog", href: "/blog" },
       { label: "How it works", href: "/how-it-works" },
       { label: "Trust & payment protection", href: "/trust" },

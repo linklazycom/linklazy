@@ -58,7 +58,7 @@ export default function BillingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function topUpWallet() {
+  async function topUpWallet(provider: "bkash" | "paypal") {
     if (!topupAmount || topupAmount < 50) {
       setError("Minimum top-up is ৳50.");
       return;
@@ -68,7 +68,7 @@ export default function BillingPage() {
     const res = await fetch("/api/wallet/topup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount: topupAmount }),
+      body: JSON.stringify({ amount: topupAmount, provider }),
     });
     const body = await res.json();
     if (!res.ok) {
@@ -152,10 +152,16 @@ export default function BillingPage() {
             placeholder="Custom amount"
             className="w-32 rounded-chip border border-line px-3 py-1.5 text-sm outline-none focus:border-signal"
           />
-          <Button size="sm" onClick={topUpWallet} disabled={topupBusy}>
+          <Button size="sm" onClick={() => topUpWallet("bkash")} disabled={topupBusy}>
             {topupBusy ? "Redirecting…" : "Top up with bKash"}
           </Button>
+          <Button size="sm" variant="secondary" onClick={() => topUpWallet("paypal")} disabled={topupBusy}>
+            {topupBusy ? "Redirecting…" : "Top up with PayPal"}
+          </Button>
         </div>
+        <p className="mt-2 text-xs text-muted">
+          bKash charges in BDT. PayPal charges in USD at the platform exchange rate.
+        </p>
       </div>
 
       <div className="mb-6 max-w-xs">
