@@ -30,9 +30,11 @@ export default function BillingPage() {
   const [busyPlan, setBusyPlan] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [couponCode, setCouponCode] = useState("");
-  const [topupAmount, setTopupAmount] = useState<number | "">("");
+  const [topupProvider, setTopupProvider] = useState<"bkash" | "paypal">("bkash");
+  const [topupAmount, setTopupAmount] = useState<number | "">(""); // always stored in BDT
   const [topupBusy, setTopupBusy] = useState(false);
   const [walletMessage, setWalletMessage] = useState<string | null>(null);
+  const [bdtPerUsd, setBdtPerUsd] = useState(125);
 
   async function load() {
     const {
@@ -50,6 +52,12 @@ export default function BillingPage() {
 
   useEffect(() => {
     load();
+    fetch("/api/currency")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.bdt_per_usd) setBdtPerUsd(Number(data.bdt_per_usd));
+      })
+      .catch(() => {});
     const params = new URLSearchParams(window.location.search);
     const walletStatus = params.get("wallet");
     if (walletStatus === "success") setWalletMessage("Wallet topped up successfully.");
@@ -58,9 +66,12 @@ export default function BillingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function topUpWallet(provider: "bkash" | "paypal") {
-    if (!topupAmount || topupAmount < 50) {
-      setError("Minimum top-up is ৳50.");
+  const topupAmountUsd = topupAmount ? Number((Number(topupAmount) / bdtPerUsd).toFixed(2)) : "";
+  const topupValid = typeof topupAmount === "number" && topupAmount >= 50 && topupAmount <= 50000;
+
+  async function topUpWallet() {
+    if (!topupValid) {
+      setError("Minimum top-up is ৳50 (≈$" + (50 / bdtPerUsd).toFixed(2) + ").");
       return;
     }
     setTopupBusy(true);
@@ -68,7 +79,7 @@ export default function BillingPage() {
     const res = await fetch("/api/wallet/topup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount: topupAmount, provider }),
+      body: JSON.stringify({ amount: topupAmount, provider: topupProvider }),
     });
     const body = await res.json();
     if (!res.ok) {
@@ -132,7 +143,29 @@ export default function BillingPage() {
         <div className="mb-3">
           <MetricChip label="Balance" value={profile.wallet_balance} tone="price" />
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+
+        <p className="mb-2 text-sm font-medium">Pay with</p>
+        <div className="mb-3 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setTopupProvider("bkash")}
+            className={`rounded-chip border p-3 text-left ${topupProvider === "bkash" ? "border-brand-violet bg-brand-soft" : "border-line"}`}
+          >
+            <span className="block text-sm font-medium">bKash</span>
+            <span className="block text-xs text-muted">Charged in BDT (৳)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setTopupProvider("paypal")}
+            className={`rounded-chip border p-3 text-left ${topupProvider === "paypal" ? "border-brand-violet bg-brand-soft" : "border-line"}`}
+          >
+            <span className="block text-sm font-medium">PayPal</span>
+            <span className="block text-xs text-muted">Charged in USD ($)</span>
+          </button>
+        </div>
+
+        <p className="mb-2 text-sm font-medium">Amount</p>
+        <div className="mb-1 flex flex-wrap items-center gap-2">
           {TOPUP_AMOUNTS.map((amt) => (
             <Button
               key={amt}
@@ -140,28 +173,47 @@ export default function BillingPage() {
               variant={topupAmount === amt ? "primary" : "secondary"}
               onClick={() => setTopupAmount(amt)}
             >
-              ৳{amt}
+              {topupProvider === "paypal" ? `$${(amt / bdtPerUsd).toFixed(2)}` : `৳${amt}`}
             </Button>
           ))}
           <input
             type="number"
-            min={50}
-            max={50000}
-            value={topupAmount}
-            onChange={(e) => setTopupAmount(e.target.value ? Number(e.target.value) : "")}
-            placeholder="Custom amount"
-            className="w-32 rounded-chip border border-line px-3 py-1.5 text-sm outline-none focus:border-signal"
+            min={topupProvider === "paypal" ? Number((50 / bdtPerUsd).toFixed(2)) : 50}
+            max={topupProvider === "paypal" ? Number((50000 / bdtPerUsd).toFixed(2)) : 50000}
+            step={topupProvider === "paypal" ? "0.01" : "1"}
+            value={
+              topupAmount === ""
+                ? ""
+                : topupProvider === "paypal"
+                  ? topupAmountUsd
+                  : topupAmount
+            }
+            onChange={(e) => {
+              const raw = e.target.value ? Number(e.target.value) : "";
+              if (raw === "") {
+                setTopupAmount("");
+              } else if (topupProvider === "paypal") {
+                setTopupAmount(Math.round(raw * bdtPerUsd));
+              } else {
+                setTopupAmount(Math.round(raw));
+              }
+            }}
+            placeholder={topupProvider === "paypal" ? "Custom amount (USD)" : "Custom amount (BDT)"}
+            className="w-40 rounded-chip border border-line px-3 py-1.5 text-sm outline-none focus:border-signal"
           />
-          <Button size="sm" onClick={() => topUpWallet("bkash")} disabled={topupBusy}>
-            {topupBusy ? "Redirecting…" : "Top up with bKash"}
-          </Button>
-          <Button size="sm" variant="secondary" onClick={() => topUpWallet("paypal")} disabled={topupBusy}>
-            {topupBusy ? "Redirecting…" : "Top up with PayPal"}
-          </Button>
         </div>
-        <p className="mt-2 text-xs text-muted">
-          bKash charges in BDT. PayPal charges in USD at the platform exchange rate.
-        </p>
+        {topupAmount !== "" && (
+          <p className="mb-3 text-xs text-muted">
+            {topupProvider === "paypal"
+              ? `You'll be charged $${topupAmountUsd} on PayPal (≈৳${topupAmount} at today's rate).`
+              : `You'll be charged ৳${topupAmount} on bKash.`}
+          </p>
+        )}
+        <Button size="sm" onClick={topUpWallet} disabled={topupBusy || !topupValid}>
+          {topupBusy
+            ? "Redirecting…"
+            : `Top up with ${topupProvider === "paypal" ? "PayPal" : "bKash"}`}
+        </Button>
       </div>
 
       <div className="mb-6 max-w-xs">
