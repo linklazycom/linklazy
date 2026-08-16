@@ -3,7 +3,6 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Money } from "@/components/currency/money";
-import { CurrencyToggle } from "@/components/currency/currency-provider";
 
 export const metadata: Metadata = {
   title: "Pricing",
@@ -81,9 +80,6 @@ export default async function PricingPage() {
             unlock contact details, place paid orders, or sell placements —
             every order is escrow-protected until delivery is confirmed.
           </p>
-          <div className="mt-4 flex justify-center">
-            <CurrencyToggle />
-          </div>
         </div>
       </section>
 

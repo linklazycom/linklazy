@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { MetricChip } from "@/components/ui/metric-chip";
+import { DrBadge } from "@/components/sites/dr-badge";
 import { PayPerViewSettings } from "@/components/sites/pay-per-view-settings";
 
 const STATUS_TONE: Record<string, "verified" | "price" | "default"> = {
@@ -20,7 +21,7 @@ export default async function MySitesPage() {
   const { data: sites } = await supabase
     .from("sites")
     .select(
-      "id, domain, niche, status, da, dr, organic_traffic, price_amount, pay_per_view_enabled, view_price, access_duration_days"
+      "id, domain, niche, status, da, dr, dr_verified, organic_traffic, price_amount, pay_per_view_enabled, view_price, access_duration_days"
     )
     .eq("owner_id", user!.id)
     .order("created_at", { ascending: false });
@@ -58,7 +59,9 @@ export default async function MySitesPage() {
               <div className="flex flex-wrap gap-2">
                 <MetricChip label="Niche" value={site.niche} />
                 {site.da != null && <MetricChip label="DA" value={site.da} />}
-                {site.dr != null && <MetricChip label="DR" value={site.dr} />}
+                {(site.dr != null || site.dr_verified != null) && (
+                  <DrBadge selfReportedDr={site.dr} verifiedDr={site.dr_verified} />
+                )}
                 {site.organic_traffic != null && (
                   <MetricChip label="Traffic" value={`${site.organic_traffic}/mo`} />
                 )}
