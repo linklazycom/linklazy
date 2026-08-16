@@ -64,7 +64,11 @@ export default function AdminSitesPage() {
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-2xl font-medium">All sites</h1>
-        <form onSubmit={runSearch} className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
+          <Link href="/admin/sites/new">
+            <Button size="sm">List a site</Button>
+          </Link>
+          <form onSubmit={runSearch} className="flex items-center gap-2">
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -75,6 +79,7 @@ export default function AdminSitesPage() {
             Search
           </Button>
         </form>
+        </div>
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2">

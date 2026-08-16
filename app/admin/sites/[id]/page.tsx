@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { MetricChip } from "@/components/ui/metric-chip";
 import { DrBadge } from "@/components/sites/dr-badge";
+import { AccountPicker } from "@/components/admin/account-picker";
 
 interface SiteDetail {
   id: string;
@@ -30,6 +31,14 @@ interface SiteDetail {
   link_type: string;
   placement: string;
   guidelines: string | null;
+  owner_id: string;
+}
+
+interface AccountOption {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  role: string;
 }
 
 interface Verification {
@@ -52,11 +61,26 @@ export default function AdminSiteDetailPage({
   const [busy, setBusy] = useState(false);
   const [drBusy, setDrBusy] = useState(false);
   const [drMessage, setDrMessage] = useState<string | null>(null);
+  const [currentOwner, setCurrentOwner] = useState<AccountOption | null>(null);
+  const [newOwner, setNewOwner] = useState<AccountOption | null>(null);
+  const [reassignBusy, setReassignBusy] = useState(false);
+  const [reassignMessage, setReassignMessage] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
       const { data: s } = await supabase.from("sites").select("*").eq("id", id).single();
       setSite(s as SiteDetail);
+
+      if (s?.owner_id) {
+        const { data: ownerProfile } = await supabase
+          .from("profiles")
+          .select("id, full_name, role")
+          .eq("id", s.owner_id)
+          .single();
+        if (ownerProfile) {
+          setCurrentOwner({ ...ownerProfile, email: null });
+        }
+      }
 
       const { data: v } = await supabase
         .from("site_verifications")
@@ -100,6 +124,26 @@ export default function AdminSiteDetailPage({
       body: JSON.stringify({ reason }),
     });
     router.push("/admin/sites");
+  }
+
+  async function reassignOwner() {
+    if (!newOwner) return;
+    setReassignBusy(true);
+    setReassignMessage(null);
+    const res = await fetch("/api/admin/sites/assign", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ site_id: id, owner_id: newOwner.id }),
+    });
+    setReassignBusy(false);
+    if (!res.ok) {
+      const body = await res.json();
+      setReassignMessage(body.error ?? "Could not reassign this site.");
+      return;
+    }
+    setCurrentOwner(newOwner);
+    setNewOwner(null);
+    setReassignMessage(`Reassigned to ${newOwner.full_name || newOwner.email}.`);
   }
 
   if (!site) return <p className="text-muted">Loading…</p>;
@@ -168,6 +212,20 @@ export default function AdminSiteDetailPage({
             recommended.
           </p>
         )}
+      </div>
+
+      <div className="mb-6 rounded-chip border border-line bg-white p-4">
+        <p className="mb-1 text-sm font-medium">Owner account</p>
+        <p className="mb-3 text-xs text-muted">
+          Currently: {currentOwner ? `${currentOwner.full_name || "(no name)"} · ${currentOwner.role}` : "Loading…"}
+        </p>
+        <AccountPicker label="Reassign to a different account" selected={newOwner} onSelect={setNewOwner} />
+        {newOwner && (
+          <Button size="sm" className="mt-3" onClick={reassignOwner} disabled={reassignBusy}>
+            {reassignBusy ? "Reassigning…" : "Confirm reassign"}
+          </Button>
+        )}
+        {reassignMessage && <p className="mt-2 text-xs text-muted">{reassignMessage}</p>}
       </div>
 
       {site.guidelines && (
