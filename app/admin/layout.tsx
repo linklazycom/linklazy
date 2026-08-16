@@ -29,6 +29,7 @@ const NAV_GROUPS: AdminNavGroup[] = [
     items: [
       { href: "/admin/users", label: "All users" },
       { href: "/admin/users/new", label: "Create user" },
+      { href: "/admin/campaigns", label: "Email campaigns" },
     ],
   },
   {
