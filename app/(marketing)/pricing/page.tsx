@@ -27,6 +27,34 @@ interface PricingPlan {
   features: Feature[];
 }
 
+/**
+ * Maps a marketing pricing_plans row to the fixed plan slug the checkout
+ * flow understands (see the `plan` enum in /api/billing/subscribe).
+ * Buyer slugs: starter | growth | pro. Seller slugs: monthly | commission.
+ * Falls back to "starter"/"commission" (the free tiers) if a name doesn't
+ * match anything recognized, so a signup never dead-ends.
+ */
+function toPlanSlug(group: "buyer" | "seller", name: string): string {
+  const n = name.toLowerCase();
+  if (group === "seller") {
+    return n.includes("month") ? "monthly" : "commission";
+  }
+  if (n.includes("pro")) return "pro";
+  if (n.includes("growth")) return "growth";
+  return "starter";
+}
+
+function planHref(plan: PricingPlan, group: "buyer" | "seller") {
+  const slug = toPlanSlug(group, plan.name);
+  const params = new URLSearchParams({
+    group,
+    plan: slug,
+    name: plan.name,
+    price: String(plan.price_amount ?? 0),
+  });
+  return `/register?${params.toString()}`;
+}
+
 export default async function PricingPage() {
   // Plan cards below are fully admin-editable at /admin/pricing — this page
   // just renders whatever's marked active there, in display_order.
@@ -91,7 +119,7 @@ export default async function PricingPage() {
                   <span className="ml-1 text-sm text-muted">{plan.period}</span>
                 )}
               </div>
-              <Link href="/register" className="mt-6">
+              <Link href={planHref(plan, "buyer")} className="mt-6">
                 <Button className="w-full" variant={plan.highlight ? "primary" : "secondary"}>
                   {plan.cta_label ?? "Choose plan"}
                 </Button>
@@ -137,6 +165,11 @@ export default async function PricingPage() {
                   </span>
                   {plan.period && <span className="ml-1 text-sm text-muted">{plan.period}</span>}
                 </div>
+                <Link href={planHref(plan, "seller")} className="mt-6">
+                  <Button className="w-full" variant="secondary">
+                    {plan.cta_label ?? "Choose plan"}
+                  </Button>
+                </Link>
                 <ul className="mt-6 flex flex-col gap-2 text-sm">
                   {plan.features.map((f) => (
                     <li key={f.label} className="flex items-start gap-2">

@@ -29,6 +29,12 @@ export async function POST(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  if (!user.email_confirmed_at) {
+    return NextResponse.json(
+      { error: "Please verify your email before paying for an order." },
+      { status: 403 }
+    );
+  }
 
   const body = await request.json().catch(() => ({}));
   const parsed = paySchema.safeParse(body);

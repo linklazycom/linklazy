@@ -6,6 +6,7 @@ import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { LogoutButton } from "@/components/layout/logout-button";
 import { MobileSidebarShell } from "@/components/layout/mobile-sidebar-shell";
 import { NotificationBell } from "@/components/layout/notification-bell";
+import { VerifyEmailBanner } from "@/components/layout/verify-email-banner";
 import { GlobalSearch } from "@/components/search/global-search";
 import { AdSlot } from "@/components/ads/ad-slot";
 
@@ -76,6 +77,7 @@ export default async function DashboardLayout({
           <GlobalSearch browseHref="/dashboard/browse" className="max-w-sm" />
           <NotificationBell userId={user.id} />
         </div>
+        {!user.email_confirmed_at && user.email && <VerifyEmailBanner email={user.email} />}
         {children}
       </main>
     </div>

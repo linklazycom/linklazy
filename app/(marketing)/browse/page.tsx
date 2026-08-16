@@ -98,7 +98,7 @@ export default async function PublicBrowsePage({
             tone={isPaidPlan && remaining > 0 ? "verified" : "default"}
           />
         ) : (
-          <Link href="/register">
+          <Link href="/pricing">
             <Button size="sm">Log in to unlock</Button>
           </Link>
         )}

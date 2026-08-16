@@ -68,7 +68,7 @@ export default function LoginPage() {
       </form>
       <p className="mt-6 text-center text-sm text-muted">
         No account?{" "}
-        <Link href="/register" className="text-ink underline">
+        <Link href="/pricing" className="text-ink underline">
           Register
         </Link>
       </p>

@@ -114,7 +114,7 @@ export default async function HomePage() {
               whether a "DA 50" site is real or an expired-domain shell.
             </p>
             <div className="mt-8 flex items-center gap-4">
-              <Link href="/register">
+              <Link href="/pricing">
                 <Button size="lg">List your site</Button>
               </Link>
               <Link href="/browse">
@@ -240,7 +240,7 @@ export default async function HomePage() {
         <p className="mb-6 text-muted">
           Free to browse metrics. List your first site in a few minutes.
         </p>
-        <Link href="/register">
+        <Link href="/pricing">
           <Button size="lg">Get started</Button>
         </Link>
       </section>

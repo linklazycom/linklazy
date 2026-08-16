@@ -12,6 +12,12 @@ export async function POST(
   } = await supabase.auth.getUser();
 
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  if (!user.email_confirmed_at) {
+    return NextResponse.json(
+      { error: "Please verify your email before unlocking listings." },
+      { status: 403 }
+    );
+  }
 
   // method: "quota" (existing subscription-plan unlock) | "wallet" (new pay-per-view)
   // Defaults to "quota" so any existing client that POSTs with no body keeps working.

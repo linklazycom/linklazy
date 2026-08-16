@@ -43,7 +43,7 @@ export function SiteHeader({ navLinks }: { navLinks: NavLink[] }) {
           <Link href="/login" className="whitespace-nowrap text-sm text-muted hover:text-ink">
             Log in
           </Link>
-          <Link href="/register">
+          <Link href="/pricing">
             <Button size="sm">Get started</Button>
           </Link>
         </div>

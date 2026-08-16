@@ -52,7 +52,7 @@ export default async function ReferralsMarketingPage() {
               <Button size="lg">Get my referral link</Button>
             </Link>
           ) : (
-            <Link href="/register">
+            <Link href="/pricing">
               <Button size="lg">Sign up to get your link</Button>
             </Link>
           )}

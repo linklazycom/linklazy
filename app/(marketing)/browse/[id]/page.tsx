@@ -208,7 +208,7 @@ export default function PublicSiteDetailPage({
                 : "Unlock this listing to see the site URL, referring domains, backlink count, and seller guidelines."}
           </p>
           {!isLoggedIn ? (
-            <Link href="/register">
+            <Link href="/pricing">
               <Button>Log in / Sign up</Button>
             </Link>
           ) : (

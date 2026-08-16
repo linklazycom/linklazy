@@ -15,6 +15,12 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  if (!user.email_confirmed_at) {
+    return NextResponse.json(
+      { error: "Please verify your email before topping up your wallet." },
+      { status: 403 }
+    );
+  }
 
   const body = await request.json();
   const parsed = topupSchema.safeParse(body);

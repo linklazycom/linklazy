@@ -90,7 +90,7 @@ export default async function NicheLandingPage({
           Have a {label} site? List it and start receiving exchange or paid
           link requests.
         </p>
-        <Link href="/register">
+        <Link href="/pricing">
           <Button>List your site</Button>
         </Link>
       </div>
