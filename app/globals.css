@@ -94,3 +94,19 @@ body {
 .article-content hr {
   @apply my-10 h-1 w-24 rounded-full border-0 bg-brand-gradient;
 }
+
+
+/* Toast enter animation — used by components/ui/toast-viewport.tsx */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.animate-toast-in {
+  animation: toast-in 0.2s ease-out;
+}
