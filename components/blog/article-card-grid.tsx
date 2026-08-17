@@ -55,12 +55,7 @@ export async function ArticleCardGrid({ articles }: { articles: ArticleForCard[]
               {article.title}
             </h2>
             {article.meta_description && (
-              <p className="mb-3 text-sm text-muted line-clamp-2">{article.meta_description}</p>
-            )}
-            {article.published_at && (
-              <p className="text-xs text-muted">
-                {new Date(article.published_at).toLocaleDateString()}
-              </p>
+              <p className="text-sm text-muted line-clamp-2">{article.meta_description}</p>
             )}
           </div>
         </Link>

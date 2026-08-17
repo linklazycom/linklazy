@@ -94,12 +94,7 @@ export default async function ArticlePage({
               {article.category}
             </Link>
           )}
-          <h1 className="mb-2 font-display text-3xl font-medium">{article.title}</h1>
-          {article.published_at && (
-            <p className="mb-4 text-xs text-muted">
-              {new Date(article.published_at).toLocaleDateString()}
-            </p>
-          )}
+          <h1 className="mb-4 font-display text-3xl font-medium">{article.title}</h1>
           <div className="article-content" dangerouslySetInnerHTML={{ __html: html }} />
 
           {article.tags?.length > 0 && (
