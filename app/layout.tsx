@@ -4,10 +4,11 @@ import Script from "next/script";
 import { Suspense } from "react";
 import "./globals.css";
 import { getSiteSettings } from "@/lib/site-settings";
+import { createClient } from "@/lib/supabase/server";
+import { MaintenancePage } from "@/components/layout/maintenance-page";
 import { PageViewTracker } from "@/components/analytics/page-view-tracker";
 import { NavigationProgress } from "@/components/layout/navigation-progress";
 import { CurrencyProvider } from "@/components/currency/currency-provider";
-import { ToastProvider } from "@/components/ui/toast-provider";
 
 const display = Fraunces({
   subsets: ["latin"],
@@ -48,6 +49,25 @@ export default async function RootLayout({
   const settings = await getSiteSettings();
   const gaId = settings.ga_measurement_id as string;
 
+  // Maintenance mode: block every route for everyone except logged-in
+  // admins, so the admin can still get in to flip the toggle back off.
+  const maintenanceOn = settings.maintenance_mode === "on";
+  let isAdmin = false;
+  if (maintenanceOn) {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+      isAdmin = profile?.role === "admin";
+    }
+  }
+
   return (
     <html lang="en" className={`${display.variable} ${body.variable} ${mono.variable}`}>
       <head>
@@ -86,9 +106,11 @@ export default async function RootLayout({
         <Suspense fallback={null}>
           <NavigationProgress />
         </Suspense>
-        <ToastProvider>
+        {maintenanceOn && !isAdmin ? (
+          <MaintenancePage />
+        ) : (
           <CurrencyProvider>{children}</CurrencyProvider>
-        </ToastProvider>
+        )}
         <Suspense fallback={null}>
           <PageViewTracker />
         </Suspense>

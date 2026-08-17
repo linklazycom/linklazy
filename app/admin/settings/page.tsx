@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Field } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { NavLinksEditor } from "@/components/dashboard/nav-links-editor";
+import { SiteToggles } from "@/components/dashboard/site-toggles";
 
 const SIMPLE_STRING_KEYS = [
   { key: "bdt_per_usd", label: "BDT per USD exchange rate", placeholder: "125" },
@@ -82,6 +83,8 @@ export default function AdminSettingsPage() {
         Google Search Console, Bing, Pinterest, and Yandex without touching
         code.
       </p>
+
+      <SiteToggles />
 
       <div className="mb-10 rounded-chip border border-line bg-white p-5">
         <h2 className="mb-1 font-display text-lg font-medium">Navigation links</h2>

@@ -41,6 +41,11 @@ const DEFAULTS: Record<string, unknown> = {
   pinterest_verification_code: "",
   yandex_verification_code: "",
   ads_enabled: "off",
+  // "on" = site shows a maintenance page to everyone except admins.
+  maintenance_mode: "off",
+  // "on" = /register works normally. "off" = new signups are blocked
+  // with a friendly notice (existing users can still log in).
+  signup_open: "on",
 };
 
 /** Fetches every site_settings row and merges over the safe defaults. */
