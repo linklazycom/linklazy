@@ -7,6 +7,7 @@ import { getSiteSettings } from "@/lib/site-settings";
 import { PageViewTracker } from "@/components/analytics/page-view-tracker";
 import { NavigationProgress } from "@/components/layout/navigation-progress";
 import { CurrencyProvider } from "@/components/currency/currency-provider";
+import { ToastProvider } from "@/components/ui/toast-provider";
 
 const display = Fraunces({
   subsets: ["latin"],
@@ -85,7 +86,9 @@ export default async function RootLayout({
         <Suspense fallback={null}>
           <NavigationProgress />
         </Suspense>
-        <CurrencyProvider>{children}</CurrencyProvider>
+        <ToastProvider>
+          <CurrencyProvider>{children}</CurrencyProvider>
+        </ToastProvider>
         <Suspense fallback={null}>
           <PageViewTracker />
         </Suspense>
