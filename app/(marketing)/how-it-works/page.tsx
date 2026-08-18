@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { Route } from "lucide-react";
+import { PageHero } from "@/components/marketing/page-hero";
 
 export const metadata: Metadata = {
   title: "How It Works",
@@ -30,21 +32,29 @@ const STEPS = [
 
 export default function HowItWorksPage() {
   return (
-    <main className="mx-auto max-w-2xl px-6 py-16">
-      <h1 className="mb-10 font-display text-3xl font-medium">How it works</h1>
-      <ol className="space-y-8">
-        {STEPS.map((step, i) => (
-          <li key={step.title} className="flex gap-4">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ink font-mono text-sm text-paper">
-              {i + 1}
-            </span>
-            <div>
-              <p className="mb-1 font-medium">{step.title}</p>
-              <p className="text-sm text-muted">{step.body}</p>
-            </div>
-          </li>
-        ))}
-      </ol>
+    <main>
+      <PageHero
+        eyebrow="The full flow"
+        eyebrowIcon={Route}
+        title="How it works"
+        description="From listing to a confirmed, paid-out link — five steps, every one of them provable."
+      />
+
+      <div className="mx-auto max-w-2xl px-6 py-16">
+        <ol className="space-y-8">
+          {STEPS.map((step, i) => (
+            <li key={step.title} className="flex gap-4">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-gradient font-display text-sm font-semibold text-white shadow-sm">
+                {i + 1}
+              </span>
+              <div>
+                <p className="mb-1 font-medium text-ink">{step.title}</p>
+                <p className="text-sm leading-relaxed text-muted">{step.body}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
     </main>
   );
 }

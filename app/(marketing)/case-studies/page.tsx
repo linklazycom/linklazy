@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { TrendingUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { PageHero } from "@/components/marketing/page-hero";
 
 export const metadata: Metadata = {
   title: "Case Studies",
@@ -16,37 +18,39 @@ export default async function CaseStudiesPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-16">
-      <p className="mb-2 font-mono text-xs uppercase tracking-widest text-brand-violet">
-        Real results
-      </p>
-      <h1 className="mb-2 font-display text-3xl font-medium">Case Studies</h1>
-      <p className="mb-10 max-w-lg text-muted">
-        How buyers and sellers on LinkLazy have grown their sites.
-      </p>
+    <main>
+      <PageHero
+        eyebrow="Real results"
+        eyebrowIcon={TrendingUp}
+        title="Case studies"
+        description="How buyers and sellers on LinkLazy have grown their sites."
+      />
 
-      {!studies?.length && (
-        <p className="text-muted">
-          No case studies published yet — check back soon.
-        </p>
-      )}
+      <div className="mx-auto max-w-6xl px-6 py-16">
+        {!studies?.length && (
+          <p className="text-muted">
+            No case studies published yet — check back soon.
+          </p>
+        )}
 
-      <div className="grid gap-6 sm:grid-cols-2">
-        {studies?.map((s) => (
-          <Link
-            key={s.slug}
-            href={`/case-studies/${s.slug}`}
-            className="rounded-chip border border-line bg-white p-6 hover:border-brand-violet hover:shadow-md"
-          >
-            <h2 className="mb-2 font-display text-lg font-medium">{s.title}</h2>
-            <p className="mb-3 text-sm text-muted line-clamp-3">{s.summary}</p>
-            {s.metric_before && s.metric_after && (
-              <p className="text-xs font-medium text-signal">
-                {s.metric_before} → {s.metric_after}
-              </p>
-            )}
-          </Link>
-        ))}
+        <div className="grid gap-6 sm:grid-cols-2">
+          {studies?.map((s) => (
+            <Link
+              key={s.slug}
+              href={`/case-studies/${s.slug}`}
+              className="rounded-chip border border-line bg-white p-6 shadow-sm transition-all hover:border-brand-violet/40 hover:shadow-md"
+            >
+              <h2 className="mb-2 font-display text-lg font-medium">{s.title}</h2>
+              <p className="mb-3 text-sm leading-relaxed text-muted line-clamp-3">{s.summary}</p>
+              {s.metric_before && s.metric_after && (
+                <p className="inline-flex items-center gap-1.5 text-xs font-medium text-signal">
+                  <TrendingUp className="h-3.5 w-3.5" />
+                  {s.metric_before} → {s.metric_after}
+                </p>
+              )}
+            </Link>
+          ))}
+        </div>
       </div>
     </main>
   );

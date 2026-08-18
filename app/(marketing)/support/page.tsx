@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { LifeBuoy } from "lucide-react";
 import { getSiteSettings } from "@/lib/site-settings";
 import { TicketForm } from "@/components/support/ticket-form";
+import { PageHero } from "@/components/marketing/page-hero";
 
 export const metadata: Metadata = {
   title: "Support",
@@ -12,17 +14,25 @@ export default async function SupportPage() {
   const email = settings.contact_email as string;
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-16">
-      <h1 className="mb-2 font-display text-3xl font-medium">Support</h1>
-      <p className="mb-8 text-sm text-muted">
-        Questions, disputes, or partnership inquiries — open a ticket below
-        and we'll reply directly to your email. You'll also get a private
-        link to track and continue the conversation. Prefer email?{" "}
-        <a href={`mailto:${email}`} className="underline">
-          {email}
-        </a>
-      </p>
-      <TicketForm contactEmail={email} />
+    <main>
+      <PageHero
+        eyebrow="We're here to help"
+        eyebrowIcon={LifeBuoy}
+        title="Support"
+        description="Questions, disputes, or partnership inquiries — we reply directly to your email."
+      />
+
+      <div className="mx-auto max-w-2xl px-6 py-16">
+        <p className="mb-8 text-sm text-muted">
+          Open a ticket below and we&apos;ll reply directly to your email.
+          You&apos;ll also get a private link to track and continue the
+          conversation. Prefer email?{" "}
+          <a href={`mailto:${email}`} className="text-brand-violet underline">
+            {email}
+          </a>
+        </p>
+        <TicketForm contactEmail={email} />
+      </div>
     </main>
   );
 }

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { Lock } from "lucide-react";
 import { getSiteSettings } from "@/lib/site-settings";
+import { PageHero } from "@/components/marketing/page-hero";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
@@ -11,10 +13,15 @@ export default async function PrivacyPage() {
   const email = settings.contact_email as string;
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-16">
-      <h1 className="mb-2 font-display text-3xl font-medium">Privacy Policy</h1>
-      <p className="mb-8 text-sm text-muted">Last updated: {new Date().toLocaleDateString()}</p>
+    <main>
+      <PageHero
+        eyebrow="Legal"
+        eyebrowIcon={Lock}
+        title="Privacy Policy"
+        description={`Last updated: ${new Date().toLocaleDateString()}`}
+      />
 
+      <div className="mx-auto max-w-2xl px-6 py-16">
       <div className="space-y-6 text-sm leading-7 text-ink">
         <section>
           <h2 className="mb-2 font-display text-lg font-medium">1. Information we collect</h2>
@@ -132,6 +139,7 @@ export default async function PrivacyPage() {
             .
           </p>
         </section>
+      </div>
       </div>
     </main>
   );
