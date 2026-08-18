@@ -16,7 +16,7 @@ export async function ArticleCardGrid({ articles }: { articles: ArticleForCard[]
   const withPhotos = await Promise.all(
     articles.map(async (article) => ({
       ...article,
-      photo: await searchPexelsPhoto(article.target_keyword || article.title),
+      photo: await searchPexelsPhoto(article.target_keyword || article.title, article.slug),
     }))
   );
 

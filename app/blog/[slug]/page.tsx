@@ -6,7 +6,8 @@ import { marked } from "marked";
 import { createClient } from "@/lib/supabase/server";
 import { ArticleCover } from "@/components/blog/article-cover";
 import { BlogSidebar } from "@/components/blog/blog-sidebar";
-import { searchPexelsPhoto } from "@/lib/pexels";
+import { searchPexelsPhoto, searchPexelsPhotos } from "@/lib/pexels";
+import { injectInlineImages } from "@/lib/article-images";
 
 export async function generateMetadata({
   params,
@@ -46,10 +47,18 @@ export default async function ArticlePage({
 
   if (!article) notFound();
 
-  const [html, photo] = await Promise.all([
+  const wordCount = article.content.split(/\s+/).filter(Boolean).length;
+  const inlineImageCount = Math.min(4, Math.max(0, Math.floor(wordCount / 450)));
+
+  const [rawHtml, photo, inlinePhotos] = await Promise.all([
     marked.parse(article.content),
-    searchPexelsPhoto(article.target_keyword || article.title),
+    searchPexelsPhoto(article.target_keyword || article.title, slug),
+    inlineImageCount > 0
+      ? searchPexelsPhotos(article.target_keyword || article.title, inlineImageCount, slug)
+      : Promise.resolve([]),
   ]);
+
+  const html = injectInlineImages(rawHtml as string, inlinePhotos);
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://linklazy.com";
 
