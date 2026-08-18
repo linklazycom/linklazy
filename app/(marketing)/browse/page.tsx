@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { SlidersHorizontal, ShieldCheck, SearchX } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { MetricChip } from "@/components/ui/metric-chip";
 import { Field } from "@/components/ui/field";
@@ -82,84 +83,126 @@ export default async function PublicBrowsePage({
   const remaining = profile ? Math.max(profile.buyer_views_quota - profile.buyer_views_used, 0) : 0;
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-12">
-      <AdSlot placement="browse_top" />
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-medium">Browse sites</h1>
-          <p className="text-sm text-muted">
-            Metrics are visible to everyone. Unlock a listing to see the site
-            and place an order.
-          </p>
-        </div>
-        {user ? (
-          <MetricChip
-            label="Views left"
-            value={isPaidPlan ? `${remaining}/${profile!.buyer_views_quota}` : "Upgrade to unlock"}
-            tone={isPaidPlan && remaining > 0 ? "verified" : "default"}
-          />
-        ) : (
-          <Link href="/pricing">
-            <Button size="sm">Log in to unlock</Button>
-          </Link>
-        )}
+    <main className="relative">
+      {/* Soft brand-gradient wash behind the header, matching the homepage's
+          visual language without repeating its full hero treatment. */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-64 overflow-hidden">
+        <div
+          className="absolute -top-24 left-1/4 h-[320px] w-[320px] rounded-full opacity-[0.10] blur-3xl"
+          style={{ background: "#2C75FC" }}
+        />
+        <div
+          className="absolute -top-16 right-1/4 h-[280px] w-[280px] rounded-full opacity-[0.10] blur-3xl"
+          style={{ background: "#B23CFC" }}
+        />
       </div>
 
-      {user && !isPaidPlan && (
-        <div className="mb-6 rounded-chip border border-amber/40 bg-amber-soft p-4 text-sm">
-          You&apos;re on the Free plan — upgrade to unlock full listing
-          details and place orders.{" "}
-          <Link href="/dashboard/billing" className="underline">
-            View plans
-          </Link>
-          .
-        </div>
-      )}
+      <div className="mx-auto max-w-6xl px-6 py-12">
+        <AdSlot placement="browse_top" />
 
-      <form className="mb-6 grid grid-cols-2 gap-4 rounded-chip border border-line bg-white p-4 md:grid-cols-5">
-        <Field id="niche" name="niche" label="Niche" defaultValue={filters.niche} />
-        <Field id="da_min" name="da_min" type="number" label="DA min" defaultValue={filters.da_min} />
-        <Field id="da_max" name="da_max" type="number" label="DA max" defaultValue={filters.da_max} />
-        <Field id="price_max" name="price_max" type="number" label="Max price (৳)" defaultValue={filters.price_max} />
-        <div>
-          <label htmlFor="link_type" className="mb-1 block text-sm text-muted">
-            Link type
-          </label>
-          <select
-            id="link_type"
-            name="link_type"
-            defaultValue={filters.link_type ?? ""}
-            className="w-full rounded-chip border border-line px-3 py-2 text-sm"
-          >
-            <option value="">Any</option>
-            <option value="dofollow">Dofollow</option>
-            <option value="nofollow">Nofollow</option>
-          </select>
-        </div>
-        <label className="col-span-2 flex items-center gap-2 text-sm md:col-span-1">
-          <input type="checkbox" name="exchange_only" value="1" defaultChecked={filters.exchange_only === "1"} />
-          Exchange only
-        </label>
-        <div className="col-span-2 flex items-end md:col-span-1">
-          <Button type="submit" className="w-full">Filter</Button>
-        </div>
-      </form>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        {sites?.map((site) => {
-          const unlocked = unlockedIds.has(site.id);
-          return (
-            <SiteCard
-              key={site.id}
-              site={site}
-              href={`/browse/${site.id}`}
-              sellerTier={tierByOwner.get(site.owner_id) ?? null}
-              displayDomain={unlocked ? site.domain : maskDomain(site.domain)}
-              ctaLabel={unlocked ? "View details" : "View Site"}
+        <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-brand-violet/20 bg-brand-soft px-3 py-1 font-mono text-xs uppercase tracking-widest text-brand-violet">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Verified listings
+            </p>
+            <h1 className="font-display text-3xl font-medium tracking-tight">Browse sites</h1>
+            <p className="mt-1.5 max-w-md text-sm text-muted">
+              Metrics are visible to everyone. Unlock a listing to see the
+              site and place an order.
+            </p>
+          </div>
+          {user ? (
+            <MetricChip
+              label="Views left"
+              value={isPaidPlan ? `${remaining}/${profile!.buyer_views_quota}` : "Upgrade to unlock"}
+              tone={isPaidPlan && remaining > 0 ? "verified" : "default"}
             />
-          );
-        })}
-        {!sites?.length && <p className="text-muted">No sites match these filters.</p>}
+          ) : (
+            <Link href="/pricing">
+              <Button size="sm">Log in to unlock</Button>
+            </Link>
+          )}
+        </div>
+
+        {user && !isPaidPlan && (
+          <div className="mb-6 rounded-chip border border-amber/40 bg-amber-soft p-4 text-sm">
+            You&apos;re on the Free plan — upgrade to unlock full listing
+            details and place orders.{" "}
+            <Link href="/dashboard/billing" className="underline">
+              View plans
+            </Link>
+            .
+          </div>
+        )}
+
+        <form className="relative mb-8 grid grid-cols-2 gap-4 overflow-hidden rounded-chip border border-line bg-white p-5 shadow-sm md:grid-cols-5">
+          <div className="absolute inset-x-0 top-0 h-1 bg-brand-gradient" />
+          <div className="col-span-2 mb-1 flex items-center gap-1.5 text-xs font-medium text-muted md:col-span-5">
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            Filter listings
+          </div>
+          <Field id="niche" name="niche" label="Niche" defaultValue={filters.niche} />
+          <Field id="da_min" name="da_min" type="number" label="DA min" defaultValue={filters.da_min} />
+          <Field id="da_max" name="da_max" type="number" label="DA max" defaultValue={filters.da_max} />
+          <Field id="price_max" name="price_max" type="number" label="Max price (৳)" defaultValue={filters.price_max} />
+          <div>
+            <label htmlFor="link_type" className="mb-1 block text-sm text-muted">
+              Link type
+            </label>
+            <select
+              id="link_type"
+              name="link_type"
+              defaultValue={filters.link_type ?? ""}
+              className="w-full rounded-chip border border-line px-3 py-2 text-sm outline-none focus:border-signal"
+            >
+              <option value="">Any</option>
+              <option value="dofollow">Dofollow</option>
+              <option value="nofollow">Nofollow</option>
+            </select>
+          </div>
+          <label className="col-span-2 flex items-center gap-2 text-sm md:col-span-1">
+            <input type="checkbox" name="exchange_only" value="1" defaultChecked={filters.exchange_only === "1"} />
+            Exchange only
+          </label>
+          <div className="col-span-2 flex items-end md:col-span-1">
+            <Button type="submit" className="w-full">Filter</Button>
+          </div>
+        </form>
+
+        {sites && sites.length > 0 && (
+          <p className="mb-4 text-sm text-muted">
+            {sites.length} {sites.length === 1 ? "site matches" : "sites match"} your filters
+          </p>
+        )}
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          {sites?.map((site) => {
+            const unlocked = unlockedIds.has(site.id);
+            return (
+              <SiteCard
+                key={site.id}
+                site={site}
+                href={`/browse/${site.id}`}
+                sellerTier={tierByOwner.get(site.owner_id) ?? null}
+                displayDomain={unlocked ? site.domain : maskDomain(site.domain)}
+                ctaLabel={unlocked ? "View details" : "View Site"}
+              />
+            );
+          })}
+        </div>
+
+        {!sites?.length && (
+          <div className="flex flex-col items-center justify-center gap-3 rounded-chip border border-dashed border-line bg-paper px-6 py-16 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-sm">
+              <SearchX className="h-6 w-6 text-muted" />
+            </div>
+            <div>
+              <p className="font-display text-base font-medium text-ink">No sites match these filters</p>
+              <p className="mt-1 text-sm text-muted">Try widening your DA range or clearing the niche filter.</p>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );
