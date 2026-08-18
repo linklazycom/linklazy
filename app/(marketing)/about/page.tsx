@@ -39,6 +39,14 @@ export default async function AboutPage() {
           building to be straightforward: clear metrics, verified sellers,
           and a paper trail for every transaction.
         </p>
+        <p>
+          Since launch, we&apos;ve added ways to make that easier at scale —
+          Domain Rating verified directly against Ahrefs&apos; own data, a
+          Pay-Per-View option for buyers who&apos;d rather pay for delivered
+          traffic than a flat fee, and bulk ordering for running a full
+          campaign across multiple sites in one checkout. The core promise
+          hasn&apos;t changed: what you see on a listing is what you get.
+        </p>
       </div>
     </main>
   );

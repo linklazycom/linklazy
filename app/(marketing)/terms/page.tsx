@@ -59,7 +59,8 @@ export default async function TermsPage() {
         <section>
           <h2 className="mb-2 font-display text-lg font-medium">5. Payments, commission, and escrow</h2>
           <p>
-            For paid orders, buyer funds are held until the buyer confirms
+            We currently support payment via bKash and PayPal. For flat-fee
+            paid orders, buyer funds are held until the buyer confirms
             successful delivery, after which funds are released to the
             seller minus the applicable platform commission. Sellers on a
             monthly subscription plan may be subject to different commission
@@ -68,7 +69,24 @@ export default async function TermsPage() {
           </p>
         </section>
         <section>
-          <h2 className="mb-2 font-display text-lg font-medium">6. Referral program</h2>
+          <h2 className="mb-2 font-display text-lg font-medium">6. Pay-Per-View orders and wallet balance</h2>
+          <p>
+            Some listings support Pay-Per-View (PPV) pricing, where payment
+            is deducted incrementally from a buyer's prepaid wallet balance
+            as verified views accrue against the linked content, up to a
+            budget cap the buyer sets at order time. Wallet funds are
+            prepaid and buyer-owned until spent; unspent wallet balance
+            remains available for future orders. Seller earnings from PPV
+            orders are subject to a payout hold period before becoming
+            eligible for withdrawal, during which we may review view data
+            for signs of fraudulent or artificially inflated traffic.
+            LinkLazy reserves the right to withhold or reverse PPV earnings
+            found to result from invalid, bot-driven, or manipulated view
+            activity.
+          </p>
+        </section>
+        <section>
+          <h2 className="mb-2 font-display text-lg font-medium">7. Referral program</h2>
           <p>
             Users may earn a commission credit — currently 50% of LinkLazy's
             commission on a referred user's completed paid orders — by
@@ -81,7 +99,7 @@ export default async function TermsPage() {
           </p>
         </section>
         <section>
-          <h2 className="mb-2 font-display text-lg font-medium">7. Disputes</h2>
+          <h2 className="mb-2 font-display text-lg font-medium">8. Disputes</h2>
           <p>
             If a buyer and seller cannot resolve an issue directly through
             in-platform messaging, either party may open a dispute for admin
@@ -91,7 +109,7 @@ export default async function TermsPage() {
           </p>
         </section>
         <section>
-          <h2 className="mb-2 font-display text-lg font-medium">8. Account suspension</h2>
+          <h2 className="mb-2 font-display text-lg font-medium">9. Account suspension</h2>
           <p>
             We may suspend or terminate accounts that violate these terms,
             submit fraudulent listings, repeatedly fail to deliver on orders,
@@ -99,17 +117,21 @@ export default async function TermsPage() {
           </p>
         </section>
         <section>
-          <h2 className="mb-2 font-display text-lg font-medium">9. Limitation of liability</h2>
+          <h2 className="mb-2 font-display text-lg font-medium">10. Limitation of liability</h2>
           <p>
             LinkLazy is provided &quot;as is.&quot; We are not liable for any
             indirect, incidental, or consequential damages arising from your
             use of the platform, including changes in search engine rankings
             or traffic resulting from links exchanged or purchased through
-            the marketplace.
+            the marketplace. Where we display verified metrics (such as
+            Domain Rating sourced from a third-party provider), verification
+            confirms the metric was retrieved from that provider at the time
+            shown — it is not a guarantee of ranking outcomes, traffic, or
+            any other result from a link placement.
           </p>
         </section>
         <section>
-          <h2 className="mb-2 font-display text-lg font-medium">10. Changes to these terms</h2>
+          <h2 className="mb-2 font-display text-lg font-medium">11. Changes to these terms</h2>
           <p>
             We may update these terms from time to time. Continued use of
             the platform after changes take effect constitutes acceptance of
@@ -117,7 +139,7 @@ export default async function TermsPage() {
           </p>
         </section>
         <section>
-          <h2 className="mb-2 font-display text-lg font-medium">11. Contact</h2>
+          <h2 className="mb-2 font-display text-lg font-medium">12. Contact</h2>
           <p>
             Questions about these terms can be sent to{" "}
             <a href={`mailto:${email}`} className="underline">

@@ -40,11 +40,14 @@ export default async function PrivacyPage() {
         <section>
           <h2 className="mb-2 font-display text-lg font-medium">3. Payment information</h2>
           <p>
-            Payments are processed through our payment provider (currently
-            bKash). We do not store your full payment credentials on our
-            servers — payment processing is handled directly by the provider,
-            and we retain only transaction references necessary for order
-            records and support.
+            Payments are processed through our payment providers (currently
+            bKash and PayPal). We do not store your full payment credentials
+            on our servers — payment processing is handled directly by these
+            providers, and we retain only transaction references necessary
+            for order records and support. If you use our Pay-Per-View
+            wallet feature, we also retain your wallet balance and
+            transaction history to accurately track funding, spending, and
+            payouts.
           </p>
         </section>
         <section>
