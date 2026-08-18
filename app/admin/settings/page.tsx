@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/client";
 import { Field } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { NavLinksEditor } from "@/components/dashboard/nav-links-editor";
-import { SiteToggles } from "@/components/dashboard/site-toggles";
 
 const SIMPLE_STRING_KEYS = [
   { key: "bdt_per_usd", label: "BDT per USD exchange rate", placeholder: "125" },
@@ -15,6 +14,16 @@ const SIMPLE_STRING_KEYS = [
   { key: "bing_verification_code", label: "Bing Webmaster Tools verification code" },
   { key: "pinterest_verification_code", label: "Pinterest domain verification code" },
   { key: "yandex_verification_code", label: "Yandex Webmaster verification code" },
+  {
+    key: "trust_orders_base",
+    label: "Trust page — starting order count",
+    placeholder: "0",
+  },
+  {
+    key: "trust_disputes_resolved_base",
+    label: "Trust page — starting resolved-disputes count",
+    placeholder: "0",
+  },
 ];
 
 interface NavLink {
@@ -83,8 +92,6 @@ export default function AdminSettingsPage() {
         Google Search Console, Bing, Pinterest, and Yandex without touching
         code.
       </p>
-
-      <SiteToggles />
 
       <div className="mb-10 rounded-chip border border-line bg-white p-5">
         <h2 className="mb-1 font-display text-lg font-medium">Navigation links</h2>

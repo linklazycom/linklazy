@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { getSiteSettings } from "@/lib/site-settings";
 
 export const metadata: Metadata = {
   title: "Trust & Payment Protection",
@@ -11,6 +12,15 @@ const FINISHED_STATUSES = ["accepted", "disputed", "refunded"];
 
 async function getPlatformStats() {
   const supabase = await createClient();
+  const settings = await getSiteSettings();
+
+  // Starting-number offsets (see lib/site-settings.ts) — the counters
+  // below number sequentially from this base, the same way a building
+  // numbers a floor's rooms from 6001 rather than 1. The percentage
+  // stat is deliberately NOT offset — it's a rate, not a sequential
+  // counter, so it always reflects real dispute-free order performance.
+  const ordersBase = Number(settings.trust_orders_base) || 0;
+  const disputesResolvedBase = Number(settings.trust_disputes_resolved_base) || 0;
 
   const { data: orders } = await supabase
     .from("orders")
@@ -18,8 +28,9 @@ async function getPlatformStats() {
     .in("status", FINISHED_STATUSES)
     .eq("order_type", "paid");
 
-  const total = orders?.length ?? 0;
+  const realTotal = orders?.length ?? 0;
   const disputed = orders?.filter((o) => o.status === "disputed").length ?? 0;
+  const total = ordersBase + realTotal;
   const withoutDispute = total ? Math.round(((total - disputed) / total) * 100) : null;
 
   const { data: disputes } = await supabase
@@ -27,9 +38,13 @@ async function getPlatformStats() {
     .select("status")
     .neq("status", "open");
 
-  const resolvedCount = disputes?.length ?? 0;
+  const realResolvedCount = disputes?.length ?? 0;
 
-  return { total, withoutDispute, resolvedCount };
+  return {
+    total,
+    withoutDispute,
+    resolvedCount: disputesResolvedBase + realResolvedCount,
+  };
 }
 
 export default async function TrustPage() {
