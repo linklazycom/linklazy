@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { GlobalSearch } from "@/components/search/global-search";
 import type { NavLink } from "@/lib/site-settings";
 
-export function MobileNav({ navLinks }: { navLinks: NavLink[] }) {
+export function MobileNav({ navLinks, isLoggedIn }: { navLinks: NavLink[]; isLoggedIn: boolean }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -67,14 +67,22 @@ export function MobileNav({ navLinks }: { navLinks: NavLink[] }) {
               )}
             </nav>
             <div className="flex flex-col gap-3 border-t border-line px-6 py-6">
-              <Link href="/login" onClick={() => setOpen(false)}>
-                <Button variant="secondary" className="w-full">
-                  Log in
-                </Button>
-              </Link>
-              <Link href="/pricing" onClick={() => setOpen(false)}>
-                <Button className="w-full">Get started</Button>
-              </Link>
+              {isLoggedIn ? (
+                <Link href="/dashboard" onClick={() => setOpen(false)}>
+                  <Button className="w-full">Go to dashboard</Button>
+                </Link>
+              ) : (
+                <>
+                  <Link href="/login" onClick={() => setOpen(false)}>
+                    <Button variant="secondary" className="w-full">
+                      Log in
+                    </Button>
+                  </Link>
+                  <Link href="/pricing" onClick={() => setOpen(false)}>
+                    <Button className="w-full">Get started</Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>,
           document.body

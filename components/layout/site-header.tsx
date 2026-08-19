@@ -11,7 +11,7 @@ import { GlobalSearch } from "@/components/search/global-search";
 // auth buttons, `md` (768px) is too narrow to fit everything without
 // wrapping/overlapping. Below `lg` we collapse to the hamburger (MobileNav)
 // instead, which also has its breakpoint set to `lg` to match.
-export function SiteHeader({ navLinks }: { navLinks: NavLink[] }) {
+export function SiteHeader({ navLinks, isLoggedIn }: { navLinks: NavLink[]; isLoggedIn: boolean }) {
   return (
     <header className="sticky top-0 z-10 border-b border-line bg-paper/90 backdrop-blur">
       <div className="mx-auto flex max-w-5xl items-center gap-4 px-6 py-4">
@@ -40,16 +40,24 @@ export function SiteHeader({ navLinks }: { navLinks: NavLink[] }) {
 
         <div className="ml-auto hidden shrink-0 items-center gap-3 lg:flex">
           <CurrencyToggle />
-          <Link href="/login" className="whitespace-nowrap text-sm text-muted hover:text-ink">
-            Log in
-          </Link>
-          <Link href="/pricing">
-            <Button size="sm">Get started</Button>
-          </Link>
+          {isLoggedIn ? (
+            <Link href="/dashboard">
+              <Button size="sm">Go to dashboard</Button>
+            </Link>
+          ) : (
+            <>
+              <Link href="/login" className="whitespace-nowrap text-sm text-muted hover:text-ink">
+                Log in
+              </Link>
+              <Link href="/pricing">
+                <Button size="sm">Get started</Button>
+              </Link>
+            </>
+          )}
         </div>
 
         <div className="ml-auto lg:hidden">
-          <MobileNav navLinks={navLinks} />
+          <MobileNav navLinks={navLinks} isLoggedIn={isLoggedIn} />
         </div>
       </div>
     </header>
