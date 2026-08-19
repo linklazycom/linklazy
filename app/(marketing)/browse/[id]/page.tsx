@@ -69,6 +69,7 @@ export default function PublicSiteDetailPage({
   const [unlocked, setUnlocked] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [buyerPlan, setBuyerPlan] = useState<string | null>(null);
+  const [quotaRemaining, setQuotaRemaining] = useState<number | null>(null);
   const [walletBalance, setWalletBalance] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -84,11 +85,14 @@ export default function PublicSiteDetailPage({
     if (user) {
       const { data: profile } = await supabase
         .from("profiles")
-        .select("buyer_plan, wallet_balance")
+        .select("buyer_plan, wallet_balance, buyer_views_quota, buyer_views_used")
         .eq("id", user.id)
         .single();
       setBuyerPlan(profile?.buyer_plan ?? "free");
       setWalletBalance(profile?.wallet_balance ?? 0);
+      setQuotaRemaining(
+        profile ? Math.max(0, (profile.buyer_views_quota ?? 0) - (profile.buyer_views_used ?? 0)) : null
+      );
 
       const { data: existingQuotaUnlock } = await supabase
         .from("credits_ledger")
@@ -167,6 +171,8 @@ export default function PublicSiteDetailPage({
   if (loading || !site) return <main className="mx-auto max-w-2xl px-6 py-16 text-muted">Loading…</main>;
 
   const isFree = buyerPlan === "free";
+  const quotaExhausted = !isFree && quotaRemaining !== null && quotaRemaining <= 0;
+  const canPayPerView = site.pay_per_view_enabled && site.view_price != null;
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-12">
@@ -203,9 +209,13 @@ export default function PublicSiteDetailPage({
           <p className="mb-4 text-sm text-muted">
             {!isLoggedIn
               ? "Log in to see the site URL, full metrics, seller guidelines, and place an order."
-              : isFree && !(site.pay_per_view_enabled && site.view_price != null)
+              : isFree && !canPayPerView
                 ? "Upgrade to a paid plan to unlock this listing and place an order."
-                : "Unlock this listing to see the site URL, referring domains, backlink count, and seller guidelines."}
+                : quotaExhausted && !canPayPerView
+                  ? "You've used all your plan views for this billing period. Upgrade your plan for more views."
+                  : quotaExhausted && canPayPerView
+                    ? "You've used all your plan views for this billing period — pay per view from your wallet instead, or upgrade your plan."
+                    : "Unlock this listing to see the site URL, referring domains, backlink count, and seller guidelines."}
           </p>
           {!isLoggedIn ? (
             <Link href="/pricing">
@@ -217,12 +227,16 @@ export default function PublicSiteDetailPage({
                 <Link href="/dashboard/billing">
                   <Button>View plans</Button>
                 </Link>
+              ) : quotaExhausted ? (
+                <Link href="/dashboard/billing">
+                  <Button>Upgrade plan for more views</Button>
+                </Link>
               ) : (
                 <Button onClick={() => handleUnlock("quota")} disabled={busy}>
                   {busy ? "Unlocking…" : "View Site (1 view)"}
                 </Button>
               )}
-              {site.pay_per_view_enabled && site.view_price != null && (
+              {canPayPerView && (
                 <Button
                   variant="secondary"
                   onClick={() => handleUnlock("wallet")}
@@ -239,7 +253,7 @@ export default function PublicSiteDetailPage({
               )}
             </div>
           )}
-          {isLoggedIn && site.pay_per_view_enabled && site.view_price != null && walletBalance < site.view_price && (
+          {isLoggedIn && canPayPerView && walletBalance < (site.view_price ?? 0) && (
             <p className="mt-2 text-xs text-muted">
               Wallet balance <Money amount={walletBalance} /> — not enough to pay{" "}
               <Money amount={site.view_price} />.{" "}
