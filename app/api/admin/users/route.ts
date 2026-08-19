@@ -23,6 +23,7 @@ export async function GET() {
   // every client-side query in the app.
   const serviceClient = createServiceClient();
   const emails = new Map<string, string>();
+  const emailConfirmed = new Map<string, boolean>();
   let page = 1;
   // Paginate through all auth users (Supabase caps listUsers at 1000/page).
   // Fine for a marketplace this size; revisit with a dedicated index if the
@@ -32,12 +33,17 @@ export async function GET() {
     if (listError || !data?.users?.length) break;
     data.users.forEach((u) => {
       if (u.email) emails.set(u.id, u.email);
+      emailConfirmed.set(u.id, Boolean(u.email_confirmed_at));
     });
     if (data.users.length < 1000) break;
     page += 1;
   }
 
-  const merged = (profiles ?? []).map((p) => ({ ...p, email: emails.get(p.id) ?? null }));
+  const merged = (profiles ?? []).map((p) => ({
+    ...p,
+    email: emails.get(p.id) ?? null,
+    email_confirmed: emailConfirmed.get(p.id) ?? false,
+  }));
 
   return NextResponse.json({ users: merged });
 }

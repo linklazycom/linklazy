@@ -22,6 +22,7 @@ interface UserRow {
   buyer_plan_renews_at: string | null;
   seller_plan: string | null;
   wallet_balance: number;
+  email_confirmed: boolean;
 }
 
 interface FraudSignal {
@@ -44,6 +45,11 @@ export default function AdminUsersPage() {
   const [subDraft, setSubDraft] = useState<{ buyer_plan: string; seller_plan: string }>({
     buyer_plan: "free",
     seller_plan: "commission",
+  });
+  const [expandedWallet, setExpandedWallet] = useState<string | null>(null);
+  const [walletDraft, setWalletDraft] = useState<{ amount: string; notes: string }>({
+    amount: "",
+    notes: "",
   });
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -125,6 +131,45 @@ export default function AdminUsersPage() {
       setMessage(body.error ?? "Could not delete user.");
       return;
     }
+    load();
+  }
+
+  async function verifyEmail(u: UserRow) {
+    setBusyId(u.id);
+    const res = await fetch(`/api/admin/users/${u.id}/verify`, { method: "POST" });
+    setBusyId(null);
+    if (!res.ok) {
+      const body = await res.json();
+      setMessage(body.error ?? "Could not verify this account.");
+      return;
+    }
+    load();
+  }
+
+  function openWalletPanel(u: UserRow) {
+    setExpandedWallet(expandedWallet === u.id ? null : u.id);
+    setWalletDraft({ amount: "", notes: "" });
+  }
+
+  async function saveWalletAdjustment(u: UserRow) {
+    const amount = Number(walletDraft.amount);
+    if (!amount || Number.isNaN(amount)) {
+      setMessage("Enter a non-zero amount (positive to add, negative to deduct).");
+      return;
+    }
+    setBusyId(u.id);
+    const res = await fetch(`/api/admin/users/${u.id}/wallet`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: Math.trunc(amount), notes: walletDraft.notes || undefined }),
+    });
+    setBusyId(null);
+    if (!res.ok) {
+      const body = await res.json();
+      setMessage(body.error ?? "Could not update this wallet.");
+      return;
+    }
+    setExpandedWallet(null);
     load();
   }
 
@@ -215,6 +260,11 @@ export default function AdminUsersPage() {
                     {u.is_suspended && <MetricChip label="Status" value="suspended" />}
                     {u.is_banned && <MetricChip label="Status" value="banned" tone="price" />}
                     {u.is_flagged && <MetricChip label="Flagged" value="yes" tone="price" />}
+                    <MetricChip
+                      label="Email"
+                      value={u.email_confirmed ? "verified" : "unverified"}
+                      tone={u.email_confirmed ? "verified" : "price"}
+                    />
                   </div>
                 </div>
 
@@ -228,6 +278,16 @@ export default function AdminUsersPage() {
                 {u.banned_reason && <p className="mb-2 text-xs text-muted">Ban reason: {u.banned_reason}</p>}
 
                 <div className="flex flex-wrap gap-2">
+                  {!u.email_confirmed && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => verifyEmail(u)}
+                      disabled={busyId === u.id}
+                    >
+                      {busyId === u.id ? "Verifying…" : "Verify email"}
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="secondary"
@@ -254,6 +314,14 @@ export default function AdminUsersPage() {
                     disabled={busyId === u.id}
                   >
                     {expandedSub === u.id ? "Close" : "Manage subscription"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => openWalletPanel(u)}
+                    disabled={busyId === u.id}
+                  >
+                    {expandedWallet === u.id ? "Close" : "Add / remove funds"}
                   </Button>
                   <button
                     onClick={() => deleteUser(u)}
@@ -302,6 +370,37 @@ export default function AdminUsersPage() {
                     <Button size="sm" onClick={() => saveSubscription(u)} disabled={busyId === u.id}>
                       {busyId === u.id ? "Saving…" : "Save"}
                     </Button>
+                  </div>
+                )}
+
+                {expandedWallet === u.id && (
+                  <div className="mt-3 flex flex-wrap items-end gap-3 border-t border-line pt-3">
+                    <div>
+                      <label className="mb-1 block text-xs text-muted">Amount (৳)</label>
+                      <input
+                        type="number"
+                        value={walletDraft.amount}
+                        onChange={(e) => setWalletDraft((prev) => ({ ...prev, amount: e.target.value }))}
+                        placeholder="e.g. 500 or -200"
+                        className="w-32 rounded-chip border border-line px-2 py-1.5 text-sm"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="mb-1 block text-xs text-muted">Note (optional)</label>
+                      <input
+                        value={walletDraft.notes}
+                        onChange={(e) => setWalletDraft((prev) => ({ ...prev, notes: e.target.value }))}
+                        placeholder="Reason for this adjustment"
+                        className="w-full rounded-chip border border-line px-2 py-1.5 text-sm"
+                      />
+                    </div>
+                    <p className="text-xs text-muted">Current: ৳{u.wallet_balance}</p>
+                    <Button size="sm" onClick={() => saveWalletAdjustment(u)} disabled={busyId === u.id}>
+                      {busyId === u.id ? "Saving…" : "Save"}
+                    </Button>
+                    <p className="w-full text-xs text-muted">
+                      Positive amount credits the wallet, negative debits it (e.g. -200 removes ৳200).
+                    </p>
                   </div>
                 )}
               </div>
