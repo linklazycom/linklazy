@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { MetricChip } from "@/components/ui/metric-chip";
 import { PaymentProtectionBadge } from "@/components/trust/payment-protection-badge";
+import { Money } from "@/components/currency/money";
 
 interface SiteRow {
   id: string;
@@ -154,7 +155,9 @@ export default function BulkOrderPage() {
 
       {sites.length > 0 && (
         <>
-          <p className="mb-4 text-sm font-medium">Estimated total: ৳{total}</p>
+          <p className="mb-4 text-sm font-medium">
+            Estimated total: <Money amount={total} />
+          </p>
 
           <form onSubmit={handleSubmit} className="space-y-4 rounded-chip border border-line bg-white p-5">
             <div>

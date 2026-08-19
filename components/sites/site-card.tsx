@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MetricChip } from "@/components/ui/metric-chip";
+import { Money } from "@/components/currency/money";
 import { SellerTierBadge } from "@/components/reviews/seller-tier-badge";
 import { DrBadge } from "@/components/sites/dr-badge";
 import { SiteHighlightBadges } from "@/components/sites/site-highlight-badges";
@@ -91,7 +92,7 @@ export function SiteCard({ site, href, sellerTier, displayDomain, ctaLabel = "Vi
           {site.price_amount != null ? (
             <p className="text-sm">
               <span className="font-display text-lg font-medium text-ink">
-                ৳{Number(site.price_amount).toLocaleString()}
+                <Money amount={Number(site.price_amount)} />
               </span>
               <span className="ml-1 text-xs text-muted">/ order</span>
             </p>

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { Money } from "@/components/currency/money";
 
 interface SearchResult {
   id: string;
@@ -104,7 +105,9 @@ export function GlobalSearch({
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-mono font-medium">{r.domain}</span>
                   {r.price_amount != null && (
-                    <span className="text-xs text-muted">৳{r.price_amount}</span>
+                    <span className="text-xs text-muted">
+                      <Money amount={r.price_amount} />
+                    </span>
                   )}
                 </div>
                 <div className="mt-0.5 flex flex-wrap gap-2 text-xs text-muted">
