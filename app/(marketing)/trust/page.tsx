@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ShieldCheck, TrendingUp, Gavel, ListChecks } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getSiteSettings } from "@/lib/site-settings";
 import { PageHero } from "@/components/marketing/page-hero";
 
 export const metadata: Metadata = {
@@ -13,6 +14,10 @@ const FINISHED_STATUSES = ["accepted", "disputed", "refunded"];
 
 async function getPlatformStats() {
   const supabase = await createClient();
+  const settings = await getSiteSettings();
+
+  const startingOrders = Number(settings.trust_starting_order_count) || 0;
+  const startingResolved = Number(settings.trust_starting_resolved_disputes_count) || 0;
 
   const { data: orders } = await supabase
     .from("orders")
@@ -20,16 +25,22 @@ async function getPlatformStats() {
     .in("status", FINISHED_STATUSES)
     .eq("order_type", "paid");
 
-  const total = orders?.length ?? 0;
-  const disputed = orders?.filter((o) => o.status === "disputed").length ?? 0;
-  const withoutDispute = total ? Math.round(((total - disputed) / total) * 100) : null;
+  const liveTotal = orders?.length ?? 0;
+  const liveDisputed = orders?.filter((o) => o.status === "disputed").length ?? 0;
 
   const { data: disputes } = await supabase
     .from("disputes")
     .select("status")
     .neq("status", "open");
 
-  const resolvedCount = disputes?.length ?? 0;
+  const liveResolvedCount = disputes?.length ?? 0;
+
+  // The "starting" numbers are added as a baseline — they're assumed
+  // dispute-free (that's the point of a manually-set trust baseline), so
+  // only liveDisputed counts against the dispute-free percentage.
+  const total = liveTotal + startingOrders;
+  const resolvedCount = liveResolvedCount + startingResolved;
+  const withoutDispute = total ? Math.round(((total - liveDisputed) / total) * 100) : null;
 
   return { total, withoutDispute, resolvedCount };
 }

@@ -41,15 +41,16 @@ const DEFAULTS: Record<string, unknown> = {
   pinterest_verification_code: "",
   yandex_verification_code: "",
   ads_enabled: "off",
-  // Starting-number offsets for the /trust page counters — the same
-  // idea as a hospital numbering its 6th-floor rooms from 6001 rather
-  // than 1. These are added on top of real counts so the page never
-  // shows a blank "0" on a brand-new site, and every real completed
-  // order/resolved dispute increments the number from here on.
-  // Admin-configurable at /admin/settings. Defaults to 0 (no offset)
-  // until an admin sets a starting number.
-  trust_orders_base: "0",
-  trust_disputes_resolved_base: "0",
+  // "on" = site shows a maintenance page to everyone except admins.
+  maintenance_mode: "off",
+  // "on" = /register works normally. "off" = new signups are blocked
+  // with a friendly notice (existing users can still log in).
+  signup_open: "on",
+  // "Starting" numbers added to the live-computed order/dispute counts on
+  // /trust, so a young platform's trust stats don't read as "0 orders" —
+  // set to "0" until the admin explicitly sets a baseline.
+  trust_starting_order_count: "0",
+  trust_starting_resolved_disputes_count: "0",
 };
 
 /** Fetches every site_settings row and merges over the safe defaults. */
