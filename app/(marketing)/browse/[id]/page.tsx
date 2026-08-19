@@ -240,13 +240,13 @@ export default function PublicSiteDetailPage({
                 <Button
                   variant="secondary"
                   onClick={() => handleUnlock("wallet")}
-                  disabled={busy || walletBalance < site.view_price}
+                  disabled={busy || walletBalance < (site.view_price ?? 0)}
                 >
                   {busy
                     ? "Unlocking…"
                     : (
                       <>
-                        Pay <Money amount={site.view_price} /> from wallet
+                        Pay <Money amount={site.view_price ?? 0} /> from wallet
                       </>
                     )}
                 </Button>
@@ -256,7 +256,7 @@ export default function PublicSiteDetailPage({
           {isLoggedIn && canPayPerView && walletBalance < (site.view_price ?? 0) && (
             <p className="mt-2 text-xs text-muted">
               Wallet balance <Money amount={walletBalance} /> — not enough to pay{" "}
-              <Money amount={site.view_price} />.{" "}
+              <Money amount={site.view_price ?? 0} />.{" "}
               <Link href="/dashboard/billing" className="underline">
                 Top up
               </Link>
