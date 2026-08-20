@@ -13,6 +13,28 @@ export default function NewSitePage() {
   const [error, setError] = useState<string | null>(null);
   const [acceptsExchange, setAcceptsExchange] = useState(true);
   const [acceptsPaid, setAcceptsPaid] = useState(true);
+  const [siteUrl, setSiteUrl] = useState("");
+  const [niche, setNiche] = useState("");
+  const [suggesting, setSuggesting] = useState(false);
+  const [suggestion, setSuggestion] = useState<{ niche: string; confidence: number } | null>(null);
+
+  async function handleSuggestNiche() {
+    if (!siteUrl) return;
+    setSuggesting(true);
+    setSuggestion(null);
+    const res = await fetch("/api/sites/suggest-niche", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: siteUrl }),
+    });
+    setSuggesting(false);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.detectedNiche) {
+      setSuggestion({ niche: data.detectedNiche, confidence: data.confidence });
+      setNiche(data.detectedNiche);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -73,9 +95,39 @@ export default function NewSitePage() {
           <h2 className="mb-4 text-sm font-medium">Site details</h2>
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
-              <Field id="url" name="url" label="Site URL" placeholder="https://example.com" required />
+              <Field
+                id="url"
+                name="url"
+                label="Site URL"
+                placeholder="https://example.com"
+                required
+                value={siteUrl}
+                onChange={(e) => setSiteUrl(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={handleSuggestNiche}
+                disabled={!siteUrl || suggesting}
+                className="mt-1 text-xs text-brand-blue underline disabled:opacity-50"
+              >
+                {suggesting ? "Checking site…" : "Suggest niche from this URL"}
+              </button>
+              {suggestion && (
+                <p className="mt-1 text-xs text-muted">
+                  Suggested: {suggestion.niche} ({suggestion.confidence}% confidence) — feel free to
+                  change it below if it&apos;s wrong.
+                </p>
+              )}
             </div>
-            <SelectField id="niche" name="niche" label="Niche" options={NICHES} required />
+            <SelectField
+              id="niche"
+              name="niche"
+              label="Niche"
+              options={NICHES}
+              required
+              value={niche}
+              onChange={(e) => setNiche(e.target.value)}
+            />
             <Field id="language" name="language" label="Language" defaultValue="en" />
           </div>
         </div>

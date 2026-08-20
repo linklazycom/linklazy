@@ -73,6 +73,15 @@ export default async function ScanHistoryPage() {
             {s.auto_order && s.auto_order_status && (
               <p className="mt-2 text-sm">{AUTO_ORDER_LABEL[s.auto_order_status] ?? s.auto_order_status}</p>
             )}
+
+            {s.status === "scanned" && s.result_site_ids?.length > 0 && (
+              <Link
+                href={`/dashboard/browse/bulk-order?ids=${s.result_site_ids.join(",")}`}
+                className="mt-2 inline-block text-sm text-brand-blue underline"
+              >
+                View & order these {s.result_site_ids.length} site(s) →
+              </Link>
+            )}
           </div>
         ))}
       </div>

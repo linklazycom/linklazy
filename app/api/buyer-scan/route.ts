@@ -19,7 +19,7 @@ const scanSchema = z.object({
   // If the buyer overrides the auto-detected niche (either because
   // detection failed or picked the wrong one), skip keyword matching
   // and use this niche directly for the site-matching step.
-  manual_niche: z.enum(NICHES as [string, ...string[]]).optional(),
+  manual_niche: z.enum(NICHES as unknown as [string, ...string[]]).optional(),
 });
 
 const RESULT_LIMIT = 30;
@@ -49,6 +49,27 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
   const input = parsed.data;
+
+  // Rate-limit: max 5 scans per hour per buyer. Each scan can trigger up
+  // to ~16 outbound fetches (1 for the buyer's site + 15 for reranking
+  // candidates), so this is as much about protecting the server/being a
+  // good citizen to scanned sites as it is about spam.
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { count: recentScanCount } = await supabase
+    .from("buyer_site_scans")
+    .select("id", { count: "exact", head: true })
+    .eq("buyer_id", user.id)
+    .gte("created_at", oneHourAgo);
+
+  const SCAN_LIMIT_PER_HOUR = 5;
+  if ((recentScanCount ?? 0) >= SCAN_LIMIT_PER_HOUR) {
+    return NextResponse.json(
+      {
+        error: `You've hit the limit of ${SCAN_LIMIT_PER_HOUR} scans per hour. Please try again later.`,
+      },
+      { status: 429 }
+    );
+  }
 
   if (input.auto_order && (!input.target_url || !input.anchor_text)) {
     return NextResponse.json(
@@ -215,6 +236,8 @@ export async function POST(request: Request) {
               : "placed",
       })
       .eq("id", scanRow.id);
+
+    await notifyAutoOrderResult(supabase, user.id, autoOrder);
   }
 
   return NextResponse.json({
@@ -299,4 +322,56 @@ async function runAutoOrder({
     newBalance: result.new_balance,
     error: result.ok ? undefined : (result.error ?? undefined),
   };
+}
+
+/**
+ * Lets the buyer's notification bell (existing Supabase Realtime setup)
+ * pick this up instantly. Reuses the "order" notification type since the
+ * notifications.type column has a check constraint we don't want to
+ * alter just for this — an auto-placed order is still fundamentally an
+ * order-related event.
+ */
+async function notifyAutoOrderResult(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  autoOrder: {
+    placed: boolean;
+    createdOrderIds: string[];
+    skipped: { domain: string; reason: string }[];
+    error?: string;
+  }
+) {
+  let title: string;
+  let bodyText: string;
+
+  if (autoOrder.error) {
+    title = "Auto-order couldn't run";
+    bodyText = autoOrder.error;
+  } else if (autoOrder.createdOrderIds.length === 0) {
+    title = "Auto-order skipped — insufficient balance";
+    bodyText = "Your wallet balance couldn't cover any matched sites. Top up and try again.";
+  } else if (autoOrder.skipped.length > 0) {
+    title = `Auto-order partially placed (${autoOrder.createdOrderIds.length} order${
+      autoOrder.createdOrderIds.length > 1 ? "s" : ""
+    })`;
+    bodyText = `${autoOrder.skipped.length} site(s) were skipped — check Orders for details.`;
+  } else {
+    title = `Auto-order placed: ${autoOrder.createdOrderIds.length} order${
+      autoOrder.createdOrderIds.length > 1 ? "s" : ""
+    }`;
+    bodyText = "Your backlink orders were placed automatically from your site scan.";
+  }
+
+  try {
+    await supabase.from("notifications").insert({
+      user_id: userId,
+      type: "order",
+      title,
+      body: bodyText,
+      link: "/dashboard/orders",
+      read: false,
+    });
+  } catch {
+    // Notification failure should never fail the scan/order response itself.
+  }
 }
