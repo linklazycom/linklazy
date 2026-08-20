@@ -163,74 +163,78 @@ export default async function AdminRevenuePage({
         <h2 className="mb-4 text-sm font-medium">
           Revenue by {days > 30 ? "month" : "day"}
         </h2>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-line text-left text-xs text-muted">
-              <th className="py-2 font-normal">{days > 30 ? "Month" : "Date"}</th>
-              <th className="py-2 text-right font-normal">Commission</th>
-              <th className="py-2 text-right font-normal">Subscription</th>
-              <th className="py-2 text-right font-normal">Pay-per-view</th>
-              <th className="py-2 text-right font-normal">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.date} className="border-b border-line last:border-0">
-                <td className="py-2 font-mono text-xs">{r.date}</td>
-                <td className="py-2 text-right font-mono">
-                  <Money amount={r.commission} />
-                </td>
-                <td className="py-2 text-right font-mono">
-                  <Money amount={r.subscription} />
-                </td>
-                <td className="py-2 text-right font-mono">
-                  <Money amount={r.payPerView} />
-                </td>
-                <td className="py-2 text-right font-mono font-medium">
-                  <Money amount={r.commission + r.subscription + r.payPerView} />
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[560px] text-sm">
+            <thead>
+              <tr className="border-b border-line text-left text-xs text-muted">
+                <th className="py-2 font-normal">{days > 30 ? "Month" : "Date"}</th>
+                <th className="py-2 text-right font-normal">Commission</th>
+                <th className="py-2 text-right font-normal">Subscription</th>
+                <th className="py-2 text-right font-normal">Pay-per-view</th>
+                <th className="py-2 text-right font-normal">Total</th>
               </tr>
-            ))}
-            {!rows.length && (
-              <tr>
-                <td colSpan={5} className="py-4 text-center text-muted">
-                  No revenue recorded in this period.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.date} className="border-b border-line last:border-0">
+                  <td className="py-2 font-mono text-xs">{r.date}</td>
+                  <td className="py-2 text-right font-mono">
+                    <Money amount={r.commission} />
+                  </td>
+                  <td className="py-2 text-right font-mono">
+                    <Money amount={r.subscription} />
+                  </td>
+                  <td className="py-2 text-right font-mono">
+                    <Money amount={r.payPerView} />
+                  </td>
+                  <td className="py-2 text-right font-mono font-medium">
+                    <Money amount={r.commission + r.subscription + r.payPerView} />
+                  </td>
+                </tr>
+              ))}
+              {!rows.length && (
+                <tr>
+                  <td colSpan={5} className="py-4 text-center text-muted">
+                    No revenue recorded in this period.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div className="rounded-chip border border-line bg-white p-5">
         <h2 className="mb-4 text-sm font-medium">Top earning sellers — pay-per-view ({days}d)</h2>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-line text-left text-xs text-muted">
-              <th className="py-2 font-normal">Site</th>
-              <th className="py-2 text-right font-normal">Unlocks</th>
-              <th className="py-2 text-right font-normal">Earned</th>
-            </tr>
-          </thead>
-          <tbody>
-            {topSellers.map((s) => (
-              <tr key={s.domain} className="border-b border-line last:border-0">
-                <td className="py-2">{s.domain}</td>
-                <td className="py-2 text-right font-mono">{s.unlocks}</td>
-                <td className="py-2 text-right font-mono">
-                  <Money amount={s.total} />
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[360px] text-sm">
+            <thead>
+              <tr className="border-b border-line text-left text-xs text-muted">
+                <th className="py-2 font-normal">Site</th>
+                <th className="py-2 text-right font-normal">Unlocks</th>
+                <th className="py-2 text-right font-normal">Earned</th>
               </tr>
-            ))}
-            {!topSellers.length && (
-              <tr>
-                <td colSpan={3} className="py-4 text-center text-muted">
-                  No pay-per-view unlocks in this period.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {topSellers.map((s) => (
+                <tr key={s.domain} className="border-b border-line last:border-0">
+                  <td className="py-2">{s.domain}</td>
+                  <td className="py-2 text-right font-mono">{s.unlocks}</td>
+                  <td className="py-2 text-right font-mono">
+                    <Money amount={s.total} />
+                  </td>
+                </tr>
+              ))}
+              {!topSellers.length && (
+                <tr>
+                  <td colSpan={3} className="py-4 text-center text-muted">
+                    No pay-per-view unlocks in this period.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <p className="mt-6 text-xs text-muted">

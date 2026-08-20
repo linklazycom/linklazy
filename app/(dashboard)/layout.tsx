@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Logo } from "@/components/ui/logo";
-import { SidebarNav } from "@/components/layout/sidebar-nav";
+import { AdminSidebarNav, type AdminNavGroup } from "@/components/layout/admin-sidebar-nav";
 import { LogoutButton } from "@/components/layout/logout-button";
 import { MobileSidebarShell } from "@/components/layout/mobile-sidebar-shell";
 import { NotificationBell } from "@/components/layout/notification-bell";
@@ -10,22 +10,43 @@ import { VerifyEmailBanner } from "@/components/layout/verify-email-banner";
 import { GlobalSearch } from "@/components/search/global-search";
 import { AdSlot } from "@/components/ads/ad-slot";
 
-const NAV = [
-  { href: "/dashboard", label: "Overview" },
-  { href: "/dashboard/sites", label: "My sites" },
-  { href: "/dashboard/analytics", label: "My analytics" },
-  { href: "/browse", label: "Browse" },
-  { href: "/dashboard/matches", label: "Exchange matches" },
-  { href: "/dashboard/watchlist", label: "Watchlist" },
-  { href: "/dashboard/saved-searches", label: "Saved searches" },
-  { href: "/dashboard/messages", label: "Messages" },
-  { href: "/dashboard/inquiries", label: "Pre-sale inquiries" },
-  { href: "/dashboard/orders", label: "Orders" },
-  { href: "/dashboard/press-releases", label: "Press releases" },
-  { href: "/dashboard/referrals", label: "Referrals" },
-  { href: "/dashboard/support", label: "My tickets" },
-  { href: "/dashboard/billing", label: "Billing" },
-  { href: "/dashboard/wallet", label: "Wallet" },
+const NAV: AdminNavGroup[] = [
+  {
+    label: "Overview",
+    href: "/dashboard",
+    items: [
+      { href: "/dashboard", label: "Overview" },
+      { href: "/dashboard/analytics", label: "My analytics" },
+    ],
+  },
+  {
+    label: "Marketplace",
+    items: [
+      { href: "/browse", label: "Browse" },
+      { href: "/dashboard/sites", label: "My sites" },
+      { href: "/dashboard/matches", label: "Exchange matches" },
+      { href: "/dashboard/watchlist", label: "Watchlist" },
+      { href: "/dashboard/saved-searches", label: "Saved searches" },
+    ],
+  },
+  {
+    label: "Orders",
+    items: [
+      { href: "/dashboard/orders", label: "Orders" },
+      { href: "/dashboard/inquiries", label: "Pre-sale inquiries" },
+      { href: "/dashboard/press-releases", label: "Press releases" },
+    ],
+  },
+  {
+    label: "Account",
+    items: [
+      { href: "/dashboard/messages", label: "Messages" },
+      { href: "/dashboard/support", label: "My tickets" },
+      { href: "/dashboard/referrals", label: "Referrals" },
+      { href: "/dashboard/billing", label: "Billing" },
+      { href: "/dashboard/wallet", label: "Wallet" },
+    ],
+  },
 ];
 
 export default async function DashboardLayout({
@@ -51,7 +72,7 @@ export default async function DashboardLayout({
       <Link href="/" className="mb-8 block">
         <Logo size={24} />
       </Link>
-      <SidebarNav items={NAV} />
+      <AdminSidebarNav groups={NAV} />
       <div className="mt-auto border-t border-line pt-4 text-xs text-muted">
         <AdSlot placement="dashboard_sidebar" />
         <Link href="/dashboard/profile" className="block hover:text-ink">

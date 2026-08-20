@@ -82,7 +82,7 @@ export default function NewSitePage() {
 
         <div className="rounded-chip border border-line bg-white p-5">
           <h2 className="mb-4 text-sm font-medium">Metrics</h2>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <Field id="da" name="da" type="number" label="DA" />
             <Field id="pa" name="pa" type="number" label="PA" />
             <Field id="dr" name="dr" type="number" label="DR" />
@@ -115,7 +115,7 @@ export default function NewSitePage() {
               Accept paid orders
             </label>
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <Field
               id="price_amount"
               name="price_amount"
