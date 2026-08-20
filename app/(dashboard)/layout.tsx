@@ -95,7 +95,7 @@ export default async function DashboardLayout({
       <MobileSidebarShell>{sidebarContent}</MobileSidebarShell>
       <main className="flex-1 bg-paper p-4 md:p-8">
         <div className="mb-4 flex items-center justify-between gap-4">
-          <GlobalSearch browseHref="/dashboard/browse" className="max-w-sm" />
+          <GlobalSearch browseHref="/dashboard/browse" className="max-w-sm min-w-0 flex-1" />
           <NotificationBell userId={user.id} />
         </div>
         {!user.email_confirmed_at && user.email && <VerifyEmailBanner email={user.email} />}

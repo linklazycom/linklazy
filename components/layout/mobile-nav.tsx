@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { GlobalSearch } from "@/components/search/global-search";
+import { CurrencyToggle } from "@/components/currency/currency-provider";
 import type { NavLink } from "@/lib/site-settings";
 
 export function MobileNav({ navLinks, isLoggedIn }: { navLinks: NavLink[]; isLoggedIn: boolean }) {
@@ -66,7 +67,11 @@ export function MobileNav({ navLinks, isLoggedIn }: { navLinks: NavLink[]; isLog
                 </Link>
               )}
             </nav>
-            <div className="flex flex-col gap-3 border-t border-line px-6 py-6">
+            <div className="flex flex-col gap-4 border-t border-line px-6 py-6">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted">Currency</span>
+                <CurrencyToggle />
+              </div>
               {isLoggedIn ? (
                 <Link href="/dashboard" onClick={() => setOpen(false)}>
                   <Button className="w-full">Go to dashboard</Button>
