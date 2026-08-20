@@ -4,6 +4,7 @@ export interface ScanResult {
   detectedNiche: string | null;
   confidence: number; // 0-100
   matchedKeywords: string[];
+  pageText: string; // raw extracted signal text, reused by the AI fallback classifier
 }
 
 /**
@@ -20,7 +21,7 @@ export async function scanBuyerSite(url: string): Promise<ScanResult> {
   const text = extractSignalText(html);
 
   if (!text) {
-    return { detectedNiche: null, confidence: 0, matchedKeywords: [] };
+    return { detectedNiche: null, confidence: 0, matchedKeywords: [], pageText: "" };
   }
 
   const lowerText = text.toLowerCase();
@@ -43,7 +44,7 @@ export async function scanBuyerSite(url: string): Promise<ScanResult> {
   }
 
   if (!bestNiche || bestScore === 0) {
-    return { detectedNiche: null, confidence: 0, matchedKeywords: [] };
+    return { detectedNiche: null, confidence: 0, matchedKeywords: [], pageText: text };
   }
 
   // Confidence = this niche's share of all keyword hits found, so a page
@@ -51,7 +52,7 @@ export async function scanBuyerSite(url: string): Promise<ScanResult> {
   // near 100; a page with scattered, ambiguous hits scores lower.
   const confidence = Math.round((bestScore / totalHitsAcrossNiches) * 100);
 
-  return { detectedNiche: bestNiche, confidence, matchedKeywords: bestMatches };
+  return { detectedNiche: bestNiche, confidence, matchedKeywords: bestMatches, pageText: text };
 }
 
 async function fetchHtml(url: string): Promise<string> {

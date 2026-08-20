@@ -34,6 +34,8 @@ interface ScanResponse {
   detectedNiche: string;
   confidence: number;
   matchedKeywords: string[];
+  detectionMethod: "keyword" | "ai" | "manual";
+  aiVotes: { provider: string; niche: string | null; error?: string }[];
   sites: MatchedSite[];
   autoOrder: AutoOrderResult | null;
 }
@@ -256,6 +258,16 @@ export default function ScanSitePage() {
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <MetricChip label="Detected niche" value={scan.detectedNiche} tone="verified" />
             <MetricChip label="Confidence" value={`${scan.confidence}%`} />
+            <MetricChip
+              label="Method"
+              value={
+                scan.detectionMethod === "ai"
+                  ? "AI"
+                  : scan.detectionMethod === "manual"
+                    ? "Manual"
+                    : "Keyword"
+              }
+            />
             <button
               type="button"
               onClick={() => setShowNicheList((v) => !v)}
@@ -264,6 +276,15 @@ export default function ScanSitePage() {
               Wrong niche?
             </button>
           </div>
+
+          {scan.detectionMethod === "ai" && scan.aiVotes.length > 0 && (
+            <p className="mb-4 text-xs text-muted">
+              AI providers consulted:{" "}
+              {scan.aiVotes
+                .map((v) => `${v.provider}: ${v.niche ?? (v.error ? "error" : "no match")}`)
+                .join(", ")}
+            </p>
+          )}
 
           {showNicheList && (
             <div className="mb-4 flex flex-wrap gap-2 rounded-chip border border-line bg-canvas p-3">

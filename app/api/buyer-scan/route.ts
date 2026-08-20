@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { scanBuyerSite } from "@/lib/site-scanner";
+import { classifyNicheWithAi, type AiProvider } from "@/lib/ai-niche-detect";
 import { NICHES } from "@/lib/niches";
 
 const scanSchema = z.object({
@@ -106,6 +107,8 @@ export async function POST(request: Request) {
   let confidence = input.manual_niche ? 100 : 0;
   let matchedKeywords: string[] = [];
   let scanErrorMessage: string | null = null;
+  let detectionMethod: "keyword" | "ai" | "manual" = input.manual_niche ? "manual" : "keyword";
+  let aiVotes: { provider: string; niche: string | null; error?: string }[] = [];
 
   try {
     const result = await scanBuyerSite(input.url);
@@ -114,6 +117,41 @@ export async function POST(request: Request) {
       confidence = result.confidence;
     }
     matchedKeywords = result.matchedKeywords;
+
+    // 2b. AI fallback — only runs when keyword detection is missing or
+    // weak, and only if the admin has enabled at least one provider.
+    // This keeps the common case free; AI cost is only paid on the
+    // harder-to-classify sites.
+    if (!input.manual_niche) {
+      const { data: settingsRows } = await supabase
+        .from("site_settings")
+        .select("key, value")
+        .in("key", ["ai_niche_detection_providers", "ai_niche_detection_min_confidence"]);
+
+      const enabledProviders =
+        (settingsRows?.find((r) => r.key === "ai_niche_detection_providers")?.value as
+          | AiProvider[]
+          | undefined) ?? [];
+      const minConfidence = Number(
+        settingsRows?.find((r) => r.key === "ai_niche_detection_min_confidence")?.value ?? 40
+      );
+
+      const shouldTryAi =
+        enabledProviders.length > 0 &&
+        (detectedNiche === null || confidence < (Number.isFinite(minConfidence) ? minConfidence : 40));
+
+      if (shouldTryAi && result.pageText) {
+        const aiResult = await classifyNicheWithAi(result.pageText, enabledProviders);
+        aiVotes = aiResult.votes;
+        // Only override if AI actually found something — never let an
+        // AI failure erase a weak-but-real keyword match.
+        if (aiResult.niche) {
+          detectedNiche = aiResult.niche;
+          confidence = aiResult.confidence;
+          detectionMethod = "ai";
+        }
+      }
+    }
   } catch (err) {
     scanErrorMessage = (err as Error).message;
     if (!input.manual_niche) {
@@ -138,7 +176,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          "Couldn't confidently detect a niche from that page. Pick your niche manually below and we'll use that instead.",
+          "Couldn't confidently detect a niche from that page, even with AI assistance. Pick your niche manually below and we'll use that instead.",
         niches: NICHES,
       },
       { status: 422 }
@@ -245,6 +283,8 @@ export async function POST(request: Request) {
     detectedNiche,
     confidence,
     matchedKeywords,
+    detectionMethod,
+    aiVotes,
     sites: matchedSites ?? [],
     autoOrder,
   });
