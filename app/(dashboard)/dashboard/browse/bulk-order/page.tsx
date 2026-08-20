@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -19,16 +19,20 @@ interface SiteRow {
 interface CreatedResult {
   created: { id: string; domain: string }[];
   skipped: { domain: string; reason: string }[];
+  newBalance?: number;
 }
 
+type PaymentMethod = "wallet" | "later";
+
 export default function BulkOrderPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const ids = (searchParams.get("ids") ?? "").split(",").filter(Boolean);
 
   const [sites, setSites] = useState<SiteRow[]>([]);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("wallet");
   const [result, setResult] = useState<CreatedResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,16 +43,28 @@ export default function BulkOrderPage() {
         return;
       }
       const supabase = createClient();
-      const { data } = await supabase
-        .from("sites")
-        .select("id, domain, niche, price_amount")
-        .in("id", ids);
-      setSites((data as SiteRow[]) ?? []);
+      const [{ data: siteRows }, { data: userRes }] = await Promise.all([
+        supabase.from("sites").select("id, domain, niche, price_amount").in("id", ids),
+        supabase.auth.getUser(),
+      ]);
+      setSites((siteRows as SiteRow[]) ?? []);
+
+      if (userRes?.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("wallet_balance")
+          .eq("id", userRes.user.id)
+          .single();
+        setWalletBalance(profile?.wallet_balance ?? 0);
+      }
       setLoading(false);
     }
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const total = sites.reduce((sum, s) => sum + (s.price_amount ?? 0), 0);
+  const walletCoversTotal = walletBalance != null && walletBalance >= total;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -56,29 +72,31 @@ export default function BulkOrderPage() {
     setError(null);
 
     const form = new FormData(e.currentTarget);
-    const res = await fetch("/api/orders/bulk", {
+    const payload = {
+      site_ids: ids,
+      target_url: form.get("target_url"),
+      anchor_text: form.get("anchor_text"),
+      notes: form.get("notes") || undefined,
+    };
+
+    const endpoint = paymentMethod === "wallet" ? "/api/orders/bulk/pay-wallet" : "/api/orders/bulk";
+
+    const res = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        site_ids: ids,
-        target_url: form.get("target_url"),
-        anchor_text: form.get("anchor_text"),
-        notes: form.get("notes") || undefined,
-      }),
+      body: JSON.stringify(payload),
     });
 
     setSubmitting(false);
 
     if (!res.ok) {
-      const body = await res.json();
-      setError(typeof body.error === "string" ? body.error : "Could not place bulk order.");
+      const errBody = await res.json();
+      setError(typeof errBody.error === "string" ? errBody.error : "Could not place bulk order.");
       return;
     }
 
     setResult(await res.json());
   }
-
-  const total = sites.reduce((sum, s) => sum + (s.price_amount ?? 0), 0);
 
   if (loading) return <p className="text-muted">Loading…</p>;
 
@@ -90,6 +108,7 @@ export default function BulkOrderPage() {
           <div className="mb-4 rounded-chip border border-signal/40 bg-signal-soft p-4">
             <p className="mb-2 text-sm font-medium">
               {result.created.length} order{result.created.length > 1 ? "s" : ""} created
+              {paymentMethod === "wallet" ? " and paid from your wallet" : ""}
             </p>
             <div className="space-y-1">
               {result.created.map((c) => (
@@ -113,6 +132,11 @@ export default function BulkOrderPage() {
               </p>
             ))}
           </div>
+        )}
+        {result.newBalance != null && (
+          <p className="mb-4 text-sm text-muted">
+            New wallet balance: <Money amount={result.newBalance} />
+          </p>
         )}
         <Link href="/dashboard/orders">
           <Button size="sm">View all orders</Button>
@@ -197,6 +221,48 @@ export default function BulkOrderPage() {
                 className="w-full rounded-chip border border-line px-3 py-2 text-sm outline-none focus:border-signal"
               />
             </div>
+
+            <div>
+              <p className="mb-2 text-sm text-muted">Payment method</p>
+              <div className="space-y-2">
+                <label className="flex items-center justify-between rounded-chip border border-line p-3 text-sm has-[:checked]:border-signal">
+                  <span className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="payment_method_ui"
+                      checked={paymentMethod === "wallet"}
+                      onChange={() => setPaymentMethod("wallet")}
+                    />
+                    Pay with wallet balance
+                  </span>
+                  {walletBalance != null && (
+                    <span className={walletCoversTotal ? "text-muted" : "text-red-600"}>
+                      Balance: <Money amount={walletBalance} />
+                    </span>
+                  )}
+                </label>
+                <label className="flex items-center gap-2 rounded-chip border border-line p-3 text-sm has-[:checked]:border-signal">
+                  <input
+                    type="radio"
+                    name="payment_method_ui"
+                    checked={paymentMethod === "later"}
+                    onChange={() => setPaymentMethod("later")}
+                  />
+                  Create orders now, pay each with bKash / PayPal
+                </label>
+              </div>
+              {paymentMethod === "wallet" && walletBalance != null && !walletCoversTotal && (
+                <p className="mt-2 text-sm text-red-600">
+                  Wallet balance is lower than the estimated total — orders that don&apos;t fit
+                  will be skipped, or{" "}
+                  <Link href="/dashboard/billing" className="underline">
+                    top up first
+                  </Link>
+                  .
+                </p>
+              )}
+            </div>
+
             {error && <p className="text-sm text-red-600">{error}</p>}
             <Button type="submit" disabled={submitting}>
               {submitting ? "Placing orders…" : `Place ${sites.length} order${sites.length > 1 ? "s" : ""}`}
