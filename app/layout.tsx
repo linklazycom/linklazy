@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { MaintenancePage } from "@/components/layout/maintenance-page";
 import { PageViewTracker } from "@/components/analytics/page-view-tracker";
 import { NavigationProgress } from "@/components/layout/navigation-progress";
+import { headers } from "next/headers";
 import { CurrencyProvider } from "@/components/currency/currency-provider";
 
 const display = Fraunces({
@@ -48,6 +49,17 @@ export default async function RootLayout({
 }) {
   const settings = await getSiteSettings();
   const gaId = settings.ga_measurement_id as string;
+
+  // Geo-based currency default: Vercel injects the visitor's country on
+  // every request via this header (no extra API call, no client-side
+  // flash of the wrong currency). Bangladesh -> BDT, everywhere else ->
+  // USD. If the header is missing (local dev, non-Vercel host) we fall
+  // back to BDT since that's the primary audience. A returning visitor's
+  // explicit toggle choice (saved in localStorage inside CurrencyProvider)
+  // always overrides this default.
+  const headersList = await headers();
+  const country = headersList.get("x-vercel-ip-country");
+  const initialCurrency: "BDT" | "USD" = country && country !== "BD" ? "USD" : "BDT";
 
   // Maintenance mode: block every route for everyone except logged-in
   // admins, so the admin can still get in to flip the toggle back off.
@@ -109,7 +121,7 @@ export default async function RootLayout({
         {maintenanceOn && !isAdmin ? (
           <MaintenancePage />
         ) : (
-          <CurrencyProvider>{children}</CurrencyProvider>
+          <CurrencyProvider initialCurrency={initialCurrency}>{children}</CurrencyProvider>
         )}
         <Suspense fallback={null}>
           <PageViewTracker />
