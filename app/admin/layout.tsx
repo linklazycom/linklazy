@@ -46,6 +46,7 @@ const NAV_GROUPS: AdminNavGroup[] = [
     items: [
       { href: "/admin/articles", label: "Blog / CMS" },
       { href: "/admin/articles/categorize", label: "Bulk-categorize articles" },
+      { href: "/admin/niche-coverage", label: "Niche keyword coverage" },
     ],
   },
   {

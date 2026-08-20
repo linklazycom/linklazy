@@ -124,20 +124,54 @@ export async function POST(request: Request) {
     );
   }
 
-  // 3. Find matching seller sites: same niche, approved, accepts paid
-  // orders, best sites first (DR desc, then price asc).
-  const { data: matchedSites } = await supabase
+  // 3. Find candidate seller sites: same niche, admin-approved. No
+  // accepts_paid filter here — every approved site in the niche should
+  // show up in the scan result; accepts_paid only matters later when
+  // the buyer actually tries to place a paid order against one.
+  const { data: candidateSites } = await supabase
     .from("sites")
-    .select("id, domain, niche, dr, da, price_amount, turnaround_hours, owner_id")
+    .select("id, domain, niche, dr, da, price_amount, turnaround_hours, owner_id, accepts_paid")
     .eq("niche", detectedNiche)
     .eq("status", "approved")
-    .eq("accepts_paid", true)
     .neq("owner_id", user.id)
     .order("dr", { ascending: false, nullsFirst: false })
-    .order("price_amount", { ascending: true })
     .limit(RESULT_LIMIT);
 
-  const resultSiteIds = (matchedSites ?? []).map((s) => s.id);
+  // 3b. Re-rank the top candidates by content overlap with the buyer's
+  // own site, not just DR — scan each candidate's homepage (same
+  // keyword-matching scanner, reused) and score by how many of the
+  // buyer's matched keywords also show up there. This is a best-effort
+  // pass: any candidate that fails to fetch (timeout, blocked, etc)
+  // just keeps its DR-based position instead of being dropped.
+  const rerankPool = (candidateSites ?? []).slice(0, 15);
+  const rest = (candidateSites ?? []).slice(15);
+
+  const overlapScores = await Promise.allSettled(
+    rerankPool.map(async (site) => {
+      const domainUrl = site.domain.startsWith("http") ? site.domain : `https://${site.domain}`;
+      const sellerScan = await scanBuyerSite(domainUrl);
+      const overlap = matchedKeywords.filter((kw) => sellerScan.matchedKeywords.includes(kw)).length;
+      return { id: site.id, overlap };
+    })
+  );
+
+  const overlapById = new Map<string, number>();
+  overlapScores.forEach((r) => {
+    if (r.status === "fulfilled") overlapById.set(r.value.id, r.value.overlap);
+  });
+
+  const rerankedPool = [...rerankPool].sort((a, b) => {
+    const overlapDiff = (overlapById.get(b.id) ?? 0) - (overlapById.get(a.id) ?? 0);
+    if (overlapDiff !== 0) return overlapDiff;
+    return (b.dr ?? 0) - (a.dr ?? 0); // tie-break on DR, same as before
+  });
+
+  const matchedSites = [...rerankedPool, ...rest].map((s) => ({
+    ...s,
+    relevance_overlap: overlapById.get(s.id) ?? null,
+  }));
+
+  const resultSiteIds = matchedSites.map((s) => s.id);
 
   await supabase
     .from("buyer_site_scans")
@@ -202,7 +236,7 @@ async function runAutoOrder({
   anchorText,
 }: {
   buyerId: string;
-  allMatches: { id: string; price_amount: number | null }[];
+  allMatches: { id: string; price_amount: number | null; accepts_paid: boolean }[];
   maxBudget?: number;
   maxSites?: number;
   targetUrl: string;
@@ -211,7 +245,11 @@ async function runAutoOrder({
   // Apply buyer's caps client-side before calling the RPC, so the RPC
   // only ever sees the candidate set the buyer actually authorized —
   // the RPC itself still re-checks wallet balance atomically.
-  let candidates = allMatches.filter((s) => s.price_amount != null);
+  // Auto-order only makes sense against sites that actually accept paid
+  // orders — unlike the scan result list (which now shows every approved
+  // site regardless), auto-order must pre-filter here so a max_sites cap
+  // doesn't get "wasted" on an exchange-only site the RPC would skip anyway.
+  let candidates = allMatches.filter((s) => s.price_amount != null && s.accepts_paid);
 
   if (maxSites) candidates = candidates.slice(0, maxSites);
 

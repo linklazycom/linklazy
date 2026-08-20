@@ -25,6 +25,7 @@ const NAV: AdminNavGroup[] = [
       { href: "/browse", label: "Browse" },
       { href: "/dashboard/sites", label: "My sites" },
       { href: "/dashboard/scan-site", label: "Scan my site for links" },
+      { href: "/dashboard/scan-site/history", label: "Scan history" },
       { href: "/dashboard/matches", label: "Exchange matches" },
       { href: "/dashboard/watchlist", label: "Watchlist" },
       { href: "/dashboard/saved-searches", label: "Saved searches" },

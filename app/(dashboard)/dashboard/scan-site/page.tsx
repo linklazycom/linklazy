@@ -17,6 +17,8 @@ interface MatchedSite {
   price_amount: number | null;
   turnaround_hours: number | null;
   owner_id: string;
+  accepts_paid: boolean;
+  relevance_overlap: number | null;
 }
 
 interface AutoOrderResult {
@@ -93,9 +95,10 @@ export default function ScanSitePage() {
     setShowNicheList(false);
     const data = (await res.json()) as ScanResponse;
     setScan(data);
-    // Pre-select every matched site so the buyer can deselect (minus) rather
-    // than having to opt every site in from zero.
-    setSelected(new Set(data.sites.map((s) => s.id)));
+    // Pre-select every matched site that can actually be paid-ordered —
+    // exchange-only (accepts_paid=false) sites still show in the list
+    // for visibility, but can't go into a wallet/bKash/PayPal bulk order.
+    setSelected(new Set(data.sites.filter((s) => s.accepts_paid).map((s) => s.id)));
   }
 
   async function handleScan(e: React.FormEvent) {
@@ -315,24 +318,37 @@ export default function ScanSitePage() {
           )}
 
           <p className="mb-3 text-sm text-muted">
-            {scan.sites.length} matching site{scan.sites.length === 1 ? "" : "s"} found. Deselect any
-            you don&apos;t want, then review your order.
+            {scan.sites.length} approved site{scan.sites.length === 1 ? "" : "s"} found in this niche.
+            Sites marked &quot;Exchange only&quot; don&apos;t accept paid orders and can&apos;t be
+            added to a bulk order. Deselect any you don&apos;t want, then review your order.
           </p>
 
           <div className="mb-24 space-y-2">
             {scan.sites.map((s) => (
               <label
                 key={s.id}
-                className="flex items-center justify-between rounded-chip border border-line bg-white p-3 text-sm has-[:checked]:border-signal"
+                className={`flex items-center justify-between rounded-chip border border-line bg-white p-3 text-sm has-[:checked]:border-signal ${
+                  !s.accepts_paid ? "opacity-60" : ""
+                }`}
               >
                 <span className="flex items-center gap-3">
                   <input
                     type="checkbox"
                     checked={selected.has(s.id)}
                     onChange={() => toggle(s.id)}
-                    disabled={!selected.has(s.id) && selected.size >= MAX_SELECT}
+                    disabled={!s.accepts_paid || (!selected.has(s.id) && selected.size >= MAX_SELECT)}
                   />
                   <span className="font-mono font-medium">{s.domain}</span>
+                  {!s.accepts_paid && (
+                    <span className="rounded-chip bg-canvas px-2 py-0.5 text-xs text-muted">
+                      Exchange only
+                    </span>
+                  )}
+                  {s.relevance_overlap != null && s.relevance_overlap > 0 && (
+                    <span className="rounded-chip bg-signal-soft px-2 py-0.5 text-xs text-signal">
+                      {s.relevance_overlap} keyword match{s.relevance_overlap > 1 ? "es" : ""}
+                    </span>
+                  )}
                 </span>
                 <span className="flex items-center gap-2">
                   {s.dr != null && <MetricChip label="DR" value={s.dr} />}
