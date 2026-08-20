@@ -16,6 +16,10 @@ const scanSchema = z.object({
   anchor_text: z.string().trim().min(1).max(200).optional(),
   max_budget: z.coerce.number().int().min(1).optional(),
   max_sites: z.coerce.number().int().min(1).max(10).optional(),
+  // If the buyer overrides the auto-detected niche (either because
+  // detection failed or picked the wrong one), skip keyword matching
+  // and use this niche directly for the site-matching step.
+  manual_niche: z.enum(NICHES as [string, ...string[]]).optional(),
 });
 
 const RESULT_LIMIT = 30;
@@ -72,25 +76,37 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: insertError?.message ?? "Could not start scan" }, { status: 500 });
   }
 
-  // 2. Run the scan.
-  let detectedNiche: string | null = null;
-  let confidence = 0;
+  // 2. Run the scan. If the buyer already supplied a manual_niche
+  // (either a retry after a failed auto-detect, or an explicit
+  // override), skip keyword matching entirely and trust their pick —
+  // we still attempt the fetch so confidence/matchedKeywords are
+  // filled in for display, but a fetch failure here is non-fatal.
+  let detectedNiche: string | null = input.manual_niche ?? null;
+  let confidence = input.manual_niche ? 100 : 0;
   let matchedKeywords: string[] = [];
+  let scanErrorMessage: string | null = null;
 
   try {
     const result = await scanBuyerSite(input.url);
-    detectedNiche = result.detectedNiche;
-    confidence = result.confidence;
+    if (!input.manual_niche) {
+      detectedNiche = result.detectedNiche;
+      confidence = result.confidence;
+    }
     matchedKeywords = result.matchedKeywords;
   } catch (err) {
-    await supabase
-      .from("buyer_site_scans")
-      .update({ status: "failed", error_message: (err as Error).message })
-      .eq("id", scanRow.id);
-    return NextResponse.json(
-      { error: `Couldn't scan that URL: ${(err as Error).message}` },
-      { status: 502 }
-    );
+    scanErrorMessage = (err as Error).message;
+    if (!input.manual_niche) {
+      await supabase
+        .from("buyer_site_scans")
+        .update({ status: "failed", error_message: scanErrorMessage })
+        .eq("id", scanRow.id);
+      return NextResponse.json(
+        { error: `Couldn't scan that URL: ${scanErrorMessage}`, niches: NICHES },
+        { status: 502 }
+      );
+    }
+    // Manual niche was given, so a fetch failure just means we lose the
+    // confidence/keyword display — the match step below can still run.
   }
 
   if (!detectedNiche) {
@@ -101,7 +117,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          "Couldn't confidently detect a niche from that page. Try picking a niche manually from Browse Sites instead.",
+          "Couldn't confidently detect a niche from that page. Pick your niche manually below and we'll use that instead.",
         niches: NICHES,
       },
       { status: 422 }

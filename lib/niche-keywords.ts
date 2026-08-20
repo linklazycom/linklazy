@@ -62,8 +62,10 @@ export const NICHE_KEYWORDS: Record<(typeof NICHES)[number], string[]> = {
     "bodybuilding", "yoga", "running", "athlete",
   ],
   "Pets & Animals": [
-    "pet", "pets", "dog", "cat", "animal", "veterinary", "pet care",
-    "adoption", "puppy", "kitten",
+    "pet", "pets", "dog", "cat", "animal", "animals", "veterinary", "pet care",
+    "adoption", "puppy", "kitten", "bird", "birds", "birding", "birdwatching",
+    "bird watching", "wildlife", "crow", "crows", "raven", "parrot", "ornithology",
+    "aviary", "reptile", "fish tank", "aquarium", "rodent", "wild animal",
   ],
   "Legal Services": [
     "legal", "lawyer", "attorney", "law firm", "legal advice",

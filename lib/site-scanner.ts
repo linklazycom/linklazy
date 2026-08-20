@@ -72,7 +72,15 @@ async function fetchHtml(url: string): Promise<string> {
   }
 }
 
-/** Pulls <title>, meta description, and H1/H2 text out of raw HTML. */
+/** Pulls <title>, meta description, H1-H3 text, and a slice of body
+ *  paragraph text out of raw HTML.
+ *
+ *  Title/meta/headings alone under-detect niches whose defining words
+ *  show up mainly in body copy (e.g. a site about crows might only say
+ *  "crow" inside article paragraphs, not in its H1). Pulling in the
+ *  first chunk of <p> text closes that gap while staying cheap and
+ *  keyword-matchable — no HTML parser dependency needed.
+ */
 function extractSignalText(html: string): string {
   const parts: string[] = [];
 
@@ -89,9 +97,24 @@ function extractSignalText(html: string): string {
   );
   if (metaKeywords) parts.push(metaKeywords[1]);
 
-  const headings = html.match(/<h[12][^>]*>([\s\S]*?)<\/h[12]>/gi) ?? [];
-  for (const h of headings.slice(0, 20)) {
+  const headings = html.match(/<h[123][^>]*>([\s\S]*?)<\/h[123]>/gi) ?? [];
+  for (const h of headings.slice(0, 30)) {
     parts.push(stripTags(h));
+  }
+
+  // Body paragraphs: this is where niche-defining words most often live
+  // (e.g. "crow" repeated through article copy, not necessarily in the
+  // title). Cap it so one giant page doesn't blow past a reasonable
+  // fetch/parse budget.
+  const paragraphs = html.match(/<p[^>]*>([\s\S]*?)<\/p>/gi) ?? [];
+  let bodyChars = 0;
+  const BODY_CHAR_BUDGET = 6000;
+  for (const p of paragraphs) {
+    if (bodyChars >= BODY_CHAR_BUDGET) break;
+    const clean = stripTags(p);
+    if (!clean) continue;
+    parts.push(clean);
+    bodyChars += clean.length;
   }
 
   return parts.join(" ").trim();

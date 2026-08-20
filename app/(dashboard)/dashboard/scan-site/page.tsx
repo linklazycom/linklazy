@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { MetricChip } from "@/components/ui/metric-chip";
 import { Money } from "@/components/currency/money";
+import { NICHES } from "@/lib/niches";
 
 interface MatchedSite {
   id: string;
@@ -49,11 +50,11 @@ export default function ScanSitePage() {
 
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showNicheList, setShowNicheList] = useState(false);
   const [scan, setScan] = useState<ScanResponse | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  async function handleScan(e: React.FormEvent) {
-    e.preventDefault();
+  async function runScan(manualNiche?: string) {
     setScanning(true);
     setError(null);
     setScan(null);
@@ -74,6 +75,7 @@ export default function ScanSitePage() {
         anchor_text: autoOrderEnabled ? anchorText : undefined,
         max_budget: maxBudget ? Number(maxBudget) : undefined,
         max_sites: maxSites ? Number(maxSites) : undefined,
+        manual_niche: manualNiche,
       }),
     });
 
@@ -82,14 +84,23 @@ export default function ScanSitePage() {
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       setError(typeof body.error === "string" ? body.error : "Scan failed.");
+      // Detection failed (or this was already a manual retry that still
+      // failed for another reason) — offer the manual niche picker.
+      setShowNicheList(true);
       return;
     }
 
+    setShowNicheList(false);
     const data = (await res.json()) as ScanResponse;
     setScan(data);
     // Pre-select every matched site so the buyer can deselect (minus) rather
     // than having to opt every site in from zero.
     setSelected(new Set(data.sites.map((s) => s.id)));
+  }
+
+  async function handleScan(e: React.FormEvent) {
+    e.preventDefault();
+    await runScan();
   }
 
   function toggle(id: string) {
@@ -212,7 +223,25 @@ export default function ScanSitePage() {
           </div>
         )}
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && (
+          <div className="rounded-chip border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <p className="mb-2">{error}</p>
+            {showNicheList && (
+              <div className="flex flex-wrap gap-2">
+                {NICHES.map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => runScan(n)}
+                    className="rounded-chip border border-red-300 bg-white px-2 py-1 text-xs text-red-700 hover:border-red-500"
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         <Button type="submit" disabled={scanning}>
           {scanning ? "Scanning…" : "Scan site"}
@@ -224,7 +253,33 @@ export default function ScanSitePage() {
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <MetricChip label="Detected niche" value={scan.detectedNiche} tone="verified" />
             <MetricChip label="Confidence" value={`${scan.confidence}%`} />
+            <button
+              type="button"
+              onClick={() => setShowNicheList((v) => !v)}
+              className="text-sm text-muted underline"
+            >
+              Wrong niche?
+            </button>
           </div>
+
+          {showNicheList && (
+            <div className="mb-4 flex flex-wrap gap-2 rounded-chip border border-line bg-canvas p-3">
+              {NICHES.map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => runScan(n)}
+                  className={`rounded-chip border px-2 py-1 text-xs ${
+                    n === scan.detectedNiche
+                      ? "border-signal bg-signal-soft"
+                      : "border-line bg-white hover:border-signal"
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          )}
 
           {scan.autoOrder && (
             <div
