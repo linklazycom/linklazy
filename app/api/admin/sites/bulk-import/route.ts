@@ -4,11 +4,18 @@ import { requireAdmin } from "@/lib/require-admin";
 import { createServiceClient } from "@/lib/supabase/service";
 import { siteSubmissionSchema } from "@/lib/validators/site";
 import { csvToObjects } from "@/lib/csv";
+import { fetchDomainRating } from "@/lib/ahrefs";
 
 // Hard cap so a single import request can't run past the serverless
-// function timeout or hammer the DB. Bigger lists should be split into
-// a few CSV files.
-const MAX_ROWS = 500;
+// function timeout or hammer the DB/Ahrefs. Bigger lists should be split
+// into a few CSV files — the admin has said 100/batch is the practical
+// ceiling they'll actually use.
+const MAX_ROWS = 100;
+
+// Gap between per-row Ahrefs DR checks, same spirit as the weekly refresh
+// cron's fetchDomainRatingBatch default — keeps us well inside Ahrefs'
+// free-endpoint rate limit instead of firing 100 requests back to back.
+const DR_CHECK_DELAY_MS = 400;
 
 const requestSchema = z.object({
   csv: z.string().min(1, "CSV content is required"),
@@ -31,12 +38,34 @@ function clean(value: string | undefined): string | undefined {
   return trimmed === "" ? undefined : trimmed;
 }
 
+// Same normalization Ahrefs lookups use (lib/ahrefs.ts's extractHostname,
+// not exported from there) — strips protocol, "www.", and path/query, so
+// https://Example.com/, http://www.example.com, and example.com all
+// collapse to the same key for duplicate detection.
+function normalizeHost(input: string): string {
+  try {
+    const url = input.includes("://") ? input : `https://${input}`;
+    return new URL(url).hostname.replace(/^www\./, "").toLowerCase();
+  } catch {
+    return input
+      .replace(/^https?:\/\//, "")
+      .replace(/^www\./, "")
+      .split("/")[0]
+      .toLowerCase();
+  }
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 interface RowResult {
   row: number;
   url: string | null;
   owner_email: string | null;
   status: "created" | "error";
   site_id?: string;
+  dr_checked?: number | null;
   error?: string;
 }
 
@@ -48,6 +77,15 @@ interface RowResult {
  * listing form), and gets logged the same way. We do NOT create new
  * accounts here — a bad/unknown email just fails that row with a clear
  * reason, so admins can't accidentally spray sites onto typo'd addresses.
+ *
+ * Before touching the DB we also reject duplicate URLs — both against
+ * sites already listed on the platform, and duplicates within the CSV
+ * itself — so a bad file fails fast with a clear per-row reason instead
+ * of half-importing and half-hitting a DB constraint error.
+ *
+ * After a row is inserted we do the same best-effort Ahrefs DR check the
+ * single-site admin form does, with a small delay between calls to stay
+ * inside Ahrefs' free-endpoint rate limit.
  *
  * Expected CSV headers (case-insensitive, extra columns are ignored):
  * owner_email, url, niche, language, da, pa, dr, organic_traffic,
@@ -105,7 +143,19 @@ export async function POST(request: Request) {
     }
   }
 
+  // Existing domains already listed on the platform, for duplicate
+  // detection before we attempt any insert.
+  const existingHosts = new Set<string>();
+  {
+    const { data: existingSites } = await serviceClient.from("sites").select("domain, url");
+    (existingSites ?? []).forEach((s) => {
+      if (s.domain) existingHosts.add(String(s.domain).toLowerCase());
+      if (s.url) existingHosts.add(normalizeHost(s.url));
+    });
+  }
+
   const results: RowResult[] = [];
+  const seenInBatch = new Set<string>();
   let created = 0;
 
   for (let i = 0; i < rows.length; i++) {
@@ -127,6 +177,33 @@ export async function POST(request: Request) {
         owner_email: ownerEmail,
         status: "error",
         error: "No account found with this email — create the account first, then re-import this row.",
+      });
+      continue;
+    }
+
+    if (!url) {
+      results.push({ row: rowNum, url, owner_email: ownerEmail, status: "error", error: "Missing url" });
+      continue;
+    }
+
+    const host = normalizeHost(url);
+    if (existingHosts.has(host)) {
+      results.push({
+        row: rowNum,
+        url,
+        owner_email: ownerEmail,
+        status: "error",
+        error: "This URL is already listed on the platform",
+      });
+      continue;
+    }
+    if (seenInBatch.has(host)) {
+      results.push({
+        row: rowNum,
+        url,
+        owner_email: ownerEmail,
+        status: "error",
+        error: "Duplicate URL within this CSV — only the first occurrence is imported",
       });
       continue;
     }
@@ -177,12 +254,38 @@ export async function POST(request: Request) {
       continue;
     }
 
+    // Reserve this host immediately so a later row in the same file with
+    // the same URL (already caught above via seenInBatch, but belt and
+    // braces) can't slip past.
+    seenInBatch.add(host);
+    existingHosts.add(host);
+
     await serviceClient.from("site_verifications").insert({
       site_id: site.id,
       method: "admin_bulk_import",
       status: "verified",
       verified_at: new Date().toISOString(),
     });
+
+    // Best-effort DR check, same as the single-site admin listing flow —
+    // never blocks the row from counting as created if Ahrefs fails or
+    // isn't configured.
+    let drChecked: number | null = null;
+    try {
+      const drResult = await fetchDomainRating(parsed.data.url);
+      if (drResult.ok && drResult.domainRating != null) {
+        drChecked = drResult.domainRating;
+        await serviceClient
+          .from("sites")
+          .update({ dr_verified: drResult.domainRating, dr_verified_at: new Date().toISOString(), dr_check_status: "ok" })
+          .eq("id", site.id);
+      } else {
+        await serviceClient.from("sites").update({ dr_check_status: "failed" }).eq("id", site.id);
+      }
+    } catch {
+      // Weekly cron is the safety net if this best-effort check throws.
+    }
+    await sleep(DR_CHECK_DELAY_MS);
 
     // Log per created site (same action + shape as the single-site admin
     // listing flow) rather than one summary row, since every other
@@ -195,7 +298,7 @@ export async function POST(request: Request) {
       metadata: { domain: parsed.data.url, owner_id: owner.id, owner_name: owner.full_name, via: "bulk_import" },
     });
 
-    results.push({ row: rowNum, url, owner_email: ownerEmail, status: "created", site_id: site.id });
+    results.push({ row: rowNum, url, owner_email: ownerEmail, status: "created", site_id: site.id, dr_checked: drChecked });
     created += 1;
   }
 
@@ -206,3 +309,4 @@ export async function POST(request: Request) {
     results,
   });
 }
+

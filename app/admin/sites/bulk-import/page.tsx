@@ -56,6 +56,7 @@ interface RowResult {
   owner_email: string | null;
   status: "created" | "error";
   site_id?: string;
+  dr_checked?: number | null;
   error?: string;
 }
 
@@ -114,11 +115,49 @@ function previewParse(text: string): { headers: string[]; rows: string[][] } {
   return { headers, rows };
 }
 
+// Same host-normalization the server uses for duplicate detection, kept
+// in sync here so the preview can flag duplicates before the CSV is even
+// submitted (final say still belongs to the server-side check).
+function normalizeHostClientSide(input: string): string {
+  const trimmed = input.trim();
+  if (!trimmed) return "";
+  try {
+    const url = trimmed.includes("://") ? trimmed : `https://${trimmed}`;
+    return new URL(url).hostname.replace(/^www\./, "").toLowerCase();
+  } catch {
+    return trimmed
+      .replace(/^https?:\/\//, "")
+      .replace(/^www\./, "")
+      .split("/")[0]
+      .toLowerCase();
+  }
+}
+
+function findDuplicateRowIndexes(headers: string[], rows: string[][]): Set<number> {
+  const urlCol = headers.findIndex((h) => h.trim().toLowerCase() === "url");
+  const duplicates = new Set<number>();
+  if (urlCol === -1) return duplicates;
+
+  const seen = new Map<string, number>();
+  rows.forEach((row, i) => {
+    const host = normalizeHostClientSide(row[urlCol] ?? "");
+    if (!host) return;
+    if (seen.has(host)) {
+      duplicates.add(i);
+      duplicates.add(seen.get(host)!);
+    } else {
+      seen.set(host, i);
+    }
+  });
+  return duplicates;
+}
+
 export default function BulkImportSitesPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [csvText, setCsvText] = useState<string | null>(null);
   const [preview, setPreview] = useState<{ headers: string[]; rows: string[][] } | null>(null);
+  const [duplicateRows, setDuplicateRows] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ImportResponse | null>(null);
@@ -133,6 +172,7 @@ export default function BulkImportSitesPage() {
     setCsvText(text);
     const parsed = previewParse(text);
     setPreview(parsed);
+    setDuplicateRows(findDuplicateRowIndexes(parsed.headers, parsed.rows));
   }
 
   async function handleImport() {
@@ -164,6 +204,7 @@ export default function BulkImportSitesPage() {
     setFileName(null);
     setCsvText(null);
     setPreview(null);
+    setDuplicateRows(new Set());
     setResult(null);
     setError(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -181,8 +222,10 @@ export default function BulkImportSitesPage() {
         Upload a CSV to list many sites at once, each assigned to an existing account by email —
         with the same metrics and link terms as listing a site one at a time. Every row goes
         straight to <span className="font-medium">approved &amp; verified</span>, same as the
-        single-site admin form. Export from Excel or Google Sheets as CSV first (File → Download →
-        Comma Separated Values).
+        single-site admin form, and gets a live Ahrefs DR check right after import (same as clicking
+        &quot;Re-check DR now&quot; on a single listing). Export from Excel or Google Sheets as CSV
+        first (File → Download → Comma Separated Values). Max 100 rows per file — split larger
+        lists into a few smaller CSVs.
       </p>
 
       <div className="mb-6 rounded-chip border border-line bg-white p-5">
@@ -229,35 +272,44 @@ export default function BulkImportSitesPage() {
           {preview.rows.length === 0 ? (
             <p className="text-sm text-red-600">No data rows found — check the file has a header row plus data.</p>
           ) : (
-            <div className="max-h-64 overflow-auto rounded-chip border border-line">
-              <table className="w-full text-left text-xs">
-                <thead className="sticky top-0 bg-paper">
-                  <tr>
-                    {preview.headers.map((h) => (
-                      <th key={h} className="whitespace-nowrap px-2 py-1.5 font-medium">
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {preview.rows.slice(0, 20).map((r, i) => (
-                    <tr key={i} className="border-t border-line">
-                      {preview.headers.map((_, ci) => (
-                        <td key={ci} className="whitespace-nowrap px-2 py-1.5">
-                          {r[ci] ?? ""}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {preview.rows.length > 20 && (
-                <p className="border-t border-line px-2 py-1.5 text-xs text-muted">
-                  …and {preview.rows.length - 20} more row{preview.rows.length - 20 === 1 ? "" : "s"}.
+            <>
+              {duplicateRows.size > 0 && (
+                <p className="mb-2 text-xs text-red-600">
+                  {duplicateRows.size} row{duplicateRows.size === 1 ? "" : "s"} share a URL with another row in
+                  this file (highlighted below) — only the first occurrence of each will be imported. This is a
+                  quick client-side check; the server also checks against every site already on the platform.
                 </p>
               )}
-            </div>
+              <div className="max-h-64 overflow-auto rounded-chip border border-line">
+                <table className="w-full text-left text-xs">
+                  <thead className="sticky top-0 bg-paper">
+                    <tr>
+                      {preview.headers.map((h) => (
+                        <th key={h} className="whitespace-nowrap px-2 py-1.5 font-medium">
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {preview.rows.slice(0, 20).map((r, i) => (
+                      <tr key={i} className={`border-t border-line ${duplicateRows.has(i) ? "bg-red-50" : ""}`}>
+                        {preview.headers.map((_, ci) => (
+                          <td key={ci} className="whitespace-nowrap px-2 py-1.5">
+                            {r[ci] ?? ""}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {preview.rows.length > 20 && (
+                  <p className="border-t border-line px-2 py-1.5 text-xs text-muted">
+                    …and {preview.rows.length - 20} more row{preview.rows.length - 20 === 1 ? "" : "s"}.
+                  </p>
+                )}
+              </div>
+            </>
           )}
 
           <Button className="mt-4" onClick={handleImport} disabled={loading || preview.rows.length === 0}>
@@ -283,6 +335,7 @@ export default function BulkImportSitesPage() {
                   <th className="px-2 py-1.5 font-medium">URL</th>
                   <th className="px-2 py-1.5 font-medium">Owner email</th>
                   <th className="px-2 py-1.5 font-medium">Status</th>
+                  <th className="px-2 py-1.5 font-medium">DR checked</th>
                   <th className="px-2 py-1.5 font-medium">Detail</th>
                 </tr>
               </thead>
@@ -296,6 +349,9 @@ export default function BulkImportSitesPage() {
                       <span className={r.status === "created" ? "text-green-600" : "text-red-600"}>
                         {r.status === "created" ? "Created" : "Failed"}
                       </span>
+                    </td>
+                    <td className="px-2 py-1.5">
+                      {r.status === "created" ? (r.dr_checked != null ? r.dr_checked : "—") : "—"}
                     </td>
                     <td className="px-2 py-1.5">
                       {r.status === "created" ? (
