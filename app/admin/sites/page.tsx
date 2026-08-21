@@ -68,6 +68,9 @@ export default function AdminSitesPage() {
           <Link href="/admin/sites/new">
             <Button size="sm">List a site</Button>
           </Link>
+          <Link href="/admin/sites/bulk-import">
+            <Button size="sm" variant="secondary">Bulk import (CSV)</Button>
+          </Link>
           <form onSubmit={runSearch} className="flex items-center gap-2">
           <input
             value={search}

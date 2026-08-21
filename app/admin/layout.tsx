@@ -20,6 +20,7 @@ const NAV_GROUPS: AdminNavGroup[] = [
     items: [
       { href: "/admin/sites", label: "Sites" },
       { href: "/admin/sites/new", label: "List a site" },
+      { href: "/admin/sites/bulk-import", label: "Bulk import sites" },
       { href: "/admin/orders", label: "Orders" },
       { href: "/admin/disputes", label: "Disputes" },
       { href: "/admin/press-releases", label: "Press releases" },
