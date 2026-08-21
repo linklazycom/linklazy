@@ -1,31 +1,64 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { PaymentProtectionBadge } from "@/components/trust/payment-protection-badge";
 import { Field } from "@/components/ui/field";
+import { Money } from "@/components/currency/money";
 import { siteCtaLabel } from "@/lib/site-cta";
+
+type PaymentMethod = "wallet" | "bkash" | "paypal";
 
 export function RequestLinkForm({
   siteId,
   acceptsExchange,
   acceptsPaid,
+  priceAmount,
   defaultTargetUrl,
   defaultAnchorText,
 }: {
   siteId: string;
   acceptsExchange: boolean;
   acceptsPaid: boolean;
+  /** Needed to know if the wallet balance actually covers this order. */
+  priceAmount?: number | null;
   defaultTargetUrl?: string;
   defaultAnchorText?: string;
 }) {
   const router = useRouter();
+  const supabase = createClient();
   const [orderType, setOrderType] = useState<"exchange" | "paid">(
     acceptsPaid ? "paid" : "exchange"
   );
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("wallet");
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadWallet() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from("profiles").select("wallet_balance").eq("id", user.id).single();
+      setWalletBalance(data?.wallet_balance ?? 0);
+    }
+    loadWallet();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const canPayFromWallet = priceAmount != null && walletBalance != null && walletBalance >= priceAmount;
+
+  // If the wallet can't cover it once we know the balance, default to
+  // bKash instead of leaving "Wallet" selected with a disabled button.
+  useEffect(() => {
+    if (orderType === "paid" && walletBalance != null && priceAmount != null && walletBalance < priceAmount) {
+      setPaymentMethod("bkash");
+    }
+  }, [walletBalance, priceAmount, orderType]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -33,13 +66,38 @@ export function RequestLinkForm({
     setError(null);
 
     const form = new FormData(e.currentTarget);
+    const targetUrl = form.get("target_url");
+    const anchorText = form.get("anchor_text");
+    const notes = form.get("notes") || undefined;
+
+    // Paid + wallet checks out immediately (no redirect) — same atomic
+    // charge-and-create-order RPC the bulk wallet checkout uses.
+    if (orderType === "paid" && paymentMethod === "wallet") {
+      const res = await fetch("/api/orders/pay-wallet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ site_id: siteId, target_url: targetUrl, anchor_text: anchorText, notes }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(typeof body.error === "string" ? body.error : "Could not place this order.");
+        setSubmitting(false);
+        return;
+      }
+      router.push(`/dashboard/orders/${body.id}`);
+      return;
+    }
+
+    // Exchange, or paid + bKash/PayPal: create the order first, then land
+    // on the order page — for paid orders that page already shows the
+    // bKash/PayPal checkout buttons for a pending_payment order.
     const payload = {
       site_id: siteId,
       order_type: orderType,
       buyer_site_id: orderType === "exchange" ? form.get("buyer_site_id") || undefined : undefined,
-      target_url: form.get("target_url"),
-      anchor_text: form.get("anchor_text"),
-      notes: form.get("notes") || undefined,
+      target_url: targetUrl,
+      anchor_text: anchorText,
+      notes,
     };
 
     const res = await fetch("/api/orders", {
@@ -96,6 +154,60 @@ export function RequestLinkForm({
         />
       )}
 
+      {orderType === "paid" && priceAmount != null && (
+        <div>
+          <label className="mb-2 block text-sm text-muted">Payment method</label>
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => setPaymentMethod("wallet")}
+              disabled={!canPayFromWallet}
+              className={`rounded-chip border p-3 text-left text-sm disabled:cursor-not-allowed disabled:opacity-50 ${
+                paymentMethod === "wallet" ? "border-brand-violet bg-brand-soft" : "border-line"
+              }`}
+            >
+              <span className="block font-medium">Wallet</span>
+              <span className="mt-0.5 block text-xs text-muted">
+                {walletBalance == null ? "…" : <Money amount={walletBalance} />} balance
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setPaymentMethod("bkash")}
+              className={`rounded-chip border p-3 text-left text-sm ${
+                paymentMethod === "bkash" ? "border-brand-violet bg-brand-soft" : "border-line"
+              }`}
+            >
+              <span className="block font-medium">bKash</span>
+              <span className="mt-0.5 block text-xs text-muted">BDT</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setPaymentMethod("paypal")}
+              className={`rounded-chip border p-3 text-left text-sm ${
+                paymentMethod === "paypal" ? "border-brand-violet bg-brand-soft" : "border-line"
+              }`}
+            >
+              <span className="block font-medium">PayPal</span>
+              <span className="mt-0.5 block text-xs text-muted">USD</span>
+            </button>
+          </div>
+          <p className="mt-2 text-sm">
+            Total: <Money amount={priceAmount} />
+          </p>
+          {!canPayFromWallet && walletBalance != null && (
+            <p className="mt-1 text-xs text-muted">
+              Wallet balance <Money amount={walletBalance} /> isn&apos;t enough to cover this order —
+              pay with bKash or PayPal instead, or{" "}
+              <a href="/dashboard/billing" className="underline">
+                top up your wallet
+              </a>
+              .
+            </p>
+          )}
+        </div>
+      )}
+
       <Field id="target_url" name="target_url" label="Page to link to" placeholder="https://yoursite.com/page" required defaultValue={defaultTargetUrl} />
       <Field id="anchor_text" name="anchor_text" label="Anchor text" placeholder="best gardening tools" required defaultValue={defaultAnchorText} />
       <div>
@@ -113,7 +225,13 @@ export function RequestLinkForm({
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <Button type="submit" size="lg" disabled={submitting}>
-        {submitting ? "Sending…" : orderType === "paid" ? "Order now — continue to payment" : "Send exchange request"}
+        {submitting
+          ? "Sending…"
+          : orderType === "paid"
+            ? paymentMethod === "wallet"
+              ? "Pay from wallet & place order"
+              : `Continue to ${paymentMethod === "bkash" ? "bKash" : "PayPal"} checkout`
+            : "Send exchange request"}
       </Button>
       {orderType === "paid" && (
         <div>

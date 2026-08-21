@@ -220,30 +220,30 @@ export default function SiteDetailPage({
         />
       </div>
 
-      {!unlocked ? (
-        <div className="rounded-chip border border-line bg-white p-6 text-center">
-          <p className="mb-4 text-sm text-muted">
+      {!unlocked && (
+        <div className="mb-6 rounded-chip border border-line bg-white p-4 text-center">
+          <p className="mb-3 text-sm text-muted">
             {isFree
-              ? "Upgrade to a paid plan to unlock this listing and place an order."
+              ? "Upgrade to a paid plan to unlock the site URL, backlink data, and seller guidelines. Not required to place an order below — DA/DR/traffic and price are already shown above."
               : quotaExhausted
-                ? "You've used all your plan views for this billing period. Upgrade your plan for more views."
-                : "Unlock this listing to see the site URL, referring domains, backlink count, seller guidelines, and to place an order. This uses one of your plan's monthly views."}
+                ? "You've used all your plan views for this billing period. Upgrade for more views to unlock the site URL and full details. Not required to place an order below."
+                : "Unlock this listing to see the site URL, referring domains, backlink count, and seller guidelines. Optional — you can place an order below without unlocking."}
           </p>
           {isFree ? (
             <Link href="/dashboard/billing">
-              <Button>View plans</Button>
+              <Button size="sm" variant="secondary">View plans</Button>
             </Link>
           ) : quotaExhausted ? (
             <Link href="/dashboard/billing">
-              <Button>Upgrade plan for more views</Button>
+              <Button size="sm" variant="secondary">Upgrade plan for more views</Button>
             </Link>
           ) : (
-            <Button onClick={handleUnlock} disabled={unlocking}>
-              {unlocking ? "Unlocking…" : "Unlock (1 view)"}
+            <Button size="sm" variant="secondary" onClick={handleUnlock} disabled={unlocking}>
+              {unlocking ? "Unlocking…" : "Unlock full details (1 view)"}
             </Button>
           )}
           {error && (
-            <div className="mt-3 rounded-chip border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <div className="mt-3 rounded-chip border border-red-200 bg-red-50 p-3 text-left text-sm text-red-700">
               <p>{error}</p>
               <Link href="/dashboard/billing" className="mt-1 inline-block underline">
                 View plans
@@ -251,7 +251,9 @@ export default function SiteDetailPage({
             </div>
           )}
         </div>
-      ) : (
+      )}
+
+      {unlocked && (
         <>
           <a href={site.url} target="_blank" rel="noreferrer" className="mb-4 block text-sm text-muted underline">
             {site.url}
@@ -275,14 +277,23 @@ export default function SiteDetailPage({
               <p className="text-sm text-muted">{site.guidelines}</p>
             </div>
           )}
-          <RequestLinkForm
-            siteId={site.id}
-            acceptsExchange={site.accepts_exchange}
-            acceptsPaid={site.accepts_paid}
-            defaultTargetUrl={reorderTarget}
-            defaultAnchorText={reorderAnchor}
-          />
         </>
+      )}
+
+      {/* Ordering never requires unlocking first — the buyer already has
+          enough (DA/DR/traffic/price) from the metrics chips above to
+          decide, and paying for the link is itself the "purchase";
+          gating it behind a separate view-quota spend was redundant
+          friction (and confusingly looked like a broken button). */}
+      {(site.accepts_paid || site.accepts_exchange) && site.owner_id !== currentUserId && (
+        <RequestLinkForm
+          siteId={site.id}
+          acceptsExchange={site.accepts_exchange}
+          acceptsPaid={site.accepts_paid}
+          priceAmount={site.price_amount}
+          defaultTargetUrl={reorderTarget}
+          defaultAnchorText={reorderAnchor}
+        />
       )}
 
       <div className="mt-8">
