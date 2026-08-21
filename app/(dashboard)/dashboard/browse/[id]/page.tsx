@@ -69,8 +69,11 @@ export default function SiteDetailPage({
   const [reviews, setReviews] = useState<Review[]>([]);
   const [unlocked, setUnlocked] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [buyerPlan, setBuyerPlan] = useState<string | null>(null);
+  const [quotaRemaining, setQuotaRemaining] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [unlocking, setUnlocking] = useState(false);
 
   async function checkUnlockAndLoad() {
     const {
@@ -103,6 +106,19 @@ export default function SiteDetailPage({
     }
     setSite(siteData);
 
+    // Plan/quota status, so the unlock button can explain up front why it
+    // might not work (free plan, no views left) instead of only surfacing
+    // that after a failed click.
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("buyer_plan, buyer_views_quota, buyer_views_used")
+      .eq("id", user!.id)
+      .single();
+    if (profile) {
+      setBuyerPlan(profile.buyer_plan);
+      setQuotaRemaining((profile.buyer_views_quota ?? 0) - (profile.buyer_views_used ?? 0));
+    }
+
     if (siteData?.owner_id) {
       const { data: sellerData } = await supabase
         .from("profiles")
@@ -130,16 +146,32 @@ export default function SiteDetailPage({
 
   async function handleUnlock() {
     setError(null);
-    const res = await fetch(`/api/browse/${id}/unlock`, { method: "POST" });
-    const body = await res.json();
-    if (!res.ok) {
-      setError(body.error ?? "Could not unlock this site.");
-      return;
+    setUnlocking(true);
+    try {
+      const res = await fetch(`/api/browse/${id}/unlock`, { method: "POST" });
+      // The API can fail before it ever returns JSON (e.g. an unhandled
+      // 500 renders an HTML error page) — parse defensively so that case
+      // shows a real error instead of silently doing nothing.
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(
+          typeof body.error === "string" ? body.error : "Could not unlock this site. Please try again."
+        );
+        setUnlocking(false);
+        return;
+      }
+      await checkUnlockAndLoad();
+    } catch {
+      setError("Could not reach the server. Please check your connection and try again.");
+    } finally {
+      setUnlocking(false);
     }
-    checkUnlockAndLoad();
   }
 
   if (loading || !site) return <p className="text-muted">Loading…</p>;
+
+  const isFree = buyerPlan === "free";
+  const quotaExhausted = !isFree && quotaRemaining !== null && quotaRemaining <= 0;
 
   return (
     <div className="max-w-2xl">
@@ -191,18 +223,32 @@ export default function SiteDetailPage({
       {!unlocked ? (
         <div className="rounded-chip border border-line bg-white p-6 text-center">
           <p className="mb-4 text-sm text-muted">
-            Unlock this listing to see the site URL, referring domains,
-            backlink count, seller guidelines, and to place an order. This
-            uses one of your plan&apos;s monthly views.
+            {isFree
+              ? "Upgrade to a paid plan to unlock this listing and place an order."
+              : quotaExhausted
+                ? "You've used all your plan views for this billing period. Upgrade your plan for more views."
+                : "Unlock this listing to see the site URL, referring domains, backlink count, seller guidelines, and to place an order. This uses one of your plan's monthly views."}
           </p>
-          <Button onClick={handleUnlock}>Unlock (1 view)</Button>
+          {isFree ? (
+            <Link href="/dashboard/billing">
+              <Button>View plans</Button>
+            </Link>
+          ) : quotaExhausted ? (
+            <Link href="/dashboard/billing">
+              <Button>Upgrade plan for more views</Button>
+            </Link>
+          ) : (
+            <Button onClick={handleUnlock} disabled={unlocking}>
+              {unlocking ? "Unlocking…" : "Unlock (1 view)"}
+            </Button>
+          )}
           {error && (
-            <p className="mt-3 text-sm text-red-600">
-              {error}{" "}
-              <Link href="/dashboard/billing" className="underline">
+            <div className="mt-3 rounded-chip border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              <p>{error}</p>
+              <Link href="/dashboard/billing" className="mt-1 inline-block underline">
                 View plans
               </Link>
-            </p>
+            </div>
           )}
         </div>
       ) : (

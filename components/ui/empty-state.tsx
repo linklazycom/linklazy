@@ -40,8 +40,8 @@ export function NoResultsEmptyState({ description, action }: { description?: str
   return (
     <EmptyState
       icon={SearchX}
-      title="কোনো ফলাফল পাওয়া যায়নি"
-      description={description ?? "ফিল্টার বা সার্চ পরিবর্তন করে আবার চেষ্টা করুন।"}
+      title="No results found"
+      description={description ?? "Try adjusting your filters or search and try again."}
       action={action}
     />
   );

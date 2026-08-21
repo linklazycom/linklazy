@@ -21,8 +21,8 @@ interface Props {
 export function RouteError({
   error,
   reset,
-  title = "কিছু একটা ভুল হয়েছে",
-  description = "পেজটা লোড করতে সমস্যা হচ্ছে। আবার চেষ্টা করুন, সমস্যা থাকলে সাপোর্টে জানান।",
+  title = "Something went wrong",
+  description = "We ran into a problem loading this page. Please try again, or contact support if the issue continues.",
 }: Props) {
   return (
     <div className="mx-auto flex min-h-[50vh] max-w-md flex-col items-center justify-center gap-4 px-4 text-center">
@@ -41,10 +41,10 @@ export function RouteError({
       )}
       <div className="flex gap-2">
         <Button variant="secondary" onClick={reset}>
-          আবার চেষ্টা করুন
+          Try again
         </Button>
         <Button variant="ghost" onClick={() => (window.location.href = "/")}>
-          হোমে ফিরে যান
+          Back to home
         </Button>
       </div>
     </div>

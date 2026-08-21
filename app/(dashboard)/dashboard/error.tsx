@@ -13,8 +13,8 @@ export default function DashboardError({
     <RouteError
       error={error}
       reset={reset}
-      title="ড্যাশবোর্ড লোড করা যায়নি"
-      description="আপনার ডেটা আনতে সমস্যা হচ্ছে। আবার চেষ্টা করুন।"
+      title="Couldn't load your dashboard"
+      description="We ran into a problem fetching your data. Please try again."
     />
   );
 }

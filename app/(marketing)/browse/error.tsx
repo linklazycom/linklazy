@@ -13,8 +13,8 @@ export default function BrowseError({
     <RouteError
       error={error}
       reset={reset}
-      title="সাইট লিস্ট লোড করা যায়নি"
-      description="সাইটগুলো আনতে সমস্যা হচ্ছে। আবার চেষ্টা করুন।"
+      title="Couldn't load the site listings"
+      description="We ran into a problem fetching sites. Please try again."
     />
   );
 }

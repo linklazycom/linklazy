@@ -13,8 +13,8 @@ export default function AdminError({
     <RouteError
       error={error}
       reset={reset}
-      title="অ্যাডমিন প্যানেল লোড করা যায়নি"
-      description="ডেটা আনতে সমস্যা হচ্ছে। আবার চেষ্টা করুন, সমস্যা থাকলে ডেভেলপারকে জানান।"
+      title="Couldn't load the admin panel"
+      description="We ran into a problem fetching this data. Please try again, or contact the developer if the issue continues."
     />
   );
 }

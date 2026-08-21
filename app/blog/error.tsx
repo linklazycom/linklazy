@@ -13,8 +13,8 @@ export default function BlogError({
     <RouteError
       error={error}
       reset={reset}
-      title="আর্টিকেল লোড করা যায়নি"
-      description="এই পেজটা আনতে সমস্যা হচ্ছে। আবার চেষ্টা করুন।"
+      title="Couldn't load this article"
+      description="We ran into a problem fetching this page. Please try again."
     />
   );
 }

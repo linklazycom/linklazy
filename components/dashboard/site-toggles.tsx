@@ -20,7 +20,7 @@ const TOGGLES: ToggleDef[] = [
     key: "maintenance_mode",
     label: "Maintenance mode",
     description:
-      "যখন চালু থাকবে, পুরো সাইট ভিজিটরদের জন্য একটা মেইনটেন্যান্স পেজ দেখাবে — শুধু অ্যাডমিন লগইন করা থাকলে সাইট স্বাভাবিকভাবে দেখতে পাবেন।",
+      "When on, the whole site shows visitors a maintenance page — only logged-in admins can browse the site normally.",
     onValue: "on",
     offValue: "off",
     tone: "caution",
@@ -29,7 +29,7 @@ const TOGGLES: ToggleDef[] = [
     key: "signup_open",
     label: "New signups",
     description:
-      "বন্ধ করলে /register পেজে নতুন অ্যাকাউন্ট খোলা যাবে না — বিদ্যমান ইউজাররা লগইন করতে পারবেন যথারীতি।",
+      "Turn off to close new account creation on the /register page — existing users can still log in as normal.",
     onValue: "on",
     offValue: "off",
     tone: "safe",
@@ -90,7 +90,8 @@ export function SiteToggles() {
     <div className="mb-10 rounded-chip border border-line bg-white p-5">
       <h2 className="mb-1 font-display text-lg font-medium">Site controls</h2>
       <p className="mb-4 text-sm text-muted">
-        তাৎক্ষণিক এফেক্ট — টগল করলেই সাইটে সাথে সাথে প্রয়োগ হবে, কোনো ডিপ্লয় লাগবে না।
+        Takes effect instantly — flipping a toggle applies to the live site right away, no deploy
+        needed.
       </p>
 
       <div className="divide-y divide-line">
@@ -103,12 +104,12 @@ export function SiteToggles() {
                 <p className="mt-0.5 text-xs text-muted">{toggle.description}</p>
                 {isOn && toggle.tone === "caution" && (
                   <p className="mt-1.5 text-xs font-medium text-amber">
-                    ⚠ এখন চালু আছে — ভিজিটররা সাইট দেখতে পারছেন না
+                    ⚠ Currently on — visitors can&apos;t view the site
                   </p>
                 )}
                 {!isOn && toggle.key === "signup_open" && (
                   <p className="mt-1.5 text-xs font-medium text-amber">
-                    ⚠ এখন বন্ধ আছে — নতুন কেউ সাইনআপ করতে পারছেন না
+                    ⚠ Currently off — no one can sign up right now
                   </p>
                 )}
               </div>

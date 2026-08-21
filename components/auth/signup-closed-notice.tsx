@@ -9,18 +9,18 @@ export function SignupClosedNotice() {
       </div>
       <div>
         <h1 className="font-display text-2xl font-medium text-ink">
-          নতুন সাইনআপ আপাতত বন্ধ আছে
+          New signups are temporarily closed
         </h1>
         <p className="mt-2 text-sm text-muted">
-          এই মুহূর্তে নতুন অ্যাকাউন্ট খোলা যাচ্ছে না। আগে থেকে অ্যাকাউন্ট থাকলে লগইন করতে
-          পারবেন।
+          We&apos;re not accepting new accounts right now. If you already have an account, you can
+          still log in.
         </p>
       </div>
       <Link
         href="/login"
         className="inline-flex h-10 items-center justify-center rounded-chip bg-brand-gradient px-5 text-sm font-medium text-white shadow-sm hover:opacity-90"
       >
-        লগইন করুন
+        Log in
       </Link>
     </div>
   );

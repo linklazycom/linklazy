@@ -15,11 +15,11 @@ export function MaintenancePage() {
       </div>
       <div>
         <h1 className="font-display text-2xl font-medium text-ink">
-          আমরা কিছু উন্নতি করছি
+          We&apos;re making some improvements
         </h1>
         <p className="mx-auto mt-2 max-w-md text-sm text-muted">
-          LinkLazy এই মুহূর্তে সাময়িক মেইনটেন্যান্সে আছে। দ্রুতই ফিরে আসছি — একটু পর আবার
-          চেষ্টা করুন।
+          LinkLazy is undergoing brief scheduled maintenance right now. We&apos;ll be back
+          shortly — please check again in a few minutes.
         </p>
       </div>
     </div>
