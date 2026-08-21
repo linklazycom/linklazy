@@ -16,13 +16,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  // Session-based client — RLS policies on support_tickets /
-  // support_ticket_messages restrict writes here to admins only, so a
-  // non-admin session will simply fail this insert with a permissions error.
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+
+  // Explicit application-layer admin check — this route sends email and
+  // inserts messages under the "LinkLazy Support" identity, so it must not
+  // rely solely on RLS being configured correctly.
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  if (profile?.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { data: ticket } = await supabase
     .from("support_tickets")
@@ -48,10 +51,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   if (statusError) return NextResponse.json({ error: statusError.message }, { status: 500 });
 
+  const escapeHtml = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
   await sendEmail({
     to: ticket.email,
     subject: `Re: ${ticket.subject}`,
-    html: `<p>${parsed.data.message}</p><p style="color:#6B7280;font-size:12px;margin-top:16px;">Reply to this email, or continue the thread on our support page.</p>`,
+    html: `<p>${escapeHtml(parsed.data.message).replace(/\n/g, "<br/>")}</p><p style="color:#6B7280;font-size:12px;margin-top:16px;">Reply to this email, or continue the thread on our support page.</p>`,
   });
 
   return NextResponse.json({ ok: true });

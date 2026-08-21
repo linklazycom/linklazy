@@ -55,28 +55,46 @@ async function handleWalletTopupCallback(
   paypalOrderId: string | null,
   siteUrl: string
 ) {
-  const url = new URL(request.url);
-  const userId = url.searchParams.get("user_id");
-  const amount = Number(url.searchParams.get("amount")); // BDT amount credited to the wallet
-
-  if (!paypalOrderId || !userId || !amount) {
+  if (!paypalOrderId) {
     return NextResponse.redirect(`${siteUrl}/dashboard/billing?wallet=error`);
   }
 
-  // Idempotency guard: if this payment was already credited, don't double-credit the wallet.
-  const { data: existingPayment } = await supabase
+  // SECURITY: never trust user_id/amount from the query string — they are
+  // fully client-controlled. Look up the trustworthy amount/payer we wrote
+  // ourselves at initiation time instead.
+  const { data: paymentRow } = await supabase
     .from("payments")
-    .select("status")
+    .select("status, payer_id, credit_amount_bdt")
     .eq("provider_txn_id", paypalOrderId)
+    .eq("provider", "paypal")
     .single();
 
-  if (existingPayment?.status === "released") {
+  if (!paymentRow || !paymentRow.payer_id || !paymentRow.credit_amount_bdt) {
+    return NextResponse.redirect(`${siteUrl}/dashboard/billing?wallet=error`);
+  }
+
+  const userId = paymentRow.payer_id;
+  const amount = paymentRow.credit_amount_bdt;
+
+  // Idempotency guard: if this payment was already credited, don't double-credit the wallet.
+  if (paymentRow.status === "released") {
     return NextResponse.redirect(`${siteUrl}/dashboard/billing?wallet=success`);
   }
 
   try {
     const captured = await capturePaypalOrder(paypalOrderId);
     if (captured.status !== "COMPLETED") throw new Error("Payment was not completed");
+
+    // Re-check status right before crediting to close the race window if
+    // two callbacks arrive concurrently.
+    const { data: recheck } = await supabase
+      .from("payments")
+      .select("status")
+      .eq("provider_txn_id", paypalOrderId)
+      .single();
+    if (recheck?.status === "released") {
+      return NextResponse.redirect(`${siteUrl}/dashboard/billing?wallet=success`);
+    }
 
     await supabase.from("payments").update({ status: "released" }).eq("provider_txn_id", paypalOrderId);
 

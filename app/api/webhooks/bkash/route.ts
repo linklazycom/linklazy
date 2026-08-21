@@ -131,13 +131,27 @@ async function handleWalletTopupCallback(
   status: string | null,
   siteUrl: string
 ) {
-  const url = new URL(request.url);
-  const userId = url.searchParams.get("user_id");
-  const amount = Number(url.searchParams.get("amount"));
-
-  if (!paymentID || !userId || !amount) {
+  if (!paymentID) {
     return NextResponse.redirect(`${siteUrl}/dashboard/billing?wallet=error`);
   }
+
+  // SECURITY: never trust user_id/amount from the query string — they are
+  // fully client-controlled (this is a plain redirect URL, not a signed
+  // webhook). The only trustworthy source is the `payments` row we wrote
+  // ourselves at initiation time, looked up by provider_txn_id.
+  const { data: paymentRow } = await supabase
+    .from("payments")
+    .select("status, payer_id, credit_amount_bdt")
+    .eq("provider_txn_id", paymentID)
+    .eq("provider", "bkash")
+    .single();
+
+  if (!paymentRow || !paymentRow.payer_id || !paymentRow.credit_amount_bdt) {
+    return NextResponse.redirect(`${siteUrl}/dashboard/billing?wallet=error`);
+  }
+
+  const userId = paymentRow.payer_id;
+  const amount = paymentRow.credit_amount_bdt;
 
   if (status !== "success") {
     await supabase.from("payments").update({ status: "failed" }).eq("provider_txn_id", paymentID);
@@ -146,18 +160,23 @@ async function handleWalletTopupCallback(
 
   // Idempotency guard: if this payment was already credited (e.g. bKash retries
   // the callback), don't double-credit the wallet.
-  const { data: existingPayment } = await supabase
-    .from("payments")
-    .select("status")
-    .eq("provider_txn_id", paymentID)
-    .single();
-
-  if (existingPayment?.status === "released") {
+  if (paymentRow.status === "released") {
     return NextResponse.redirect(`${siteUrl}/dashboard/billing?wallet=success`);
   }
 
   try {
     const result = await executeBkashPayment(paymentID);
+
+    // Re-check status right before crediting to close the race window if
+    // two callbacks arrive concurrently.
+    const { data: recheck } = await supabase
+      .from("payments")
+      .select("status")
+      .eq("provider_txn_id", paymentID)
+      .single();
+    if (recheck?.status === "released") {
+      return NextResponse.redirect(`${siteUrl}/dashboard/billing?wallet=success`);
+    }
 
     await supabase
       .from("payments")

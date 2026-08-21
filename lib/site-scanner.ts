@@ -55,7 +55,32 @@ export async function scanBuyerSite(url: string): Promise<ScanResult> {
   return { detectedNiche: bestNiche, confidence, matchedKeywords: bestMatches, pageText: text };
 }
 
+// SECURITY: this URL is buyer-supplied and this function runs server-side,
+// so without a check it's an SSRF vector — a buyer could point the scanner
+// at localhost, a private/internal IP, or the cloud metadata endpoint
+// (169.254.169.254) instead of a real public site.
+function assertPublicHttpUrl(rawUrl: string) {
+  const parsed = new URL(rawUrl);
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error("Only http(s) URLs are allowed.");
+  }
+  const host = parsed.hostname.toLowerCase();
+  const blocked =
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host === "::1" ||
+    host === "169.254.169.254" || // cloud metadata
+    host.endsWith(".local") ||
+    /^10\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+  if (blocked) {
+    throw new Error("This URL points to a private or internal address and can't be scanned.");
+  }
+}
+
 async function fetchHtml(url: string): Promise<string> {
+  assertPublicHttpUrl(url);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8000);
   try {

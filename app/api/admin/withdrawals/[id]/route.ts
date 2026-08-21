@@ -15,13 +15,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  // Session-based client — RLS ("admins can update withdrawal requests")
-  // means this simply fails for a non-admin session.
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+
+  // Explicit application-layer admin check. This route approves/pays out
+  // real money, so it must not depend solely on RLS being configured
+  // correctly — a missing or mis-scoped policy would otherwise let any
+  // authenticated user approve their own withdrawal.
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  if (profile?.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { error } = await supabase
     .from("withdrawal_requests")

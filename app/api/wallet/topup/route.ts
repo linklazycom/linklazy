@@ -55,6 +55,7 @@ export async function POST(request: Request) {
         provider_txn_id: payment.id,
         amount: usdAmount,
         currency: "USD",
+        credit_amount_bdt: amount,
         status: "initiated",
       });
 
@@ -81,6 +82,7 @@ export async function POST(request: Request) {
       provider_txn_id: payment.paymentID,
       amount,
       currency: "BDT",
+      credit_amount_bdt: amount,
       status: "initiated",
     });
 
