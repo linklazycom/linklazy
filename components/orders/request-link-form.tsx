@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { PaymentProtectionBadge } from "@/components/trust/payment-protection-badge";
 import { Field } from "@/components/ui/field";
+import { siteCtaLabel } from "@/lib/site-cta";
 
 export function RequestLinkForm({
   siteId,
@@ -60,7 +61,7 @@ export function RequestLinkForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 rounded-chip border border-line bg-white p-5">
-      <h2 className="text-sm font-medium">Request this link</h2>
+      <h2 className="text-sm font-medium">{siteCtaLabel(acceptsPaid, acceptsExchange)}</h2>
 
       {acceptsExchange && acceptsPaid && (
         <div className="grid grid-cols-2 gap-2">
@@ -71,7 +72,7 @@ export function RequestLinkForm({
               orderType === "paid" ? "border-ink bg-ink text-paper" : "border-line"
             }`}
           >
-            Pay for placement
+            Order (pay for placement)
           </button>
           <button
             type="button"
@@ -80,7 +81,7 @@ export function RequestLinkForm({
               orderType === "exchange" ? "border-ink bg-ink text-paper" : "border-line"
             }`}
           >
-            Propose exchange
+            Request exchange (no payment)
           </button>
         </div>
       )}
@@ -112,7 +113,7 @@ export function RequestLinkForm({
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <Button type="submit" size="lg" disabled={submitting}>
-        {submitting ? "Sending…" : orderType === "paid" ? "Continue to payment" : "Send exchange request"}
+        {submitting ? "Sending…" : orderType === "paid" ? "Order now — continue to payment" : "Send exchange request"}
       </Button>
       {orderType === "paid" && (
         <div>

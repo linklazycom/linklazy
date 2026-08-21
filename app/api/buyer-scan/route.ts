@@ -25,6 +25,36 @@ const scanSchema = z.object({
 
 const RESULT_LIMIT = 30;
 
+// A buyer keeps at most this many UNSAVED scans in their history — older
+// unsaved ones are pruned automatically each time a new scan is run.
+// Saved scans (buyer clicked "Save" on the history page) are exempt and
+// have their own separate cap of 10, enforced in the save endpoint.
+const MAX_UNSAVED_SCANS = 10;
+
+/**
+ * Deletes old unsaved scans beyond MAX_UNSAVED_SCANS for this buyer, so
+ * history doesn't grow unbounded. Saved scans (is_saved = true) are never
+ * touched here. Best-effort — a failure here should never break the scan
+ * response itself.
+ */
+async function pruneOldScans(supabase: Awaited<ReturnType<typeof createClient>>, buyerId: string) {
+  try {
+    const { data: unsaved } = await supabase
+      .from("buyer_site_scans")
+      .select("id")
+      .eq("buyer_id", buyerId)
+      .eq("is_saved", false)
+      .order("created_at", { ascending: false });
+
+    const staleIds = (unsaved ?? []).slice(MAX_UNSAVED_SCANS).map((r) => r.id);
+    if (staleIds.length > 0) {
+      await supabase.from("buyer_site_scans").delete().in("id", staleIds);
+    }
+  } catch {
+    // Non-fatal — worst case history grows a bit until the next scan.
+  }
+}
+
 /**
  * POST /api/buyer-scan
  *
@@ -97,6 +127,11 @@ export async function POST(request: Request) {
   if (insertError || !scanRow) {
     return NextResponse.json({ error: insertError?.message ?? "Could not start scan" }, { status: 500 });
   }
+
+  // Keep history bounded — remove old unsaved scans beyond the cap now
+  // that this new one exists. Runs in the background of the request;
+  // doesn't block or affect the scan result either way.
+  await pruneOldScans(supabase, user.id);
 
   // 2. Run the scan. If the buyer already supplied a manual_niche
   // (either a retry after a failed auto-detect, or an explicit

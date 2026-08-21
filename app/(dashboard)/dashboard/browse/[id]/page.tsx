@@ -175,6 +175,17 @@ export default function SiteDetailPage({
           <MetricChip label="Price" value={site.price_amount} tone="price" />
         )}
         <MetricChip label="Link type" value={site.link_type} />
+        <MetricChip
+          label="Order type"
+          value={
+            site.accepts_paid && site.accepts_exchange
+              ? "Order or Exchange"
+              : site.accepts_paid
+                ? "Order (paid)"
+                : "Exchange only"
+          }
+          tone="verified"
+        />
       </div>
 
       {!unlocked ? (

@@ -12,6 +12,7 @@ import { ReviewsList } from "@/components/reviews/reviews-list";
 import { AdSlotClient } from "@/components/ads/ad-slot-client";
 import { maskDomain } from "@/lib/mask-domain";
 import { Money } from "@/components/currency/money";
+import { siteCtaLabel } from "@/lib/site-cta";
 
 interface SiteDetail {
   id: string;
@@ -202,6 +203,17 @@ export default function PublicSiteDetailPage({
           <MetricChip label="Price" value={site.price_amount} tone="price" />
         )}
         <MetricChip label="Link type" value={site.link_type} />
+        <MetricChip
+          label="Order type"
+          value={
+            site.accepts_paid && site.accepts_exchange
+              ? "Order or Exchange"
+              : site.accepts_paid
+                ? "Order (paid)"
+                : "Exchange only"
+          }
+          tone="verified"
+        />
       </div>
 
       {!unlocked ? (
@@ -289,7 +301,7 @@ export default function PublicSiteDetailPage({
             </div>
           )}
           <Link href={`/dashboard/browse/${site.id}`}>
-            <Button size="lg">Request this link</Button>
+            <Button size="lg">{siteCtaLabel(site.accepts_paid, site.accepts_exchange)}</Button>
           </Link>
         </>
       )}
