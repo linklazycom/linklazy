@@ -268,8 +268,9 @@ export default function AdminSiteDetailPage({
     setSaveBusy(false);
 
     if (!res.ok) {
+      const fieldErrors = (body.error ?? {}) as Record<string, string[]> | string;
       const firstError =
-        typeof body.error === "string" ? body.error : Object.values(body.error ?? {})[0]?.[0];
+        typeof fieldErrors === "string" ? fieldErrors : Object.values(fieldErrors)[0]?.[0];
       setSaveError(firstError ?? "Could not save these changes.");
       return;
     }
