@@ -12,6 +12,7 @@ import { TrustBadges } from "@/components/reviews/trust-badges";
 import { ReviewsList } from "@/components/reviews/reviews-list";
 import { WatchlistButton } from "@/components/watchlist/watchlist-button";
 import { MessageSellerButton } from "@/components/inquiries/message-seller-button";
+import { FormattedText } from "@/components/ui/formatted-text";
 
 interface SiteDetail {
   id: string;
@@ -273,8 +274,8 @@ export default function SiteDetailPage({
           </div>
           {site.guidelines && (
             <div className="mb-6 rounded-chip border border-line bg-white p-4">
-              <p className="mb-1 text-sm font-medium">Seller guidelines</p>
-              <p className="text-sm text-muted">{site.guidelines}</p>
+              <p className="mb-2 text-sm font-medium">Seller guidelines</p>
+              <FormattedText text={site.guidelines} className="text-sm text-muted" />
             </div>
           )}
         </>

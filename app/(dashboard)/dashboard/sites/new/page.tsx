@@ -222,9 +222,10 @@ export default function NewSitePage() {
             <textarea
               id="guidelines"
               name="guidelines"
-              rows={3}
+              rows={6}
+              maxLength={2000}
               className="w-full rounded-chip border border-line px-3 py-2 text-sm outline-none focus:border-signal"
-              placeholder="E.g. no gambling/adult content, anchor text must be natural…"
+              placeholder={"E.g. no gambling/adult content, anchor text must be natural…\n\nYou can format this with:\n## Heading\n**bold text**\n- bullet point\n\nLeave a blank line between paragraphs."}
             />
           </div>
         </div>

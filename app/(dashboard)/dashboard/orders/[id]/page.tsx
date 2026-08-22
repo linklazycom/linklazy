@@ -7,6 +7,7 @@ import { Field } from "@/components/ui/field";
 import { MetricChip } from "@/components/ui/metric-chip";
 import { ChatWindow } from "@/components/orders/chat-window";
 import { ReviewForm } from "@/components/reviews/review-form";
+import { ReviewsList } from "@/components/reviews/reviews-list";
 import { useCurrency } from "@/components/currency/currency-provider";
 
 interface OrderDetail {
@@ -24,6 +25,13 @@ interface OrderDetail {
   deadline_at: string | null;
 }
 
+interface CounterpartyReview {
+  id: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+}
+
 export default function OrderDetailPage({
   params,
 }: {
@@ -37,6 +45,7 @@ export default function OrderDetailPage({
   const [showDisputeForm, setShowDisputeForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasReviewed, setHasReviewed] = useState(false);
+  const [counterpartyReviews, setCounterpartyReviews] = useState<CounterpartyReview[]>([]);
   const [paymentProvider, setPaymentProvider] = useState<"bkash" | "paypal">("bkash");
   const { rate } = useCurrency();
 
@@ -47,7 +56,19 @@ export default function OrderDetailPage({
     setUserId(user!.id);
 
     const { data } = await supabase.from("orders").select("*").eq("id", id).single();
-    setOrder(data as OrderDetail);
+    const orderData = data as OrderDetail;
+    setOrder(orderData);
+
+    if (orderData) {
+      const counterpartyId = orderData.buyer_id === user!.id ? orderData.seller_id : orderData.buyer_id;
+      const { data: reviewData } = await supabase
+        .from("reviews")
+        .select("id, rating, comment, created_at")
+        .eq("reviewee_id", counterpartyId)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      setCounterpartyReviews((reviewData as CounterpartyReview[]) ?? []);
+    }
 
     const { data: existingReview } = await supabase
       .from("reviews")
@@ -216,6 +237,13 @@ export default function OrderDetailPage({
           )}
         </>
       )}
+
+      <div className="mt-8">
+        <h2 className="mb-3 font-display text-lg font-medium">
+          {isSeller ? "Reviews of this buyer" : "Reviews of this seller"}
+        </h2>
+        <ReviewsList reviews={counterpartyReviews} />
+      </div>
 
       {order.status === "disputed" && (
         <div className="mb-6 rounded-chip border border-amber/40 bg-amber-soft p-4 text-sm">
