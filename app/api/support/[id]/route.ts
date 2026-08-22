@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email";
 import { getSiteSettings } from "@/lib/site-settings";
+import { checkRateLimit, getRequestIp } from "@/lib/rate-limit";
 
 async function getTicketByToken(id: string, token: string) {
   const supabase = createServiceClient();
@@ -42,6 +43,12 @@ const replySchema = z.object({
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const ip = getRequestIp(request);
+  const { allowed } = await checkRateLimit("support_reply", ip, { max: 10, windowMinutes: 60 });
+  if (!allowed) {
+    return NextResponse.json({ error: "Too many replies sent. Please try again later." }, { status: 429 });
+  }
+
   const body = await request.json();
   const parsed = replySchema.safeParse(body);
   if (!parsed.success) {
@@ -71,10 +78,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const settings = await getSiteSettings();
   const adminEmail = settings.contact_email as string;
   if (adminEmail) {
+    const escapeHtml = (s: string) =>
+      s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     await sendEmail({
       to: adminEmail,
       subject: `New reply on ticket: ${ticket.subject}`,
-      html: `<p><strong>${ticket.name}</strong> replied:</p><p>${parsed.data.message}</p><p><a href="${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/admin/support/${id}">View in admin</a></p>`,
+      html: `<p><strong>${escapeHtml(ticket.name)}</strong> replied:</p><p>${escapeHtml(parsed.data.message).replace(/\n/g, "<br/>")}</p><p><a href="${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/admin/support/${id}">View in admin</a></p>`,
     });
   }
 

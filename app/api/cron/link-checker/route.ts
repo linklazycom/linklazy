@@ -66,12 +66,14 @@ export async function GET(request: Request) {
         const { data: authUser } = await supabase.auth.admin.getUserById(order.buyer_id);
         const email = authUser?.user?.email;
         if (email) {
+          const escapeHtml = (s: string) =>
+            s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
           await sendEmail({
             to: email,
             subject: "A backlink you ordered may have been removed",
             html: `
-              <p>We checked <a href="${order.proof_url}">${order.proof_url}</a> and couldn't
-              find your link to ${order.target_url} anymore.</p>
+              <p>We checked <a href="${encodeURI(order.proof_url)}">${escapeHtml(order.proof_url)}</a> and couldn't
+              find your link to ${escapeHtml(order.target_url)} anymore.</p>
               <p>This could be a temporary issue on the seller's site, or the link may have
               been removed. You can view the order and open a dispute if needed:</p>
               <p><a href="${siteUrl}/dashboard/orders/${order.id}">View order</a></p>

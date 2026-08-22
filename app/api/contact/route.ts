@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
+import { checkRateLimit, getRequestIp } from "@/lib/rate-limit";
 
 const contactSchema = z.object({
   name: z.string().trim().min(1).max(200),
@@ -9,6 +10,12 @@ const contactSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const ip = getRequestIp(request);
+  const { allowed } = await checkRateLimit("contact", ip, { max: 5, windowMinutes: 60 });
+  if (!allowed) {
+    return NextResponse.json({ error: "Too many messages sent. Please try again later." }, { status: 429 });
+  }
+
   const body = await request.json();
   const parsed = contactSchema.safeParse(body);
   if (!parsed.success) {

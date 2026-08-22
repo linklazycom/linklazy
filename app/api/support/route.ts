@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email";
 import { getSiteSettings } from "@/lib/site-settings";
+import { checkRateLimit, getRequestIp } from "@/lib/rate-limit";
 
 const ticketSchema = z.object({
   name: z.string().trim().min(1).max(200),
@@ -13,6 +14,12 @@ const ticketSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const ip = getRequestIp(request);
+  const { allowed } = await checkRateLimit("support_ticket", ip, { max: 5, windowMinutes: 60 });
+  if (!allowed) {
+    return NextResponse.json({ error: "Too many tickets submitted. Please try again later." }, { status: 429 });
+  }
+
   const body = await request.json();
   const parsed = ticketSchema.safeParse(body);
   if (!parsed.success) {
@@ -56,10 +63,12 @@ export async function POST(request: Request) {
   const settings = await getSiteSettings();
   const adminEmail = settings.contact_email as string;
   if (adminEmail) {
+    const escapeHtml = (s: string) =>
+      s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     await sendEmail({
       to: adminEmail,
       subject: `New support ticket: ${subject}`,
-      html: `<p><strong>${name}</strong> (${email}) opened a new ticket:</p><p>${message}</p><p><a href="${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/admin/support/${ticket.id}">View in admin</a></p>`,
+      html: `<p><strong>${escapeHtml(name)}</strong> (${escapeHtml(email)}) opened a new ticket:</p><p>${escapeHtml(message).replace(/\n/g, "<br/>")}</p><p><a href="${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/admin/support/${ticket.id}">View in admin</a></p>`,
     });
   }
 

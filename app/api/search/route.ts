@@ -9,6 +9,24 @@ import { createClient } from "@/lib/supabase/server";
  * a new Postgres extension dependency. Revisit with pg_trgm + a GIN
  * index if the catalog grows into the tens of thousands of listings.
  */
+
+// PostgREST's .or() takes a raw filter string where "," separates
+// conditions and "()" group them — building that string by interpolating
+// user input directly (as this route used to) lets a search term with a
+// comma/paren/period in it corrupt the intended filter structure or graft
+// on extra OR'd conditions. Escape everything that's syntactically
+// meaningful to PostgREST's filter grammar, plus ILIKE's own wildcards so
+// a search for a literal "%" or "_" behaves as the user expects.
+function escapeOrFilterValue(value: string): string {
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/%/g, "\\%")
+    .replace(/_/g, "\\_")
+    .replace(/,/g, "")
+    .replace(/[()]/g, "")
+    .replace(/\./g, "");
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q")?.trim() ?? "";
@@ -28,7 +46,9 @@ export async function GET(request: Request) {
     .limit(8);
 
   for (const word of words) {
-    query = query.or(`domain.ilike.%${word}%,niche.ilike.%${word}%`);
+    const safe = escapeOrFilterValue(word);
+    if (!safe) continue;
+    query = query.or(`domain.ilike.%${safe}%,niche.ilike.%${safe}%`);
   }
 
   const { data, error } = await query;

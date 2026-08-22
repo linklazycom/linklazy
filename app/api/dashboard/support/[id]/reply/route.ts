@@ -49,10 +49,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const settings = await getSiteSettings();
   const adminEmail = settings.contact_email as string;
   if (adminEmail) {
+    const escapeHtml = (s: string) =>
+      s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     await sendEmail({
       to: adminEmail,
       subject: `New reply on ticket: ${ticket.subject}`,
-      html: `<p><strong>${ticket.name}</strong> replied:</p><p>${parsed.data.message}</p><p><a href="${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/admin/support/${id}">View in admin</a></p>`,
+      html: `<p><strong>${escapeHtml(ticket.name)}</strong> replied:</p><p>${escapeHtml(parsed.data.message).replace(/\n/g, "<br/>")}</p><p><a href="${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/admin/support/${id}">View in admin</a></p>`,
     });
   }
 
