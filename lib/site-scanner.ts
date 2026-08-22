@@ -80,22 +80,43 @@ function assertPublicHttpUrl(rawUrl: string) {
 }
 
 async function fetchHtml(url: string): Promise<string> {
-  assertPublicHttpUrl(url);
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
-  try {
-    const res = await fetch(url, {
-      signal: controller.signal,
-      redirect: "follow",
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; LinkLazyScanner/1.0; +https://linklazy.com)",
-      },
-    });
+  // SECURITY: we validate the initial URL, but a malicious site could
+  // itself be safe and then 302-redirect to a private/internal address
+  // (e.g. 169.254.169.254) to bypass the check above. `redirect: "follow"`
+  // would follow that transparently, so instead we follow redirects
+  // manually and re-validate the host at every hop.
+  let currentUrl = url;
+  const MAX_REDIRECTS = 5;
+
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    assertPublicHttpUrl(currentUrl);
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    let res: Response;
+    try {
+      res = await fetch(currentUrl, {
+        signal: controller.signal,
+        redirect: "manual",
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; LinkLazyScanner/1.0; +https://linklazy.com)",
+        },
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    if (res.status >= 300 && res.status < 400 && res.headers.get("location")) {
+      if (hop === MAX_REDIRECTS) throw new Error("Too many redirects.");
+      currentUrl = new URL(res.headers.get("location")!, currentUrl).toString();
+      continue;
+    }
+
     if (!res.ok) throw new Error(`Site responded with status ${res.status}`);
     return await res.text();
-  } finally {
-    clearTimeout(timeout);
   }
+
+  throw new Error("Too many redirects.");
 }
 
 /** Pulls <title>, meta description, H1-H3 text, and a slice of body

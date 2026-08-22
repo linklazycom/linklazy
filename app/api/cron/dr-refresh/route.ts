@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { fetchDomainRating } from "@/lib/ahrefs";
 
+// This route loops sequentially over many items with external API/email
+// calls per item, which can exceed Vercel's default serverless timeout
+// and get killed mid-batch (silent partial completion). Requires a plan
+// that supports extended function duration (Vercel Pro or higher).
+export const maxDuration = 300;
+
 /**
  * Weekly job: refresh the Ahrefs-verified Domain Rating for approved sites,
  * oldest-checked-first, so every site gets refreshed roughly once a week

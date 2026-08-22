@@ -6,6 +6,12 @@ import { siteSubmissionSchema } from "@/lib/validators/site";
 import { csvToObjects } from "@/lib/csv";
 import { fetchDomainRating } from "@/lib/ahrefs";
 
+// This route loops sequentially over many items with external API/email
+// calls per item, which can exceed Vercel's default serverless timeout
+// and get killed mid-batch (silent partial completion). Requires a plan
+// that supports extended function duration (Vercel Pro or higher).
+export const maxDuration = 300;
+
 // Hard cap so a single import request can't run past the serverless
 // function timeout or hammer the DB/Ahrefs. Bigger lists should be split
 // into a few CSV files — the admin has said 100/batch is the practical

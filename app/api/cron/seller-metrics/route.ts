@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 
+// This route loops sequentially over many items with external API/email
+// calls per item, which can exceed Vercel's default serverless timeout
+// and get killed mid-batch (silent partial completion). Requires a plan
+// that supports extended function duration (Vercel Pro or higher).
+export const maxDuration = 300;
+
 const FINISHED_STATUSES = ["accepted", "disputed", "refunded"];
 
 /**

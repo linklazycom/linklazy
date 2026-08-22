@@ -72,8 +72,6 @@ async function handleSubscriptionCallback(
 ) {
   const url = new URL(request.url);
   const subscriptionId = url.searchParams.get("subscription_id");
-  const plan = url.searchParams.get("plan");
-  const subscriptionKind = url.searchParams.get("subscription_kind"); // buyer | seller
 
   if (!paymentID || !subscriptionId) {
     return NextResponse.redirect(`${siteUrl}/dashboard/billing?payment=error`);
@@ -93,14 +91,21 @@ async function handleSubscriptionCallback(
       .update({ status: "released", raw_response: result as unknown as Record<string, unknown> })
       .eq("provider_txn_id", paymentID);
 
+    // SECURITY: derive plan/kind from the subscription row we wrote at
+    // creation time — never trust the `plan`/`subscription_kind` query
+    // params, which are client-controlled on this redirect URL and could
+    // otherwise be used to get upgraded to a pricier plan for a cheap
+    // payment (e.g. pay for "starter", replay the callback with
+    // plan=pro).
     const { data: subscription } = await supabase
       .from("subscriptions")
-      .select("user_id")
+      .select("user_id, type")
       .eq("id", subscriptionId)
       .single();
 
     if (subscription) {
-      if (subscriptionKind === "buyer" && plan) {
+      if (subscription.type.startsWith("buyer_")) {
+        const plan = subscription.type.slice("buyer_".length);
         const periodEnd = new Date();
         periodEnd.setMonth(periodEnd.getMonth() + 1);
         await supabase
@@ -112,7 +117,7 @@ async function handleSubscriptionCallback(
             buyer_plan_renews_at: periodEnd.toISOString(),
           })
           .eq("id", subscription.user_id);
-      } else if (subscriptionKind === "seller") {
+      } else if (subscription.type === "seller_monthly") {
         await supabase.from("profiles").update({ seller_plan: "monthly" }).eq("id", subscription.user_id);
       }
     }
