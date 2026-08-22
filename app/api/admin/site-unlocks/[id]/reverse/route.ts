@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/require-admin";
 import { createServiceClient } from "@/lib/supabase/service";
 
 /**
@@ -7,25 +7,15 @@ import { createServiceClient } from "@/lib/supabase/service";
  * (i.e. within the hold window). Refunds the buyer's spend + platform fee
  * back to their wallet, cancels the seller's pending earning, and revokes
  * the buyer's access to the listing.
- *
- * RLS on site_unlocks/profiles restricts writes to admins, same pattern as
- * the withdrawals admin route — a non-admin session will just fail here.
  */
 export async function POST(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: unlockId } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  if (profile?.role !== "admin") {
-    return NextResponse.json({ error: "Admin only." }, { status: 403 });
-  }
+  const admin = await requireAdmin();
+  if ("error" in admin) return NextResponse.json({ error: admin.error.message }, { status: admin.error.status });
+  const { supabase } = admin;
 
   const { data: unlock } = await supabase
     .from("site_unlocks")

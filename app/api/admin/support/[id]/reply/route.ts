@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/require-admin";
 import { sendEmail } from "@/lib/email";
 
 const replySchema = z.object({
@@ -16,16 +16,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-
-  // Explicit application-layer admin check — this route sends email and
-  // inserts messages under the "LinkLazy Support" identity, so it must not
-  // rely solely on RLS being configured correctly.
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  if (profile?.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const admin = await requireAdmin();
+  if ("error" in admin) return NextResponse.json({ error: admin.error.message }, { status: admin.error.status });
+  const { supabase } = admin;
 
   const { data: ticket } = await supabase
     .from("support_tickets")
