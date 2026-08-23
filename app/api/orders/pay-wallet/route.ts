@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -66,6 +67,13 @@ export async function POST(request: Request) {
       { status: 402 }
     );
   }
+
+  // Without this, Next's client-side Router Cache can keep serving the
+  // pre-order snapshot of /dashboard/orders (and the admin mirror of it)
+  // for up to a few minutes after a soft navigation, so a just-placed
+  // order can look like it "didn't go through" even though it did.
+  revalidatePath("/dashboard/orders");
+  revalidatePath("/admin/orders");
 
   return NextResponse.json({
     id: result.created_order_ids[0],

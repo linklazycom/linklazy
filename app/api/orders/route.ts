@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createOrderSchema } from "@/lib/validators/order";
 
@@ -81,6 +82,9 @@ export async function POST(request: Request) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  revalidatePath("/dashboard/orders");
+  revalidatePath("/admin/orders");
 
   return NextResponse.json({ id: order.id });
 }

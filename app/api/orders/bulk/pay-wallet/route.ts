@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -78,6 +79,11 @@ export async function POST(request: Request) {
     id: o.id,
     domain: (o.sites as unknown as { domain: string } | null)?.domain ?? o.site_id,
   }));
+
+  if (created.length > 0) {
+    revalidatePath("/dashboard/orders");
+    revalidatePath("/admin/orders");
+  }
 
   return NextResponse.json({
     created,

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Logo } from "@/components/ui/logo";
 import { AdminSidebarNav, type AdminNavGroup } from "@/components/layout/admin-sidebar-nav";
@@ -72,6 +73,21 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login?next=/admin");
+  }
+
+  // The admin layout previously rendered for anyone logged in — the actual
+  // data underneath was mostly still RLS/API-gated, but the admin shell
+  // itself (nav, page structure) was visible to non-admins, and some
+  // admin pages read data with the session-scoped client rather than
+  // going through requireAdmin(). Gate the whole section explicitly here
+  // so a missing check on any individual page can't expose anything.
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  if (profile?.role !== "admin") {
+    redirect("/dashboard");
+  }
 
   const sidebarContent = (
     <>
