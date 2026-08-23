@@ -12,7 +12,9 @@ export default async function MessagesInboxPage() {
   // All orders the user is a party to, that have at least one message.
   const { data: orders } = await supabase
     .from("orders")
-    .select("id, status, buyer_id, seller_id, sites(domain)")
+    .select(
+      "id, status, buyer_id, seller_id, sites!orders_site_id_fkey(domain)"
+    )
     .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
     .order("updated_at", { ascending: false });
 

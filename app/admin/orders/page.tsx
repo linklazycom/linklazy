@@ -32,7 +32,7 @@ export default async function AdminOrdersPage({
 
   let query = supabase
     .from("orders")
-    .select("id, order_type, status, price_amount, anchor_text, created_at, sites(domain)")
+    .select("id, order_type, status, price_amount, anchor_text, created_at, sites!orders_site_id_fkey(domain)")
     .order("created_at", { ascending: false })
     .limit(100);
 

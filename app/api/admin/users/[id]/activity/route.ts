@@ -45,13 +45,13 @@ export async function GET(
         .limit(50),
       supabase
         .from("orders")
-        .select("id, site_id, status, order_type, price_amount, created_at, sites(domain)")
+        .select("id, site_id, status, order_type, price_amount, created_at, sites!orders_site_id_fkey(domain)")
         .eq("buyer_id", userId)
         .order("created_at", { ascending: false })
         .limit(50),
       supabase
         .from("orders")
-        .select("id, site_id, status, order_type, price_amount, created_at, sites(domain)")
+        .select("id, site_id, status, order_type, price_amount, created_at, sites!orders_site_id_fkey(domain)")
         .eq("seller_id", userId)
         .order("created_at", { ascending: false })
         .limit(50),

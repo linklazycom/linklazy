@@ -72,7 +72,7 @@ export async function POST(request: Request) {
   // same "created / skipped" summary shape as /api/orders/bulk.
   const { data: createdSites } = await supabase
     .from("orders")
-    .select("id, site_id, sites(domain)")
+    .select("id, site_id, sites!orders_site_id_fkey(domain)")
     .in("id", result.created_order_ids);
 
   const created = (createdSites ?? []).map((o) => ({

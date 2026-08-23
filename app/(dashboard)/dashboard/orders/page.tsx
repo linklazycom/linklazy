@@ -29,7 +29,9 @@ export default async function OrdersPage({
 
   const { data: allOrders } = await supabase
     .from("orders")
-    .select("id, site_id, order_type, status, target_url, anchor_text, price_amount, buyer_id, seller_id, created_at, sites(domain)")
+    .select(
+      "id, site_id, order_type, status, target_url, anchor_text, price_amount, buyer_id, seller_id, created_at, sites!orders_site_id_fkey(domain)"
+    )
     .or(`buyer_id.eq.${user!.id},seller_id.eq.${user!.id}`)
     .order("created_at", { ascending: false });
 

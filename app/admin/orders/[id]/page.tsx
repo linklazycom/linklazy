@@ -16,7 +16,7 @@ export default async function AdminOrderDetailPage({
 
   const { data: order } = await supabase
     .from("orders")
-    .select("*, sites(domain), buyer:buyer_id(full_name), seller:seller_id(full_name)")
+    .select("*, sites!orders_site_id_fkey(domain), buyer:buyer_id(full_name), seller:seller_id(full_name)")
     .eq("id", id)
     .single();
 
