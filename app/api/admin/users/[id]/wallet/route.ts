@@ -12,10 +12,12 @@ const schema = z.object({
 
 /**
  * Lets an admin manually adjust a user's spendable wallet balance (used for
- * PPV earnings/refunds/goodwill credit). Mirrors the debit path used by
- * withdrawals: update profiles.wallet_balance and insert a matching
- * wallet_ledger row atomically via the service-role client, so the ledger
- * always reconciles with the balance.
+ * PPV earnings/refunds/goodwill credit). Goes through adjust_wallet_balance,
+ * a single atomic Postgres UPDATE that also writes the wallet_ledger row in
+ * the same transaction — so this can't race with, say, the PPV-release cron
+ * or a withdrawal firing against the same profile at the same moment (the
+ * old version read the balance, computed a new one, then wrote it back in
+ * separate round trips, which a concurrent change could silently clobber).
  */
 export async function POST(
   request: Request,
@@ -35,42 +37,26 @@ export async function POST(
 
   const serviceClient = createServiceClient();
 
-  const { data: profile, error: profileError } = await serviceClient
-    .from("profiles")
-    .select("wallet_balance")
-    .eq("id", targetId)
+  const { data, error: adjustError } = await serviceClient
+    .rpc("adjust_wallet_balance", {
+      p_user_id: targetId,
+      p_delta: amount,
+      p_type: "admin_adjustment",
+      p_notes: notes || (amount > 0 ? "Manual credit by admin" : "Manual debit by admin"),
+    })
     .single();
 
-  if (profileError || !profile) {
+  if (adjustError) {
+    if (amount < 0) {
+      return NextResponse.json(
+        { error: `Can't debit ৳${Math.abs(amount)} — user's wallet balance is lower than that (or the user wasn't found).` },
+        { status: 400 }
+      );
+    }
     return NextResponse.json({ error: "User not found." }, { status: 404 });
   }
 
-  const currentBalance = profile.wallet_balance ?? 0;
-  const newBalance = currentBalance + amount;
-
-  if (newBalance < 0) {
-    return NextResponse.json(
-      { error: `Can't debit ৳${Math.abs(amount)} — wallet only has ৳${currentBalance}.` },
-      { status: 400 }
-    );
-  }
-
-  const { error: updateError } = await serviceClient
-    .from("profiles")
-    .update({ wallet_balance: newBalance })
-    .eq("id", targetId);
-
-  if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
-
-  const { error: ledgerError } = await serviceClient.from("wallet_ledger").insert({
-    user_id: targetId,
-    type: "admin_adjustment",
-    amount,
-    balance_after: newBalance,
-    notes: notes || (amount > 0 ? "Manual credit by admin" : "Manual debit by admin"),
-  });
-
-  if (ledgerError) return NextResponse.json({ error: ledgerError.message }, { status: 500 });
+  const newBalance = (data as { new_balance: number }).new_balance;
 
   await supabase.from("admin_logs").insert({
     admin_id: adminId,

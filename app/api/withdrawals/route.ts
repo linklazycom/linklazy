@@ -64,29 +64,25 @@ export async function POST(request: Request) {
   // Reserve funds from the wallet immediately (up to what's available there)
   // so the same taka can't be withdrawn twice via two concurrent requests.
   // Referral credits aren't a live balance, so only the wallet portion needs
-  // debiting here — the wallet debit is authoritative and atomic per-user.
+  // debiting here. The debit itself goes through adjust_wallet_balance,
+  // which does a single atomic `UPDATE ... WHERE wallet_balance + delta >= 0`
+  // — Postgres locks the row for that statement, so if two withdrawal
+  // requests are submitted at nearly the same time, the second one to run
+  // sees the already-debited balance and correctly fails/short-reserves
+  // instead of both succeeding against the same starting balance.
   const fromWallet = Math.min(parsed.data.amount, walletBalance);
   if (fromWallet > 0) {
     const serviceClient = createServiceClient();
-    const { data: freshProfile } = await serviceClient
-      .from("profiles")
-      .select("wallet_balance")
-      .eq("id", user.id)
-      .single();
+    const { error: debitError } = await serviceClient.rpc("adjust_wallet_balance", {
+      p_user_id: user.id,
+      p_delta: -fromWallet,
+      p_type: "withdrawal",
+      p_notes: "Reserved for withdrawal request",
+    });
 
-    if (!freshProfile || freshProfile.wallet_balance < fromWallet) {
+    if (debitError) {
       return NextResponse.json({ error: "Wallet balance changed, please retry." }, { status: 409 });
     }
-
-    const newBalance = freshProfile.wallet_balance - fromWallet;
-    await serviceClient.from("profiles").update({ wallet_balance: newBalance }).eq("id", user.id);
-    await serviceClient.from("wallet_ledger").insert({
-      user_id: user.id,
-      type: "withdrawal",
-      amount: -fromWallet,
-      balance_after: newBalance,
-      notes: "Reserved for withdrawal request",
-    });
   }
 
   const { error } = await supabase.from("withdrawal_requests").insert({

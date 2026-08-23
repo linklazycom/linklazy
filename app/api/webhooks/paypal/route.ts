@@ -85,38 +85,35 @@ async function handleWalletTopupCallback(
     const captured = await capturePaypalOrder(paypalOrderId);
     if (captured.status !== "COMPLETED") throw new Error("Payment was not completed");
 
-    // Re-check status right before crediting to close the race window if
-    // two callbacks arrive concurrently.
-    const { data: recheck } = await supabase
+    // Flip payments.status to "released" first, using the fact that this
+    // column started as something other than "released" as a one-time gate:
+    // if two callbacks race, only the first update actually changes a row.
+    // The second gets rowCount 0 and skips crediting the wallet again.
+    const { data: claimed } = await supabase
       .from("payments")
-      .select("status")
+      .update({ status: "released" })
       .eq("provider_txn_id", paypalOrderId)
-      .single();
-    if (recheck?.status === "released") {
+      .neq("status", "released")
+      .select("provider_txn_id");
+
+    if (!claimed || claimed.length === 0) {
+      // Already released by a concurrent/earlier callback.
       return NextResponse.redirect(`${siteUrl}/dashboard/billing?wallet=success`);
     }
 
-    await supabase.from("payments").update({ status: "released" }).eq("provider_txn_id", paypalOrderId);
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("wallet_balance")
-      .eq("id", userId)
-      .single();
-
-    const newBalance = (profile?.wallet_balance ?? 0) + amount;
-
-    await supabase.from("profiles").update({ wallet_balance: newBalance }).eq("id", userId);
-
-    await supabase.from("wallet_ledger").insert({
-      user_id: userId,
-      type: "topup",
-      amount,
-      balance_after: newBalance,
-      provider: "paypal",
-      provider_txn_id: paypalOrderId,
-      notes: "Wallet top-up via PayPal",
+    // Atomic credit: a single UPDATE ... SET balance = balance + amount,
+    // so a concurrent balance change elsewhere can't be lost (see
+    // adjust_wallet_balance in sql/001_atomic_wallet_adjust.sql).
+    const { error: creditError } = await supabase.rpc("adjust_wallet_balance", {
+      p_user_id: userId,
+      p_delta: amount,
+      p_type: "topup",
+      p_notes: "Wallet top-up via PayPal",
+      p_provider: "paypal",
+      p_provider_txn_id: paypalOrderId,
     });
+
+    if (creditError) throw creditError;
 
     return NextResponse.redirect(`${siteUrl}/dashboard/billing?wallet=success`);
   } catch {

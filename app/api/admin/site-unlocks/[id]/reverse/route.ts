@@ -32,40 +32,48 @@ export async function POST(
     );
   }
 
-  // Service client for the multi-step refund + status change — kept as two
-  // writes (not a single RPC) since this is a low-volume admin action, but
-  // ordered so a partial failure leaves the unlock still "pending" (safe to
-  // retry) rather than double-refunding.
   const serviceClient = createServiceClient();
 
-  const { data: buyer } = await serviceClient
-    .from("profiles")
-    .select("wallet_balance")
-    .eq("id", unlock.buyer_id)
-    .single();
-
-  const newBuyerBalance = (buyer?.wallet_balance ?? 0) + unlock.price_paid;
-
-  const { error: refundError } = await serviceClient
-    .from("profiles")
-    .update({ wallet_balance: newBuyerBalance })
-    .eq("id", unlock.buyer_id);
-
-  if (refundError) return NextResponse.json({ error: refundError.message }, { status: 500 });
-
-  await serviceClient.from("wallet_ledger").insert({
-    user_id: unlock.buyer_id,
-    type: "topup",
-    amount: unlock.price_paid,
-    related_site_id: unlock.site_id,
-    balance_after: newBuyerBalance,
-    notes: "Refund — pay-per-view unlock reversed by admin",
-  });
-
-  await serviceClient
+  // Claim the reversal first: flip earning_status away from "pending" only
+  // if it's still "pending" right now. If an admin double-clicks or two
+  // reverse requests land at once, only the first one actually changes a
+  // row here — the second gets rowCount 0 and bails before ever touching
+  // the wallet, instead of both refunding the same unlock.
+  const { data: claimed } = await serviceClient
     .from("site_unlocks")
     .update({ earning_status: "reversed", expires_at: new Date().toISOString() })
-    .eq("id", unlockId);
+    .eq("id", unlockId)
+    .eq("earning_status", "pending")
+    .select("id");
+
+  if (!claimed || claimed.length === 0) {
+    return NextResponse.json(
+      { error: "This unlock was already reversed or released by another request." },
+      { status: 409 }
+    );
+  }
+
+  // Atomic credit: a single UPDATE ... SET balance = balance + amount, so
+  // this can't be lost against a concurrent balance change elsewhere (see
+  // adjust_wallet_balance in sql/001_atomic_wallet_adjust.sql).
+  const { error: refundError } = await serviceClient.rpc("adjust_wallet_balance", {
+    p_user_id: unlock.buyer_id,
+    p_delta: unlock.price_paid,
+    p_type: "topup",
+    p_related_site_id: unlock.site_id,
+    p_notes: "Refund — pay-per-view unlock reversed by admin",
+  });
+
+  if (refundError) {
+    // Wallet credit failed after we already claimed the reversal — put the
+    // unlock back to "pending" so this is safe to retry instead of silently
+    // losing the refund.
+    await serviceClient
+      .from("site_unlocks")
+      .update({ earning_status: "pending", expires_at: null })
+      .eq("id", unlockId);
+    return NextResponse.json({ error: refundError.message }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }

@@ -37,35 +37,41 @@ export async function GET(request: Request) {
   for (const unlock of due ?? []) {
     const sellerId = (unlock as unknown as { sites: { owner_id: string } }).sites.owner_id;
 
-    const { data: seller } = await supabase
-      .from("profiles")
-      .select("wallet_balance")
-      .eq("id", sellerId)
-      .single();
-
-    const newBalance = (seller?.wallet_balance ?? 0) + unlock.seller_earning;
-
-    const { error: updateError } = await supabase
-      .from("profiles")
-      .update({ wallet_balance: newBalance })
-      .eq("id", sellerId);
-
-    if (updateError) continue;
-
-    await supabase.from("wallet_ledger").insert({
-      user_id: sellerId,
-      type: "seller_earning",
-      amount: unlock.seller_earning,
-      related_site_id: unlock.site_id,
-      related_user_id: unlock.buyer_id,
-      balance_after: newBalance,
-      notes: "Pay-per-view earning released after hold period",
-    });
-
-    await supabase
+    // Claim this unlock first: flip earning_status away from "pending" only
+    // if it's still "pending" right now. Vercel cron can retry an
+    // invocation that timed out while a previous run is still in flight, or
+    // this can overlap with an admin reversing the same unlock — the
+    // status flip is what prevents the same row from being credited twice.
+    const { data: claimed } = await supabase
       .from("site_unlocks")
       .update({ earning_status: "released" })
-      .eq("id", unlock.id);
+      .eq("id", unlock.id)
+      .eq("earning_status", "pending")
+      .select("id");
+
+    if (!claimed || claimed.length === 0) continue;
+
+    // Atomic credit: a single UPDATE ... SET balance = balance + amount, so
+    // this can't be lost against a concurrent balance change elsewhere
+    // (see adjust_wallet_balance in sql/001_atomic_wallet_adjust.sql).
+    const { error: creditError } = await supabase.rpc("adjust_wallet_balance", {
+      p_user_id: sellerId,
+      p_delta: unlock.seller_earning,
+      p_type: "seller_earning",
+      p_related_site_id: unlock.site_id,
+      p_related_user_id: unlock.buyer_id,
+      p_notes: "Pay-per-view earning released after hold period",
+    });
+
+    if (creditError) {
+      // Credit failed after we claimed it — put it back to "pending" so
+      // tomorrow's run picks it up again instead of silently losing it.
+      await supabase
+        .from("site_unlocks")
+        .update({ earning_status: "pending" })
+        .eq("id", unlock.id);
+      continue;
+    }
 
     released += 1;
   }
