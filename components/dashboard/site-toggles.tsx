@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 interface ToggleDef {
-  key: "maintenance_mode" | "signup_open";
+  key: "maintenance_mode" | "signup_open" | "order_chat_enabled";
   label: string;
   description: string;
   /** The setting's "value" string that means the toggle is ON/active. */
@@ -34,6 +34,15 @@ const TOGGLES: ToggleDef[] = [
     offValue: "off",
     tone: "safe",
   },
+  {
+    key: "order_chat_enabled",
+    label: "Buyer–seller messaging",
+    description:
+      "Controls the in-order chat between buyers and sellers. Turn off to pause messaging platform-wide — existing messages stay visible, but no new ones can be sent, on orders and on pre-order inquiries.",
+    onValue: "on",
+    offValue: "off",
+    tone: "caution",
+  },
 ];
 
 export function SiteToggles() {
@@ -52,6 +61,7 @@ export function SiteToggles() {
       const map: Record<string, string> = {
         maintenance_mode: "off",
         signup_open: "on",
+        order_chat_enabled: "on",
       };
       for (const row of data ?? []) {
         map[row.key] = typeof row.value === "string" ? row.value : String(row.value);
@@ -110,6 +120,11 @@ export function SiteToggles() {
                 {!isOn && toggle.key === "signup_open" && (
                   <p className="mt-1.5 text-xs font-medium text-amber">
                     ⚠ Currently off — no one can sign up right now
+                  </p>
+                )}
+                {!isOn && toggle.key === "order_chat_enabled" && (
+                  <p className="mt-1.5 text-xs font-medium text-amber">
+                    ⚠ Currently off — buyers and sellers can&apos;t message each other right now
                   </p>
                 )}
               </div>

@@ -18,6 +18,18 @@ export async function POST(
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
+  const { data: chatSetting } = await supabase
+    .from("site_settings")
+    .select("value")
+    .eq("key", "order_chat_enabled")
+    .single();
+  if (chatSetting?.value === "off") {
+    return NextResponse.json(
+      { error: "Messaging is temporarily paused platform-wide. Please try again later." },
+      { status: 403 }
+    );
+  }
+
   const { data: inquiry } = await supabase
     .from("inquiries")
     .select("buyer_id, seller_id")

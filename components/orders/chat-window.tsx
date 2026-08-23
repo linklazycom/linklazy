@@ -17,6 +17,7 @@ export function ChatWindow({ orderId, userId }: { orderId: string; userId: strin
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -55,11 +56,18 @@ export function ChatWindow({ orderId, userId }: { orderId: string; userId: strin
     e.preventDefault();
     if (!text.trim()) return;
     setSending(true);
-    await fetch(`/api/orders/${orderId}/messages`, {
+    setError(null);
+    const res = await fetch(`/api/orders/${orderId}/messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ body: text }),
     });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      setError(typeof body?.error === "string" ? body.error : "Message couldn't be sent. Please try again.");
+      setSending(false);
+      return;
+    }
     setText("");
     setSending(false);
   }
@@ -90,6 +98,7 @@ export function ChatWindow({ orderId, userId }: { orderId: string; userId: strin
         )}
         <div ref={bottomRef} />
       </div>
+      {error && <p className="border-t border-line px-3 pt-2 text-xs text-red-600">{error}</p>}
       <form onSubmit={handleSend} className="flex gap-2 border-t border-line p-3">
         <input
           value={text}

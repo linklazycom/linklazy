@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { MetricChip } from "@/components/ui/metric-chip";
 import { Button } from "@/components/ui/button";
-import { OrderProgress } from "@/components/orders/order-progress";
+import { OrderTimeline } from "@/components/orders/order-timeline";
 import { AdminOrderActions } from "@/components/orders/admin-order-actions";
 
 export default async function AdminOrderDetailPage({
@@ -43,7 +43,7 @@ export default async function AdminOrderDetailPage({
         {order.price_amount != null && <MetricChip label="Price" value={order.price_amount} tone="price" />}
       </div>
       <div className="mb-6">
-        <OrderProgress status={order.status} />
+        <OrderTimeline status={order.status} role="admin" />
       </div>
 
       <div className="mb-6 rounded-chip border border-line bg-white p-4 text-sm">

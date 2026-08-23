@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { MetricChip } from "@/components/ui/metric-chip";
 import { ChatWindow } from "@/components/orders/chat-window";
+import { OrderTimeline } from "@/components/orders/order-timeline";
 import { ReviewForm } from "@/components/reviews/review-form";
 import { ReviewsList } from "@/components/reviews/reviews-list";
 import { useCurrency } from "@/components/currency/currency-provider";
@@ -164,6 +165,10 @@ export default function OrderDetailPage({
         <MetricChip label="Type" value={order.order_type} />
         {order.price_amount != null && <MetricChip label="Price" value={order.price_amount} tone="price" />}
         <MetricChip label="Anchor" value={order.anchor_text} />
+      </div>
+
+      <div className="mb-6">
+        <OrderTimeline status={order.status} role={isSeller ? "seller" : "buyer"} />
       </div>
 
       <div className="mb-6 rounded-chip border border-line bg-white p-4 text-sm">
