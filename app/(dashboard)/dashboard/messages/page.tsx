@@ -68,7 +68,7 @@ export default async function MessagesInboxPage() {
           return (
             <Link
               key={o.id}
-              href={`/dashboard/orders/${o.id}`}
+              href={`/dashboard/messages/${o.id}`}
               className={`block rounded-chip border p-4 hover:border-brand-violet ${
                 isUnread ? "border-brand-violet/40 bg-brand-soft" : "border-line bg-white"
               }`}

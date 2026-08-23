@@ -48,17 +48,21 @@ export async function POST(
 
   const { filtered, wasFiltered } = filterContactInfo(parsed.data.body);
 
-  const { error } = await supabase.from("inquiry_messages").insert({
-    inquiry_id: id,
-    sender_id: user.id,
-    body: filtered,
-    was_filtered: wasFiltered,
-    original_body: wasFiltered ? parsed.data.body : null,
-  });
+  const { data: inserted, error } = await supabase
+    .from("inquiry_messages")
+    .insert({
+      inquiry_id: id,
+      sender_id: user.id,
+      body: filtered,
+      was_filtered: wasFiltered,
+      original_body: wasFiltered ? parsed.data.body : null,
+    })
+    .select("id, sender_id, body, was_filtered, created_at")
+    .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   await supabase.from("inquiries").update({ updated_at: new Date().toISOString() }).eq("id", id);
 
-  return NextResponse.json({ ok: true, wasFiltered });
+  return NextResponse.json({ ok: true, wasFiltered, message: inserted });
 }

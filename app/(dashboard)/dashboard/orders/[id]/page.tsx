@@ -1,11 +1,12 @@
 "use client";
 
+import Link from "next/link";
+
 import { useEffect, useState, use as usePromise } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { MetricChip } from "@/components/ui/metric-chip";
-import { ChatWindow } from "@/components/orders/chat-window";
 import { OrderTimeline } from "@/components/orders/order-timeline";
 import { ReviewForm } from "@/components/reviews/review-form";
 import { ReviewsList } from "@/components/reviews/reviews-list";
@@ -293,8 +294,16 @@ export default function OrderDetailPage({
 
       {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
 
-      <h2 className="mb-2 text-sm font-medium">Messages</h2>
-      <ChatWindow orderId={id} userId={userId} />
+      <Link
+        href={`/dashboard/messages/${id}`}
+        className="flex items-center justify-between rounded-chip border border-line bg-white p-4 hover:border-brand-violet"
+      >
+        <div>
+          <p className="text-sm font-medium">Messages</p>
+          <p className="text-xs text-muted">Chat with the {isSeller ? "buyer" : "seller"} about this order</p>
+        </div>
+        <span className="text-sm text-brand-blue underline">Open →</span>
+      </Link>
     </div>
   );
 }

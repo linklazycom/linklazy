@@ -37,7 +37,8 @@ export function ChatWindow({ orderId, userId }: { orderId: string; userId: strin
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages", filter: `order_id=eq.${orderId}` },
         (payload) => {
-          setMessages((prev) => [...prev, payload.new as Message]);
+          const incoming = payload.new as Message;
+          setMessages((prev) => (prev.some((m) => m.id === incoming.id) ? prev : [...prev, incoming]));
         }
       )
       .subscribe();
@@ -67,6 +68,17 @@ export function ChatWindow({ orderId, userId }: { orderId: string; userId: strin
       setError(typeof body?.error === "string" ? body.error : "Message couldn't be sent. Please try again.");
       setSending(false);
       return;
+    }
+    // Render our own message immediately instead of waiting on the
+    // Realtime INSERT event (which can lag a beat or, for the sender's
+    // own connection, sometimes not arrive at all) — the messages route
+    // now returns the inserted row for exactly this. The Realtime
+    // handler above dedupes by id, so if the event does still arrive
+    // it's a no-op.
+    const body = await res.json().catch(() => null);
+    if (body?.message) {
+      const own = body.message as Message;
+      setMessages((prev) => (prev.some((m) => m.id === own.id) ? prev : [...prev, own]));
     }
     setText("");
     setSending(false);

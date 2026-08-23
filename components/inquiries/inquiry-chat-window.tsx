@@ -42,7 +42,8 @@ export function InquiryChatWindow({ inquiryId, userId }: { inquiryId: string; us
           filter: `inquiry_id=eq.${inquiryId}`,
         },
         (payload) => {
-          setMessages((prev) => [...prev, payload.new as Message]);
+          const incoming = payload.new as Message;
+          setMessages((prev) => (prev.some((m) => m.id === incoming.id) ? prev : [...prev, incoming]));
         }
       )
       .subscribe();
@@ -72,6 +73,11 @@ export function InquiryChatWindow({ inquiryId, userId }: { inquiryId: string; us
       setError(typeof body?.error === "string" ? body.error : "Message couldn't be sent. Please try again.");
       setSending(false);
       return;
+    }
+    const body = await res.json().catch(() => null);
+    if (body?.message) {
+      const own = body.message as Message;
+      setMessages((prev) => (prev.some((m) => m.id === own.id) ? prev : [...prev, own]));
     }
     setText("");
     setSending(false);

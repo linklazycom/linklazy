@@ -32,7 +32,9 @@ export default async function AdminOrdersPage({
 
   let query = supabase
     .from("orders")
-    .select("id, order_type, status, price_amount, anchor_text, created_at, sites!orders_site_id_fkey(domain)")
+    .select(
+      "id, order_type, status, price_amount, anchor_text, created_at, buyer:buyer_id(full_name, email), seller:seller_id(full_name, email), sites!orders_site_id_fkey(domain)"
+    )
     .order("created_at", { ascending: false })
     .limit(100);
 
@@ -65,6 +67,8 @@ export default async function AdminOrdersPage({
       <div className="space-y-3">
         {orders?.map((order) => {
           const site = order.sites as unknown as { domain: string } | null;
+          const buyer = order.buyer as unknown as { full_name: string | null; email: string } | null;
+          const seller = order.seller as unknown as { full_name: string | null; email: string } | null;
           return (
             <Link
               key={order.id}
@@ -74,6 +78,17 @@ export default async function AdminOrdersPage({
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <span className="font-medium">{site?.domain ?? "Site"}</span>
                 <MetricChip label="Status" value={order.status} tone={STATUS_TONE[order.status] ?? "default"} />
+              </div>
+              <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
+                <span className="inline-flex items-center gap-1 rounded-full bg-brand-soft px-2 py-1 font-medium text-brand-violet">
+                  <span className="opacity-70">Buyer</span>
+                  {buyer?.full_name || buyer?.email || "—"}
+                </span>
+                <span className="text-muted">→</span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-signal/10 px-2 py-1 font-medium text-signal">
+                  <span className="opacity-70">Seller</span>
+                  {seller?.full_name || seller?.email || "—"}
+                </span>
               </div>
               <div className="mb-3">
                 <OrderProgress status={order.status} />
