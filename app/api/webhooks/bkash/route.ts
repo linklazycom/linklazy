@@ -52,7 +52,7 @@ async function handleOrderCallback(
 
     await supabase
       .from("orders")
-      .update({ status: "in_progress" })
+      .update({ status: "pending_seller_acceptance" })
       .eq("id", orderId)
       .eq("status", "pending_payment");
 
@@ -172,36 +172,41 @@ async function handleWalletTopupCallback(
   try {
     const result = await executeBkashPayment(paymentID);
 
-    // Flip payments.status to "released" first, using the fact that this
-    // column started as something other than "released" as a one-time gate:
-    // if two callbacks race (bKash is known to retry), only the first
-    // update actually changes a row — the second gets rowCount 0 and skips
-    // crediting the wallet again.
-    const { data: claimed } = await supabase
+    // Re-check status right before crediting to close the race window if
+    // two callbacks arrive concurrently.
+    const { data: recheck } = await supabase
       .from("payments")
-      .update({ status: "released", raw_response: result as unknown as Record<string, unknown> })
+      .select("status")
       .eq("provider_txn_id", paymentID)
-      .neq("status", "released")
-      .select("provider_txn_id");
-
-    if (!claimed || claimed.length === 0) {
-      // Already released by a concurrent/earlier callback.
+      .single();
+    if (recheck?.status === "released") {
       return NextResponse.redirect(`${siteUrl}/dashboard/billing?wallet=success`);
     }
 
-    // Atomic credit: a single UPDATE ... SET balance = balance + amount,
-    // so a concurrent balance change elsewhere can't be lost (see
-    // adjust_wallet_balance in sql/001_atomic_wallet_adjust.sql).
-    const { error: creditError } = await supabase.rpc("adjust_wallet_balance", {
-      p_user_id: userId,
-      p_delta: amount,
-      p_type: "topup",
-      p_notes: "Wallet top-up via bKash",
-      p_provider: "bkash",
-      p_provider_txn_id: paymentID,
-    });
+    await supabase
+      .from("payments")
+      .update({ status: "released", raw_response: result as unknown as Record<string, unknown> })
+      .eq("provider_txn_id", paymentID);
 
-    if (creditError) throw creditError;
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("wallet_balance")
+      .eq("id", userId)
+      .single();
+
+    const newBalance = (profile?.wallet_balance ?? 0) + amount;
+
+    await supabase.from("profiles").update({ wallet_balance: newBalance }).eq("id", userId);
+
+    await supabase.from("wallet_ledger").insert({
+      user_id: userId,
+      type: "topup",
+      amount,
+      balance_after: newBalance,
+      provider: "bkash",
+      provider_txn_id: paymentID,
+      notes: "Wallet top-up via bKash",
+    });
 
     return NextResponse.redirect(`${siteUrl}/dashboard/billing?wallet=success`);
   } catch {

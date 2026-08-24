@@ -7,6 +7,7 @@ const STATUS_TONE: Record<string, "verified" | "price" | "default"> = {
   accepted: "verified",
   delivered: "price",
   in_progress: "price",
+  pending_seller_acceptance: "price",
   awaiting_seller_site: "price",
   pending_payment: "price",
   disputed: "default",
@@ -14,7 +15,7 @@ const STATUS_TONE: Record<string, "verified" | "price" | "default"> = {
   refunded: "default",
 };
 
-const ACTIVE_STATUSES = ["pending_payment", "awaiting_seller_site", "in_progress", "delivered", "disputed"];
+const ACTIVE_STATUSES = ["pending_payment", "pending_seller_acceptance", "awaiting_seller_site", "in_progress", "delivered", "disputed"];
 
 export default async function OrdersPage({
   searchParams,

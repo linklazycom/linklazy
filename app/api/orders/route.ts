@@ -69,7 +69,7 @@ export async function POST(request: Request) {
       slot_id: input.slot_id,
       buyer_site_id: input.order_type === "exchange" ? input.buyer_site_id : null,
       order_type: input.order_type,
-      status: input.order_type === "paid" ? "pending_payment" : "awaiting_seller_site",
+      status: input.order_type === "paid" ? "pending_payment" : "pending_seller_acceptance",
       target_url: input.target_url,
       anchor_text: input.anchor_text,
       notes: input.notes,

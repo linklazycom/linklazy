@@ -10,6 +10,7 @@ import { MetricChip } from "@/components/ui/metric-chip";
 import { OrderTimeline } from "@/components/orders/order-timeline";
 import { ReviewForm } from "@/components/reviews/review-form";
 import { ReviewsList } from "@/components/reviews/reviews-list";
+import { CounterpartyCard } from "@/components/profile/counterparty-card";
 import { useCurrency } from "@/components/currency/currency-provider";
 
 interface OrderDetail {
@@ -34,6 +35,20 @@ interface CounterpartyReview {
   created_at: string;
 }
 
+interface CounterpartyProfile {
+  id: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+  country: string | null;
+  role: string;
+  seller_tier: string | null;
+  completion_rate: number | null;
+  avg_response_hours: number | null;
+  dispute_rate: number | null;
+  completed_order_count: number;
+}
+
 export default function OrderDetailPage({
   params,
 }: {
@@ -49,6 +64,8 @@ export default function OrderDetailPage({
   const [hasReviewed, setHasReviewed] = useState(false);
   const [counterpartyReviews, setCounterpartyReviews] = useState<CounterpartyReview[]>([]);
   const [counterpartyId, setCounterpartyId] = useState<string | null>(null);
+  const [counterpartyProfile, setCounterpartyProfile] = useState<CounterpartyProfile | null>(null);
+  const [showRejectForm, setShowRejectForm] = useState(false);
   const [paymentProvider, setPaymentProvider] = useState<"bkash" | "paypal">("bkash");
   const { rate } = useCurrency();
 
@@ -72,6 +89,13 @@ export default function OrderDetailPage({
         .order("created_at", { ascending: false })
         .limit(20);
       setCounterpartyReviews((reviewData as CounterpartyReview[]) ?? []);
+
+      const { data: profileData } = await supabase
+        .from("public_profile_cards")
+        .select("*")
+        .eq("id", counterpartyId)
+        .single();
+      setCounterpartyProfile(profileData as CounterpartyProfile);
     }
 
     const { data: existingReview } = await supabase
@@ -87,6 +111,39 @@ export default function OrderDetailPage({
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  async function handleAcceptOrder() {
+    setBusy(true);
+    setError(null);
+    const res = await fetch(`/api/orders/${id}/accept-order`, { method: "POST" });
+    if (!res.ok) {
+      const body = await res.json();
+      setError(body.error ?? "Could not accept this order.");
+    }
+    setBusy(false);
+    load();
+  }
+
+  async function handleRejectOrder(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    const form = new FormData(e.currentTarget);
+    const res = await fetch(`/api/orders/${id}/reject-order`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason: form.get("reason") || undefined }),
+    });
+    if (!res.ok) {
+      const body = await res.json();
+      setError(typeof body.error === "string" ? body.error : "Could not reject this order.");
+      setBusy(false);
+      return;
+    }
+    setShowRejectForm(false);
+    setBusy(false);
+    load();
+  }
 
   async function handleDeliver(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -212,6 +269,67 @@ export default function OrderDetailPage({
         </div>
       )}
 
+      {isBuyer && order.status === "pending_seller_acceptance" && (
+        <div className="mb-6 rounded-chip border border-line bg-white p-4 text-sm text-muted">
+          Waiting for the seller to accept your order — you&apos;ll be notified once they respond.
+        </div>
+      )}
+
+      {isSeller && order.status === "pending_seller_acceptance" && (
+        <div className="mb-6 rounded-xl border border-line bg-white p-5">
+          <h2 className="mb-1 font-medium">New order — review before you start</h2>
+          <p className="mb-4 text-sm text-muted">
+            Take a look at the buyer&apos;s profile below, then accept to begin work or reject if this
+            isn&apos;t a good fit.
+          </p>
+          {counterpartyProfile && (
+            <div className="mb-4">
+              <CounterpartyCard
+                profile={counterpartyProfile}
+                avgRating={
+                  counterpartyReviews.length
+                    ? counterpartyReviews.reduce((sum, r) => sum + r.rating, 0) / counterpartyReviews.length
+                    : null
+                }
+                reviewCount={counterpartyReviews.length}
+              />
+            </div>
+          )}
+          {!showRejectForm ? (
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={handleAcceptOrder} disabled={busy}>
+                {busy ? "Accepting…" : "Accept order"}
+              </Button>
+              <Button type="button" variant="secondary" onClick={() => setShowRejectForm(true)} disabled={busy}>
+                Reject
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={handleRejectOrder} className="space-y-3">
+              <textarea
+                name="reason"
+                rows={2}
+                placeholder="Optional — let the buyer know why (visible to admins)"
+                className="w-full rounded-chip border border-line px-3 py-2 text-sm outline-none focus:border-brand-violet"
+              />
+              <div className="flex gap-2">
+                <Button type="submit" variant="secondary" disabled={busy}>
+                  {busy ? "Rejecting…" : "Confirm reject"}
+                </Button>
+                <Button type="button" variant="ghost" onClick={() => setShowRejectForm(false)} disabled={busy}>
+                  Cancel
+                </Button>
+              </div>
+              {order.order_type === "paid" && (
+                <p className="text-xs text-muted">
+                  {`The buyer's payment will be refunded automatically if it was paid from their wallet. bKash/PayPal payments need a manual refund from admin.`}
+                </p>
+              )}
+            </form>
+          )}
+        </div>
+      )}
+
       {isSeller && ["awaiting_seller_site", "in_progress"].includes(order.status) && (
         <form onSubmit={handleDeliver} className="mb-6 space-y-4 rounded-chip border border-line bg-white p-5">
           <h2 className="text-sm font-medium">Submit delivery proof</h2>
@@ -267,7 +385,7 @@ export default function OrderDetailPage({
         </div>
       )}
 
-      {!["accepted", "disputed", "cancelled", "refunded"].includes(order.status) && (
+      {!["accepted", "disputed", "cancelled", "refunded", "pending_seller_acceptance", "pending_payment"].includes(order.status) && (
         <div className="mb-6">
           {!showDisputeForm ? (
             <button

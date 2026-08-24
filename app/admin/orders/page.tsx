@@ -7,6 +7,7 @@ const STATUS_TONE: Record<string, "verified" | "price" | "default"> = {
   accepted: "verified",
   delivered: "price",
   in_progress: "price",
+  pending_seller_acceptance: "price",
   awaiting_seller_site: "price",
   pending_payment: "price",
   disputed: "default",
@@ -16,7 +17,8 @@ const STATUS_TONE: Record<string, "verified" | "price" | "default"> = {
 
 const STATUS_FILTERS = [
   { value: "", label: "All" },
-  { value: "pending_payment,awaiting_seller_site,in_progress,delivered", label: "Active" },
+  { value: "pending_payment,pending_seller_acceptance,awaiting_seller_site,in_progress,delivered", label: "Active" },
+  { value: "pending_seller_acceptance", label: "Awaiting seller" },
   { value: "disputed", label: "Disputed" },
   { value: "accepted", label: "Accepted" },
   { value: "cancelled,refunded", label: "Cancelled/Refunded" },

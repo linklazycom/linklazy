@@ -38,7 +38,7 @@ export default async function DashboardOverviewPage() {
       .from("orders")
       .select("id", { count: "exact", head: true })
       .eq("seller_id", user!.id)
-      .in("status", ["awaiting_seller_site", "in_progress"]),
+      .in("status", ["pending_seller_acceptance", "awaiting_seller_site", "in_progress"]),
     supabase.from("watchlists").select("id", { count: "exact", head: true }).eq("user_id", user!.id),
     supabase
       .from("orders")

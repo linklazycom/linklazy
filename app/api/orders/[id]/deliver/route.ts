@@ -23,9 +23,14 @@ export async function POST(
   if (!order || order.seller_id !== user.id) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  if (!["awaiting_seller_site", "in_progress", "pending_payment"].includes(order.status) &&
-      order.status !== "in_progress") {
-    // allow delivery from in_progress or awaiting_seller_site (exchange), or after payment held
+  // Delivery is only allowed once the seller has accepted the order.
+  // "awaiting_seller_site" stays allowed for any order that was already
+  // in-flight before the accept/reject gate existed.
+  if (!["awaiting_seller_site", "in_progress"].includes(order.status)) {
+    return NextResponse.json(
+      { error: "This order isn't ready for delivery yet." },
+      { status: 400 }
+    );
   }
 
   const body = await request.json();

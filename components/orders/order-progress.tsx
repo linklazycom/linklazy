@@ -15,6 +15,7 @@ const HAPPY_PATH = [
 function stepIndexFor(status: string): number {
   switch (status) {
     case "pending_payment":
+    case "pending_seller_acceptance":
     case "awaiting_seller_site":
       return 0;
     case "in_progress":

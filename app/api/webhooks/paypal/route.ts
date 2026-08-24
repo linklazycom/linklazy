@@ -38,7 +38,7 @@ async function handleOrderCallback(
 
     await supabase
       .from("orders")
-      .update({ status: "in_progress" })
+      .update({ status: "pending_seller_acceptance" })
       .eq("id", orderId)
       .eq("status", "pending_payment");
 
