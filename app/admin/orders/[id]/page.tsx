@@ -16,15 +16,15 @@ export default async function AdminOrderDetailPage({
 
   const { data: order } = await supabase
     .from("orders")
-    .select("*, sites!orders_site_id_fkey(domain), buyer:buyer_id(full_name, email), seller:seller_id(full_name, email)")
+    .select("*, sites!orders_site_id_fkey(domain), buyer:buyer_id(id, full_name, email), seller:seller_id(id, full_name, email)")
     .eq("id", id)
     .single();
 
   if (!order) notFound();
 
   const site = order.sites as unknown as { domain: string } | null;
-  const buyer = order.buyer as unknown as { full_name: string | null; email: string } | null;
-  const seller = order.seller as unknown as { full_name: string | null; email: string } | null;
+  const buyer = order.buyer as unknown as { id: string; full_name: string | null; email: string } | null;
+  const seller = order.seller as unknown as { id: string; full_name: string | null; email: string } | null;
 
   const { data: dispute } = await supabase
     .from("disputes")
@@ -47,13 +47,19 @@ export default async function AdminOrderDetailPage({
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
-        <span className="inline-flex items-center gap-1 rounded-full bg-brand-soft px-2.5 py-1 font-medium text-brand-violet">
+        <Link
+          href={buyer?.id ? `/profile/${buyer.id}` : "#"}
+          className="inline-flex items-center gap-1 rounded-full bg-brand-soft px-2.5 py-1 font-medium text-brand-violet hover:underline"
+        >
           <span className="opacity-70">Buyer</span> {buyer?.full_name || buyer?.email || "—"}
-        </span>
+        </Link>
         <span className="text-muted">purchased from</span>
-        <span className="inline-flex items-center gap-1 rounded-full bg-signal/10 px-2.5 py-1 font-medium text-signal">
+        <Link
+          href={seller?.id ? `/profile/${seller.id}` : "#"}
+          className="inline-flex items-center gap-1 rounded-full bg-signal/10 px-2.5 py-1 font-medium text-signal hover:underline"
+        >
           <span className="opacity-70">Seller</span> {seller?.full_name || seller?.email || "—"}
-        </span>
+        </Link>
       </div>
 
       <div className="mb-6 rounded-chip border border-line bg-white p-4 text-sm">

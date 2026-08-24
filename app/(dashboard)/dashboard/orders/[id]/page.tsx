@@ -48,6 +48,7 @@ export default function OrderDetailPage({
   const [error, setError] = useState<string | null>(null);
   const [hasReviewed, setHasReviewed] = useState(false);
   const [counterpartyReviews, setCounterpartyReviews] = useState<CounterpartyReview[]>([]);
+  const [counterpartyId, setCounterpartyId] = useState<string | null>(null);
   const [paymentProvider, setPaymentProvider] = useState<"bkash" | "paypal">("bkash");
   const { rate } = useCurrency();
 
@@ -63,6 +64,7 @@ export default function OrderDetailPage({
 
     if (orderData) {
       const counterpartyId = orderData.buyer_id === user!.id ? orderData.seller_id : orderData.buyer_id;
+      setCounterpartyId(counterpartyId);
       const { data: reviewData } = await supabase
         .from("reviews")
         .select("id, rating, comment, created_at")
@@ -245,9 +247,16 @@ export default function OrderDetailPage({
       )}
 
       <div className="mt-8">
-        <h2 className="mb-3 font-display text-lg font-medium">
-          {isSeller ? "Reviews of this buyer" : "Reviews of this seller"}
-        </h2>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-display text-lg font-medium">
+            {isSeller ? "Reviews of this buyer" : "Reviews of this seller"}
+          </h2>
+          {counterpartyId && (
+            <Link href={`/profile/${counterpartyId}`} className="text-sm text-brand-blue underline">
+              View {isSeller ? "buyer's" : "seller's"} full profile →
+            </Link>
+          )}
+        </div>
         <ReviewsList reviews={counterpartyReviews} />
       </div>
 

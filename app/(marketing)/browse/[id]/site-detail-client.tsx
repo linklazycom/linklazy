@@ -10,6 +10,7 @@ import { SellerTierBadge } from "@/components/reviews/seller-tier-badge";
 import { TrustBadges } from "@/components/reviews/trust-badges";
 import { ReviewsList } from "@/components/reviews/reviews-list";
 import { AdSlotClient } from "@/components/ads/ad-slot-client";
+import { SellerSidebarCard } from "@/components/profile/seller-sidebar-card";
 import { maskDomain } from "@/lib/mask-domain";
 import { Money } from "@/components/currency/money";
 import { FormattedText } from "@/components/ui/formatted-text";
@@ -49,6 +50,10 @@ interface SellerInfo {
   avg_response_hours: number | null;
   dispute_rate: number | null;
   completed_order_count: number;
+  display_name: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+  country: string | null;
 }
 
 interface Review {
@@ -129,8 +134,8 @@ export function SiteDetailClient({
 
     if (siteData?.owner_id) {
       const { data: sellerData } = await supabase
-        .from("profiles")
-        .select("seller_tier, completion_rate, avg_response_hours, dispute_rate, completed_order_count")
+        .from("public_profile_cards")
+        .select("seller_tier, completion_rate, avg_response_hours, dispute_rate, completed_order_count, display_name, avatar_url, bio, country")
         .eq("id", siteData.owner_id)
         .single();
       setSeller(sellerData);
@@ -176,20 +181,22 @@ export function SiteDetailClient({
   const canPayPerView = site.pay_per_view_enabled && site.view_price != null;
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-12">
-      <h1 className="mb-1 flex items-center gap-2 font-display text-2xl font-medium">
-        {unlocked ? site.domain : maskDomain(site.domain ?? "hidden-site.com")}
-        <SellerTierBadge tier={seller?.seller_tier ?? null} />
-      </h1>
-      {seller && (
-        <TrustBadges
-          completionRate={seller.completion_rate}
-          avgResponseHours={seller.avg_response_hours}
-          disputeRate={seller.dispute_rate}
-          completedOrderCount={seller.completed_order_count ?? 0}
-          className="mb-3"
-        />
-      )}
+    <main className="mx-auto max-w-5xl px-6 py-12">
+      <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
+        <div className="min-w-0">
+          <h1 className="mb-1 flex items-center gap-2 font-display text-2xl font-medium">
+            {unlocked ? site.domain : maskDomain(site.domain ?? "hidden-site.com")}
+            <SellerTierBadge tier={seller?.seller_tier ?? null} />
+          </h1>
+          {seller && (
+            <TrustBadges
+              completionRate={seller.completion_rate}
+              avgResponseHours={seller.avg_response_hours}
+              disputeRate={seller.dispute_rate}
+              completedOrderCount={seller.completed_order_count ?? 0}
+              className="mb-3 lg:hidden"
+            />
+          )}
 
       <div className="mb-6 flex flex-wrap gap-2">
         <MetricChip label="Niche" value={site.niche} />
@@ -310,6 +317,18 @@ export function SiteDetailClient({
         <h2 className="mb-3 font-display text-lg font-medium">Seller reviews</h2>
         <ReviewsList reviews={reviews} />
         <AdSlotClient placement="site_detail_bottom" />
+      </div>
+        </div>
+
+        {seller && site.owner_id && (
+          <aside className="lg:sticky lg:top-6 lg:self-start">
+            <SellerSidebarCard
+              seller={{ id: site.owner_id, ...seller }}
+              avgRating={reviews.length ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : null}
+              reviewCount={reviews.length}
+            />
+          </aside>
+        )}
       </div>
     </main>
   );

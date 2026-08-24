@@ -33,7 +33,7 @@ export default async function AdminOrdersPage({
   let query = supabase
     .from("orders")
     .select(
-      "id, order_type, status, price_amount, anchor_text, created_at, buyer:buyer_id(full_name, email), seller:seller_id(full_name, email), sites!orders_site_id_fkey(domain)"
+      "id, order_type, status, price_amount, anchor_text, created_at, buyer:buyer_id(id, full_name, email), seller:seller_id(id, full_name, email), sites!orders_site_id_fkey(domain)"
     )
     .order("created_at", { ascending: false })
     .limit(100);
@@ -67,33 +67,35 @@ export default async function AdminOrdersPage({
       <div className="space-y-3">
         {orders?.map((order) => {
           const site = order.sites as unknown as { domain: string } | null;
-          const buyer = order.buyer as unknown as { full_name: string | null; email: string } | null;
-          const seller = order.seller as unknown as { full_name: string | null; email: string } | null;
+          const buyer = order.buyer as unknown as { id: string; full_name: string | null; email: string } | null;
+          const seller = order.seller as unknown as { id: string; full_name: string | null; email: string } | null;
           return (
-            <Link
-              key={order.id}
-              href={`/admin/orders/${order.id}`}
-              className="block rounded-chip border border-line bg-white p-4 hover:border-ink"
-            >
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div key={order.id} className="rounded-chip border border-line bg-white p-4 hover:border-ink">
+              <Link href={`/admin/orders/${order.id}`} className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <span className="font-medium">{site?.domain ?? "Site"}</span>
                 <MetricChip label="Status" value={order.status} tone={STATUS_TONE[order.status] ?? "default"} />
-              </div>
+              </Link>
               <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
-                <span className="inline-flex items-center gap-1 rounded-full bg-brand-soft px-2 py-1 font-medium text-brand-violet">
+                <Link
+                  href={buyer?.id ? `/profile/${buyer.id}` : "#"}
+                  className="inline-flex items-center gap-1 rounded-full bg-brand-soft px-2 py-1 font-medium text-brand-violet hover:underline"
+                >
                   <span className="opacity-70">Buyer</span>
                   {buyer?.full_name || buyer?.email || "—"}
-                </span>
+                </Link>
                 <span className="text-muted">→</span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-signal/10 px-2 py-1 font-medium text-signal">
+                <Link
+                  href={seller?.id ? `/profile/${seller.id}` : "#"}
+                  className="inline-flex items-center gap-1 rounded-full bg-signal/10 px-2 py-1 font-medium text-signal hover:underline"
+                >
                   <span className="opacity-70">Seller</span>
                   {seller?.full_name || seller?.email || "—"}
-                </span>
+                </Link>
               </div>
-              <div className="mb-3">
+              <Link href={`/admin/orders/${order.id}`} className="mb-3 block">
                 <OrderProgress status={order.status} />
-              </div>
-              <div className="flex flex-wrap gap-2">
+              </Link>
+              <Link href={`/admin/orders/${order.id}`} className="flex flex-wrap gap-2">
                 <MetricChip label="Type" value={order.order_type} />
                 {order.price_amount != null && (
                   <MetricChip label="Price" value={order.price_amount} tone="price" />
@@ -102,8 +104,8 @@ export default async function AdminOrdersPage({
                 <span className="text-xs text-muted">
                   {new Date(order.created_at).toLocaleDateString()}
                 </span>
-              </div>
-            </Link>
+              </Link>
+            </div>
           );
         })}
         {!orders?.length && <p className="text-muted">No orders found.</p>}

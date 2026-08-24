@@ -3,9 +3,11 @@ import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
 
 const profileSchema = z.object({
-  full_name: z.string().trim().min(1).max(200),
+  full_name: z.string().trim().min(1).max(200).optional(),
   bio: z.string().trim().max(1000).optional(),
   country: z.string().trim().max(100).optional(),
+  display_name: z.string().trim().max(100).optional(),
+  avatar_url: z.string().url().max(600).optional(),
 });
 
 export async function PATCH(request: Request) {
