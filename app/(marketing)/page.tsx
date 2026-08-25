@@ -101,7 +101,7 @@ const FAQS = [
   },
   {
     q: "Is it free to list my site?",
-    a: "Yes. Listing is free under the Commission plan — LinkLazy only takes a percentage when you complete a paid order. A flat Monthly plan is also available if you'd rather pay 0% commission.",
+    a: "Yes. Listing is free under the Commission plan — LinkLazy only takes a percentage when you complete a paid order. A flat Monthly plan with 0% commission is also available for established sellers — contact support to switch.",
   },
   {
     q: "What happens if a seller doesn't deliver?",

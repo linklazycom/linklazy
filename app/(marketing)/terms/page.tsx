@@ -71,8 +71,8 @@ export default async function TermsPage() {
             successful delivery, after which funds are released to the
             seller minus the applicable platform commission. Sellers on a
             monthly subscription plan may be subject to different commission
-            terms as described on our pricing page. Fees and commission
-            rates may change with notice.
+            terms, as confirmed with our support team when the plan is
+            assigned. Fees and commission rates may change with notice.
           </p>
         </section>
         <section>
