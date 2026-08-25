@@ -9,11 +9,12 @@ const DEFAULTS: Record<string, unknown> = {
   // Kept short on purpose — the header row also holds the search box, logo,
   // currency toggle, and auth buttons. Niches/Blog live in the footer's
   // Resources column instead (see footer_links below) so the header doesn't
-  // overflow/wrap on smaller desktop widths. Pricing stays in both places
-  // since it's a common landing point for new visitors.
+  // overflow/wrap on smaller desktop widths. No pricing page — LinkLazy is
+  // free to join (no monthly fee); "How it works" explains the commission
+  // model instead.
   nav_links: [
     { label: "Browse Sites", href: "/browse" },
-    { label: "Pricing", href: "/pricing" },
+    { label: "How it works", href: "/how-it-works" },
     { label: "Press releases", href: "/press-releases" },
   ],
   footer_links: {
@@ -29,7 +30,7 @@ const DEFAULTS: Record<string, unknown> = {
     ],
     Resources: [
       { label: "Niches", href: "/niches" },
-      { label: "Pricing", href: "/pricing" },
+      { label: "How it works", href: "/how-it-works" },
       { label: "Blog", href: "/blog" },
     ],
   },

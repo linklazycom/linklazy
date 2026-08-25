@@ -36,12 +36,8 @@ export async function POST(request: Request) {
     .select("id, owner_id, status, price_amount, turnaround_hours, accepts_paid, domain")
     .in("id", site_ids);
 
-  const { data: setting } = await supabase
-    .from("admin_settings")
-    .select("value")
-    .eq("key", "commission_rate_default")
-    .single();
-  const commissionRate = Number(setting?.value ?? 17.5);
+  // Commission is tiered on the seller's cumulative monthly sales and
+  // finalized at accept/release time, not here — see lib/commission.ts.
 
   const created: { id: string; domain: string }[] = [];
   const skipped: { domain: string; reason: string }[] = [];
@@ -62,9 +58,6 @@ export async function POST(request: Request) {
       continue;
     }
 
-    const commissionAmount = site.price_amount
-      ? Math.round((site.price_amount * commissionRate) / 100)
-      : 0;
     const deadline = new Date(Date.now() + (site.turnaround_hours ?? 48) * 3600 * 1000);
 
     const { data: order, error } = await supabase
@@ -79,8 +72,6 @@ export async function POST(request: Request) {
         anchor_text,
         notes,
         price_amount: site.price_amount,
-        commission_amount: commissionAmount,
-        commission_rate: commissionRate,
         deadline_at: deadline.toISOString(),
       })
       .select("id")

@@ -43,20 +43,10 @@ export async function POST(request: Request) {
     );
   }
 
-  let commissionAmount: number | undefined;
-  let commissionRate: number | undefined;
-
-  if (input.order_type === "paid") {
-    const { data: setting } = await supabase
-      .from("admin_settings")
-      .select("value")
-      .eq("key", "commission_rate_default")
-      .single();
-    commissionRate = Number(setting?.value ?? 17.5);
-    commissionAmount = site.price_amount
-      ? Math.round((site.price_amount * commissionRate) / 100)
-      : 0;
-  }
+  // Commission is no longer fixed at order time: it's tiered on the
+  // seller's cumulative monthly sales and finalized when the order is
+  // accepted/released (see lib/commission.ts and app/api/orders/[id]/accept/route.ts).
+  // commission_amount / commission_rate stay null until then.
 
   const deadline = new Date(Date.now() + (site.turnaround_hours ?? 48) * 3600 * 1000);
 
@@ -74,8 +64,6 @@ export async function POST(request: Request) {
       anchor_text: input.anchor_text,
       notes: input.notes,
       price_amount: input.order_type === "paid" ? site.price_amount : null,
-      commission_amount: commissionAmount,
-      commission_rate: commissionRate,
       deadline_at: deadline.toISOString(),
     })
     .select("id")

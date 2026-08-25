@@ -2,24 +2,20 @@ import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { executeBkashPayment } from "@/lib/bkash/client";
 
-const BUYER_PLAN_VIEWS: Record<string, number> = {
-  starter: 10,
-  growth: 20,
-  pro: 50,
-};
-
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const paymentID = url.searchParams.get("paymentID");
   const status = url.searchParams.get("status"); // success | failure | cancel
-  const kind = url.searchParams.get("kind"); // "subscription" | "wallet_topup" | null (= order)
+  const kind = url.searchParams.get("kind"); // "wallet_topup" | null (= order)
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
   const supabase = createServiceClient();
 
-  if (kind === "subscription") {
-    return handleSubscriptionCallback(request, supabase, paymentID, status, siteUrl);
-  }
+  // NOTE: subscription plans were removed — LinkLazy is free to join, no
+  // monthly fee. There is no "kind=subscription" branch anymore; any old
+  // bookmarked/cached callback URL with that kind falls through to the
+  // order handler below and will simply fail to find a matching order,
+  // which is the safe outcome.
   if (kind === "wallet_topup") {
     return handleWalletTopupCallback(request, supabase, paymentID, status, siteUrl);
   }
@@ -60,72 +56,6 @@ async function handleOrderCallback(
   } catch {
     await supabase.from("payments").update({ status: "failed" }).eq("provider_txn_id", paymentID);
     return NextResponse.redirect(`${siteUrl}/dashboard/orders/${orderId}?payment=error`);
-  }
-}
-
-async function handleSubscriptionCallback(
-  request: Request,
-  supabase: ReturnType<typeof createServiceClient>,
-  paymentID: string | null,
-  status: string | null,
-  siteUrl: string
-) {
-  const url = new URL(request.url);
-  const subscriptionId = url.searchParams.get("subscription_id");
-
-  if (!paymentID || !subscriptionId) {
-    return NextResponse.redirect(`${siteUrl}/dashboard/billing?payment=error`);
-  }
-
-  if (status !== "success") {
-    await supabase.from("payments").update({ status: "failed" }).eq("provider_txn_id", paymentID);
-    await supabase.from("subscriptions").update({ status: "cancelled" }).eq("id", subscriptionId);
-    return NextResponse.redirect(`${siteUrl}/dashboard/billing?payment=cancelled`);
-  }
-
-  try {
-    const result = await executeBkashPayment(paymentID);
-
-    await supabase
-      .from("payments")
-      .update({ status: "released", raw_response: result as unknown as Record<string, unknown> })
-      .eq("provider_txn_id", paymentID);
-
-    // SECURITY: derive plan/kind from the subscription row we wrote at
-    // creation time — never trust the `plan`/`subscription_kind` query
-    // params, which are client-controlled on this redirect URL and could
-    // otherwise be used to get upgraded to a pricier plan for a cheap
-    // payment (e.g. pay for "starter", replay the callback with
-    // plan=pro).
-    const { data: subscription } = await supabase
-      .from("subscriptions")
-      .select("user_id, type")
-      .eq("id", subscriptionId)
-      .single();
-
-    if (subscription) {
-      if (subscription.type.startsWith("buyer_")) {
-        const plan = subscription.type.slice("buyer_".length);
-        const periodEnd = new Date();
-        periodEnd.setMonth(periodEnd.getMonth() + 1);
-        await supabase
-          .from("profiles")
-          .update({
-            buyer_plan: plan,
-            buyer_views_quota: BUYER_PLAN_VIEWS[plan] ?? 0,
-            buyer_views_used: 0,
-            buyer_plan_renews_at: periodEnd.toISOString(),
-          })
-          .eq("id", subscription.user_id);
-      } else if (subscription.type === "seller_monthly") {
-        await supabase.from("profiles").update({ seller_plan: "monthly" }).eq("id", subscription.user_id);
-      }
-    }
-
-    return NextResponse.redirect(`${siteUrl}/dashboard/billing?payment=success`);
-  } catch {
-    await supabase.from("payments").update({ status: "failed" }).eq("provider_txn_id", paymentID);
-    return NextResponse.redirect(`${siteUrl}/dashboard/billing?payment=error`);
   }
 }
 

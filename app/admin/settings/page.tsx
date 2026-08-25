@@ -28,7 +28,7 @@ const DEFAULT_NAV_LINKS: NavLink[] = [
   { label: "Browse Sites", href: "/browse" },
   { label: "Press releases", href: "/press-releases" },
   { label: "Niches", href: "/niches" },
-  { label: "Pricing", href: "/pricing" },
+  { label: "How it works", href: "/how-it-works" },
   { label: "Blog", href: "/blog" },
 ];
 

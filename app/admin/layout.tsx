@@ -61,7 +61,6 @@ const NAV_GROUPS: AdminNavGroup[] = [
     href: "/admin/settings",
     items: [
       { href: "/admin/settings", label: "General settings" },
-      { href: "/admin/pricing", label: "Pricing page" },
       { href: "/admin/coupons", label: "Coupons" },
       { href: "/admin/ads", label: "Ads" },
     ],
