@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { SiteCard } from "@/components/sites/site-card";
 import { AdSlot } from "@/components/ads/ad-slot";
 import { maskDomain } from "@/lib/mask-domain";
+import { getSellerRatings } from "@/lib/seller-ratings";
 
 export const metadata: Metadata = {
   title: "Browse Sites",
@@ -75,9 +76,11 @@ export default async function PublicBrowsePage({
 
   const ownerIds = [...new Set((sites ?? []).map((s) => s.owner_id))];
   const { data: sellerProfiles } = ownerIds.length
-    ? await supabase.from("profiles").select("id, seller_tier").in("id", ownerIds)
+    ? await supabase.from("profiles").select("id, display_name, seller_tier").in("id", ownerIds)
     : { data: [] };
   const tierByOwner = new Map((sellerProfiles ?? []).map((p) => [p.id, p.seller_tier]));
+  const nameByOwner = new Map((sellerProfiles ?? []).map((p) => [p.id, p.display_name]));
+  const ratingByOwner = await getSellerRatings(supabase, ownerIds);
 
   const isPaidPlan = profile && profile.buyer_plan !== "free";
   const remaining = profile ? Math.max(profile.buyer_views_quota - profile.buyer_views_used, 0) : 0;
@@ -185,6 +188,9 @@ export default async function PublicBrowsePage({
                 site={site}
                 href={`/browse/${site.id}`}
                 sellerTier={tierByOwner.get(site.owner_id) ?? null}
+                sellerName={nameByOwner.get(site.owner_id)}
+                sellerRating={ratingByOwner.get(site.owner_id) ?? null}
+                sellerHref={`/profile/${site.owner_id}`}
                 displayDomain={unlocked ? site.domain : maskDomain(site.domain)}
                 ctaLabel={unlocked ? "View details" : "View Site"}
               />

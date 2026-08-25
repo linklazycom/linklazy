@@ -8,6 +8,7 @@ import { WatchlistButton } from "@/components/watchlist/watchlist-button";
 import { SaveSearchButton } from "@/components/watchlist/save-search-button";
 import { BulkOrderSelector } from "@/components/sites/bulk-order-selector";
 import { AdSlot } from "@/components/ads/ad-slot";
+import { getSellerRatings } from "@/lib/seller-ratings";
 
 interface Filters {
   niche?: string;
@@ -64,9 +65,11 @@ export default async function BrowsePage({
 
   const ownerIds = [...new Set((sites ?? []).map((s) => s.owner_id))];
   const { data: sellerProfiles } = ownerIds.length
-    ? await supabase.from("profiles").select("id, seller_tier").in("id", ownerIds)
+    ? await supabase.from("profiles").select("id, display_name, seller_tier").in("id", ownerIds)
     : { data: [] };
   const tierByOwner = new Map((sellerProfiles ?? []).map((p) => [p.id, p.seller_tier]));
+  const nameByOwner = new Map((sellerProfiles ?? []).map((p) => [p.id, p.display_name]));
+  const ratingByOwner = await getSellerRatings(supabase, ownerIds);
 
   const quota = profile?.buyer_views_quota ?? 0;
   const used = profile?.buyer_views_used ?? 0;
@@ -131,7 +134,13 @@ export default async function BrowsePage({
       </div>
 
       {!isFree ? (
-        <BulkOrderSelector sites={sites ?? []} tierByOwner={tierByOwner} currentUserId={user!.id} />
+        <BulkOrderSelector
+          sites={sites ?? []}
+          tierByOwner={tierByOwner}
+          nameByOwner={nameByOwner}
+          ratingByOwner={ratingByOwner}
+          currentUserId={user!.id}
+        />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {sites?.map((site) => {
@@ -142,6 +151,9 @@ export default async function BrowsePage({
                 site={site}
                 href={`/dashboard/browse/${site.id}`}
                 sellerTier={tierByOwner.get(site.owner_id) ?? null}
+                sellerName={nameByOwner.get(site.owner_id)}
+                sellerRating={ratingByOwner.get(site.owner_id) ?? null}
+                sellerHref={`/profile/${site.owner_id}`}
                 displayDomain={unlocked || !isFree ? site.domain : "Site details locked"}
                 ctaLabel={unlocked ? "View details" : "Unlock & view"}
                 actions={<WatchlistButton siteId={site.id} />}

@@ -29,6 +29,12 @@ interface Props {
   site: SiteCardData;
   href: string;
   sellerTier: string | null;
+  /** Seller's public display name, shown as a byline under the domain. */
+  sellerName?: string | null;
+  /** Seller's average rating + review count, shown next to the name. */
+  sellerRating?: { avg: number; count: number } | null;
+  /** Link target for the seller name/rating byline — usually /profile/[owner_id]. */
+  sellerHref?: string;
   /** Shown instead of the real domain when the buyer hasn't unlocked yet. */
   displayDomain?: string;
   ctaLabel?: string;
@@ -45,7 +51,18 @@ interface Props {
  * clear header, metrics grouped in a lightweight grid, price pulled out
  * as its own accent line so it doesn't get lost among DA/DR/traffic.
  */
-export function SiteCard({ site, href, sellerTier, displayDomain, ctaLabel = "View Site", actions, leading }: Props) {
+export function SiteCard({
+  site,
+  href,
+  sellerTier,
+  sellerName,
+  sellerRating,
+  sellerHref,
+  displayDomain,
+  ctaLabel = "View Site",
+  actions,
+  leading,
+}: Props) {
   const isFeatured = Boolean(site.is_featured);
 
   return (
@@ -72,6 +89,23 @@ export function SiteCard({ site, href, sellerTier, displayDomain, ctaLabel = "Vi
           drVerified={site.dr_verified}
         />
       </div>
+
+      {sellerName && (
+        <div className="mb-2.5 -mt-1.5 flex items-center gap-1.5 text-xs text-muted">
+          {sellerHref ? (
+            <Link href={sellerHref} className="truncate hover:text-ink hover:underline">
+              {sellerName}
+            </Link>
+          ) : (
+            <span className="truncate">{sellerName}</span>
+          )}
+          {sellerRating && sellerRating.count > 0 && (
+            <span className="whitespace-nowrap text-amber">
+              ★ {sellerRating.avg.toFixed(1)} ({sellerRating.count})
+            </span>
+          )}
+        </div>
+      )}
 
       <div className="mb-3 flex flex-wrap items-center gap-1.5">
         <MetricChip label="Niche" value={site.niche} />

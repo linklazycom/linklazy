@@ -18,10 +18,14 @@ const MAX_BULK = 10;
 export function BulkOrderSelector({
   sites,
   tierByOwner,
+  nameByOwner,
+  ratingByOwner,
   currentUserId,
 }: {
   sites: SiteCardData[];
   tierByOwner: Map<string, string | null>;
+  nameByOwner?: Map<string, string | null>;
+  ratingByOwner?: Map<string, { avg: number; count: number }>;
   currentUserId: string;
 }) {
   const router = useRouter();
@@ -54,6 +58,9 @@ export function BulkOrderSelector({
               site={site}
               href={`/dashboard/browse/${site.id}`}
               sellerTier={tierByOwner.get(site.owner_id) ?? null}
+              sellerName={nameByOwner?.get(site.owner_id)}
+              sellerRating={ratingByOwner?.get(site.owner_id) ?? null}
+              sellerHref={`/profile/${site.owner_id}`}
               actions={<WatchlistButton siteId={site.id} />}
               leading={
                 canBulk ? (
