@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { marked } from "marked";
 import { createClient } from "@/lib/supabase/server";
+import { sanitizeArticleHtml } from "@/lib/sanitize-html";
 
 export async function generateMetadata({
   params,
@@ -37,7 +38,7 @@ export default async function CaseStudyPage({
 
   if (!study) notFound();
 
-  const html = await marked.parse(study.content);
+  const html = sanitizeArticleHtml(await marked.parse(study.content) as string);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://linklazy.com";
 
   const schema = {

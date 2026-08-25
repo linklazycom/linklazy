@@ -8,6 +8,7 @@ import { ArticleCover } from "@/components/blog/article-cover";
 import { BlogSidebar } from "@/components/blog/blog-sidebar";
 import { searchPexelsPhoto, searchPexelsPhotos } from "@/lib/pexels";
 import { injectInlineImages } from "@/lib/article-images";
+import { sanitizeArticleHtml } from "@/lib/sanitize-html";
 
 export async function generateMetadata({
   params,
@@ -58,7 +59,7 @@ export default async function ArticlePage({
       : Promise.resolve([]),
   ]);
 
-  const html = injectInlineImages(rawHtml as string, inlinePhotos);
+  const html = sanitizeArticleHtml(injectInlineImages(rawHtml as string, inlinePhotos));
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://linklazy.com";
 
