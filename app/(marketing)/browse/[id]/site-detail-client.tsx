@@ -237,7 +237,7 @@ export function SiteDetailClient({
                     : "Unlock this listing to see the site URL, referring domains, backlink count, and seller guidelines."}
           </p>
           {!isLoggedIn ? (
-            <Link href="/pricing">
+            <Link href="/register">
               <Button>Log in / Sign up</Button>
             </Link>
           ) : (

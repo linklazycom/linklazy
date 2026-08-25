@@ -83,7 +83,7 @@ export function MobileNav({ navLinks, isLoggedIn }: { navLinks: NavLink[]; isLog
                       Log in
                     </Button>
                   </Link>
-                  <Link href="/pricing" onClick={() => setOpen(false)}>
+                  <Link href="/register" onClick={() => setOpen(false)}>
                     <Button className="w-full">Get started</Button>
                   </Link>
                 </>

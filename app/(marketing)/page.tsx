@@ -171,7 +171,7 @@ export default async function HomePage() {
               before money or links move.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
-              <Link href="/pricing">
+              <Link href="/register">
                 <Button size="lg">List your site</Button>
               </Link>
               <Link href="/browse">
@@ -382,7 +382,7 @@ export default async function HomePage() {
           Free to browse metrics. List your first site in a few minutes — no
           cost to get approved.
         </p>
-        <Link href="/pricing">
+        <Link href="/register">
           <Button size="lg">
             Get started
             <ArrowRight className="ml-1.5 h-4 w-4" />

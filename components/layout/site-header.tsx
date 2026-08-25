@@ -49,7 +49,7 @@ export function SiteHeader({ navLinks, isLoggedIn }: { navLinks: NavLink[]; isLo
               <Link href="/login" className="whitespace-nowrap text-sm text-muted hover:text-ink">
                 Log in
               </Link>
-              <Link href="/pricing">
+              <Link href="/register">
                 <Button size="sm">Get started</Button>
               </Link>
             </>
