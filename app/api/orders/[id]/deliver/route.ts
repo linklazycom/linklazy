@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { captureArchiveSnapshot } from "@/lib/archive-snapshot";
 import { z } from "zod";
 
@@ -39,8 +41,12 @@ export async function POST(
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const archiveUrl = await captureArchiveSnapshot(parsed.data.proof_url);
-
+  // PERF: the Wayback Machine "save" endpoint routinely takes 5-20s.
+  // Marking delivery must not block on it — the archive snapshot is
+  // best-effort proof, not something the response should wait for.
+  // We mark delivered immediately, and capture+store the snapshot
+  // afterwards via next/server's after(), which keeps running after
+  // the response has already gone back to the client.
   const { error } = await supabase
     .from("orders")
     .update({
@@ -55,5 +61,13 @@ export async function POST(
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  return NextResponse.json({ ok: true, archiveUrl });
+  after(async () => {
+    const archiveUrl = await captureArchiveSnapshot(parsed.data.proof_url);
+    if (archiveUrl) {
+      const service = createServiceClient();
+      await service.from("orders").update({ archive_url: archiveUrl }).eq("id", id);
+    }
+  });
+
+  return NextResponse.json({ ok: true });
 }
