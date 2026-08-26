@@ -16,10 +16,6 @@ interface Profile {
   is_banned: boolean;
   banned_reason: string | null;
   seller_tier: string | null;
-  buyer_plan: string;
-  buyer_views_quota: number;
-  buyer_views_used: number;
-  seller_plan: string | null;
   wallet_balance: number;
   created_at: string;
 }
@@ -151,8 +147,6 @@ export default function AdminUserDetailPage({
         {profile.seller_tier && profile.seller_tier !== "unranked" && (
           <MetricChip label="Tier" value={profile.seller_tier} tone="verified" />
         )}
-        <MetricChip label="Buyer plan" value={profile.buyer_plan} />
-        {profile.seller_plan && <MetricChip label="Seller plan" value={profile.seller_plan} />}
         <MetricChip label="Wallet" value={profile.wallet_balance} tone="price" />
         {profile.is_suspended && <MetricChip label="Status" value="suspended" tone="price" />}
         {profile.is_banned && <MetricChip label="Status" value="banned" tone="price" />}

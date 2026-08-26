@@ -24,7 +24,7 @@ export async function GET(
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "id, full_name, role, is_suspended, is_flagged, flag_reason, is_banned, banned_reason, seller_tier, buyer_plan, buyer_views_quota, buyer_views_used, buyer_plan_renews_at, seller_plan, wallet_balance, created_at"
+      "id, full_name, role, is_suspended, is_flagged, flag_reason, is_banned, banned_reason, seller_tier, wallet_balance, created_at"
     )
     .eq("id", userId)
     .single();

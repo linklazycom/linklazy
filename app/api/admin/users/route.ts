@@ -12,7 +12,7 @@ export async function GET() {
   const { data: profiles, error } = await supabase
     .from("profiles")
     .select(
-      "id, full_name, role, is_suspended, is_flagged, flag_reason, is_banned, banned_reason, seller_tier, buyer_plan, buyer_views_quota, buyer_views_used, buyer_plan_renews_at, seller_plan, wallet_balance"
+      "id, full_name, role, is_suspended, is_flagged, flag_reason, is_banned, banned_reason, seller_tier, wallet_balance"
     )
     .order("full_name", { ascending: true });
 
