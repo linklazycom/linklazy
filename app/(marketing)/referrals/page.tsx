@@ -102,8 +102,9 @@ export default async function ReferralsMarketingPage() {
           <div className="py-5">
             <p className="font-medium text-ink">How do I withdraw my earnings?</p>
             <p className="mt-1.5 text-sm leading-relaxed text-muted">
-              Credits currently accumulate as a running balance in your
-              dashboard. A withdrawal process is coming soon — see our{" "}
+              From Dashboard → Referrals, request a withdrawal of your
+              available balance at any time — our team reviews and processes
+              requests manually. See our{" "}
               <Link href="/terms" className="text-brand-violet underline">
                 Terms &amp; Conditions
               </Link>{" "}

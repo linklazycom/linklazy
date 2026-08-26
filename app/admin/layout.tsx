@@ -25,6 +25,7 @@ const NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin/orders", label: "Orders" },
       { href: "/admin/disputes", label: "Disputes" },
       { href: "/admin/press-releases", label: "Press releases" },
+      { href: "/admin/case-studies", label: "Case studies" },
     ],
   },
   {
@@ -54,7 +55,10 @@ const NAV_GROUPS: AdminNavGroup[] = [
   },
   {
     label: "Support",
-    items: [{ href: "/admin/support", label: "Support tickets" }],
+    items: [
+      { href: "/admin/support", label: "Support tickets" },
+      { href: "/admin/contact-messages", label: "Contact messages" },
+    ],
   },
   {
     label: "Settings",
