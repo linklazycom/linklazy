@@ -9,7 +9,6 @@ interface Campaign {
   id: string;
   subject: string;
   segment_role: "all" | "buyer" | "seller";
-  segment_plan: "all" | "free" | "paid";
   status: "draft" | "sending" | "sent" | "failed";
   total_recipients: number;
   sent_count: number;
@@ -19,16 +18,10 @@ interface Campaign {
 }
 
 const ROLE_OPTIONS = ["All members", "Buyers only", "Sellers only"] as const;
-const PLAN_OPTIONS = ["All (free + paid)", "Free members only", "Paid members only"] as const;
 
 function roleToValue(label: string): "all" | "buyer" | "seller" {
   if (label === "Buyers only") return "buyer";
   if (label === "Sellers only") return "seller";
-  return "all";
-}
-function planToValue(label: string): "all" | "free" | "paid" {
-  if (label === "Free members only") return "free";
-  if (label === "Paid members only") return "paid";
   return "all";
 }
 
@@ -36,7 +29,6 @@ export default function AdminCampaignsPage() {
   const [subject, setSubject] = useState("");
   const [htmlBody, setHtmlBody] = useState("");
   const [roleLabel, setRoleLabel] = useState<(typeof ROLE_OPTIONS)[number]>("All members");
-  const [planLabel, setPlanLabel] = useState<(typeof PLAN_OPTIONS)[number]>("All (free + paid)");
 
   const [previewCount, setPreviewCount] = useState<number | null>(null);
   const [previewing, setPreviewing] = useState(false);
@@ -45,7 +37,6 @@ export default function AdminCampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
 
   const segmentRole = roleToValue(roleLabel);
-  const segmentPlan = planToValue(planLabel);
 
   async function loadHistory() {
     const res = await fetch("/api/admin/campaigns");
@@ -61,7 +52,7 @@ export default function AdminCampaignsPage() {
   // "reaches ~N users" before committing to a send.
   useEffect(() => {
     setPreviewCount(null);
-  }, [segmentRole, segmentPlan]);
+  }, [segmentRole]);
 
   async function handlePreview() {
     setPreviewing(true);
@@ -74,7 +65,6 @@ export default function AdminCampaignsPage() {
           subject: subject || "(preview)",
           html_body: htmlBody || "(preview)",
           segment_role: segmentRole,
-          segment_plan: segmentPlan,
           preview_only: true,
         }),
       });
@@ -103,7 +93,6 @@ export default function AdminCampaignsPage() {
           subject,
           html_body: htmlBody,
           segment_role: segmentRole,
-          segment_plan: segmentPlan,
         }),
       });
       const body = await res.json();
@@ -150,20 +139,12 @@ export default function AdminCampaignsPage() {
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <SelectField
-            label="Audience"
-            options={ROLE_OPTIONS as unknown as string[]}
-            value={roleLabel}
-            onChange={(e) => setRoleLabel(e.target.value as (typeof ROLE_OPTIONS)[number])}
-          />
-          <SelectField
-            label="Plan"
-            options={PLAN_OPTIONS as unknown as string[]}
-            value={planLabel}
-            onChange={(e) => setPlanLabel(e.target.value as (typeof PLAN_OPTIONS)[number])}
-          />
-        </div>
+        <SelectField
+          label="Audience"
+          options={ROLE_OPTIONS as unknown as string[]}
+          value={roleLabel}
+          onChange={(e) => setRoleLabel(e.target.value as (typeof ROLE_OPTIONS)[number])}
+        />
 
         <div className="flex flex-wrap items-center gap-3">
           <Button type="button" variant="secondary" onClick={handlePreview} disabled={previewing}>
@@ -198,7 +179,6 @@ export default function AdminCampaignsPage() {
             </div>
             <p className="mt-1 text-xs text-muted">
               {c.segment_role === "all" ? "All members" : c.segment_role === "buyer" ? "Buyers" : "Sellers"} ·{" "}
-              {c.segment_plan === "all" ? "Free + paid" : c.segment_plan === "free" ? "Free only" : "Paid only"} ·{" "}
               {c.sent_count}/{c.total_recipients} delivered{c.failed_count > 0 ? `, ${c.failed_count} failed` : ""}
             </p>
           </div>

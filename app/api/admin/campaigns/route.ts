@@ -5,21 +5,19 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email";
 
 /**
- * Splits the user base by role (buyer/seller/all) and plan (free/paid) so
- * admins can target offers narrowly — e.g. a discount nudge to free buyers
- * only, or a renewal reminder to paid sellers only.
+ * Splits the user base by role (buyer/seller/all) so admins can target
+ * offers narrowly — e.g. a nudge to sellers only, or an announcement to
+ * everyone.
  *
- * "Paid" for a buyer means buyer_plan is anything other than 'free'.
- * "Paid" for a seller means seller_plan = 'monthly' (commission-only sellers
- * count as free, since they haven't subscribed to anything).
+ * (This used to also segment by plan — free vs. paid — but subscription
+ * plans were removed product-wide, so every account is permanently
+ * "free" now and that filter either matched everyone or nobody depending
+ * on which way you set it. Dropped from Admin -> Campaigns accordingly.)
  */
-async function resolveRecipients(
-  segmentRole: "all" | "buyer" | "seller",
-  segmentPlan: "all" | "free" | "paid"
-) {
+async function resolveRecipients(segmentRole: "all" | "buyer" | "seller") {
   const serviceClient = createServiceClient();
 
-  let query = serviceClient.from("profiles").select("id, full_name, role, buyer_plan, seller_plan");
+  let query = serviceClient.from("profiles").select("id, full_name, role");
 
   if (segmentRole === "buyer") query = query.in("role", ["buyer", "both"]);
   else if (segmentRole === "seller") query = query.in("role", ["seller", "both"]);
@@ -27,15 +25,6 @@ async function resolveRecipients(
 
   const { data: profiles, error } = await query;
   if (error || !profiles) return { error: error?.message ?? "Could not load users", recipients: [] as { id: string; email: string }[] };
-
-  const filtered = profiles.filter((p) => {
-    if (segmentPlan === "all") return true;
-    const isBuyerPaid = (p.buyer_plan ?? "free") !== "free";
-    const isSellerPaid = p.seller_plan === "monthly";
-    const isPaid =
-      segmentRole === "buyer" ? isBuyerPaid : segmentRole === "seller" ? isSellerPaid : isBuyerPaid || isSellerPaid;
-    return segmentPlan === "paid" ? isPaid : !isPaid;
-  });
 
   // Emails live on auth.users, not profiles.
   const emails = new Map<string, string>();
@@ -50,7 +39,7 @@ async function resolveRecipients(
     page += 1;
   }
 
-  const recipients = filtered
+  const recipients = profiles
     .map((p) => ({ id: p.id, email: emails.get(p.id) ?? "" }))
     .filter((r) => r.email);
 
@@ -75,7 +64,6 @@ const sendSchema = z.object({
   subject: z.string().trim().min(1).max(200),
   html_body: z.string().trim().min(1),
   segment_role: z.enum(["all", "buyer", "seller"]).default("all"),
-  segment_plan: z.enum(["all", "free", "paid"]).default("all"),
   // If true, only counts recipients and returns without sending — used by
   // the admin UI to show "This will reach 214 users" before the real send.
   preview_only: z.boolean().optional(),
@@ -91,9 +79,9 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
-  const { subject, html_body, segment_role, segment_plan, preview_only } = parsed.data;
+  const { subject, html_body, segment_role, preview_only } = parsed.data;
 
-  const { error: recipientsError, recipients } = await resolveRecipients(segment_role, segment_plan);
+  const { error: recipientsError, recipients } = await resolveRecipients(segment_role);
   if (recipientsError) return NextResponse.json({ error: recipientsError }, { status: 500 });
 
   if (preview_only) {
@@ -110,7 +98,6 @@ export async function POST(request: Request) {
       subject,
       html_body,
       segment_role,
-      segment_plan,
       status: "sending",
       total_recipients: recipients.length,
       created_by: adminId,
@@ -150,7 +137,7 @@ export async function POST(request: Request) {
     action: "email_campaign_sent",
     target_table: "email_campaigns",
     target_id: campaign.id,
-    metadata: { subject, segment_role, segment_plan, sent, failed, total: recipients.length },
+    metadata: { subject, segment_role, sent, failed, total: recipients.length },
   });
 
   return NextResponse.json({ ok: true, sent, failed, total: recipients.length });

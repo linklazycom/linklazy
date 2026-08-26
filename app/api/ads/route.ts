@@ -20,22 +20,6 @@ export async function GET(request: Request) {
 
   const supabase = await createClient();
 
-  if (adsEnabled === "free_only") {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (user) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("buyer_plan")
-        .eq("id", user.id)
-        .single();
-      const isPaid = profile?.buyer_plan && profile.buyer_plan !== "free";
-      if (isPaid) return NextResponse.json({ slot: null });
-    }
-  }
-
   const { data: slots } = await supabase
     .from("ad_slots")
     .select("id, kind, image_url, link_url, html_code, alt_text")

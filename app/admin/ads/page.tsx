@@ -26,7 +26,6 @@ const KNOWN_PLACEMENTS = [
 
 const AUDIENCE_OPTIONS = [
   { value: "off", label: "Ads off everywhere" },
-  { value: "free_only", label: "Show only to free-plan buyers & logged-out visitors" },
   { value: "all", label: "Show to everyone" },
 ];
 

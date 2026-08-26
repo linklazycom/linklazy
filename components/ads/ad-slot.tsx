@@ -15,11 +15,13 @@ interface AdSlotRow {
 /**
  * Renders nothing if:
  *  - the global site_settings.ads_enabled kill switch is "off", or
- *  - no active ad_slots row exists for this placement, or
- *  - ads_enabled is "free_only" and the current user is on a paid plan.
+ *  - no active ad_slots row exists for this placement.
  *
- * Logged-out visitors always count as "free" for the free_only check —
- * they haven't paid for anything.
+ * (Ads used to also have a "free_only" audience mode, hidden from buyers
+ * on a paid subscription plan. Subscription plans were removed
+ * product-wide, so that distinction no longer means anything — every
+ * buyer is on the same "free" plan forever now — and the option was
+ * dropped from Admin -> Ads accordingly.)
  */
 export async function AdSlot({ placement }: { placement: string }) {
   const settings = await getSiteSettings();
@@ -27,22 +29,6 @@ export async function AdSlot({ placement }: { placement: string }) {
   if (adsEnabled === "off") return null;
 
   const supabase = await createClient();
-
-  if (adsEnabled === "free_only") {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (user) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("buyer_plan")
-        .eq("id", user.id)
-        .single();
-      const isPaid = profile?.buyer_plan && profile.buyer_plan !== "free";
-      if (isPaid) return null;
-    }
-  }
 
   const { data: slots } = await supabase
     .from("ad_slots")

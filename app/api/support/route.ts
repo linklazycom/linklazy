@@ -62,15 +62,27 @@ export async function POST(request: Request) {
   // Notify the admin inbox — best-effort, doesn't block ticket creation if email isn't configured.
   const settings = await getSiteSettings();
   const adminEmail = settings.contact_email as string;
+  const escapeHtml = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   if (adminEmail) {
-    const escapeHtml = (s: string) =>
-      s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     await sendEmail({
       to: adminEmail,
       subject: `New support ticket: ${subject}`,
       html: `<p><strong>${escapeHtml(name)}</strong> (${escapeHtml(email)}) opened a new ticket:</p><p>${escapeHtml(message).replace(/\n/g, "<br/>")}</p><p><a href="${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/admin/support/${ticket.id}">View in admin</a></p>`,
     });
   }
+
+  // Confirmation to the ticket creator, with their access link — this is
+  // their only way back into the thread if they're a guest (not logged
+  // in) and close the tab without bookmarking the URL the frontend
+  // redirects them to. Without this, a guest who loses that tab has no
+  // way to ever see the admin's reply.
+  const ticketUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/support/${ticket.id}?token=${ticket.access_token}`;
+  await sendEmail({
+    to: email,
+    subject: `We got your message: ${subject}`,
+    html: `<p>Hi ${escapeHtml(name)},</p><p>Thanks for reaching out — we've received your message and will reply soon.</p><p><a href="${ticketUrl}">View your ticket</a> any time to check for a reply. Save this link — it's the only way to get back to this conversation.</p>`,
+  });
 
   return NextResponse.json({ id: ticket.id, access_token: ticket.access_token });
 }

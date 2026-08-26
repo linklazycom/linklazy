@@ -22,7 +22,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const { data: ticket } = await supabase
     .from("support_tickets")
-    .select("id, name, email, subject")
+    .select("id, name, email, subject, access_token, user_id")
     .eq("id", id)
     .single();
 
@@ -47,10 +47,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const escapeHtml = (s: string) =>
     s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
+  // No inbound-email handler exists — a reply to this email address goes
+  // nowhere, so the message can't tell the customer to "reply to this
+  // email" (it used to, which silently swallowed any reply they sent).
+  // Logged-in ticket owners land on their dashboard thread; guests need
+  // the token link since that's their only way back in.
+  const ticketUrl = ticket.user_id
+    ? `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/dashboard/support/${id}`
+    : `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/support/${id}?token=${ticket.access_token}`;
+
   await sendEmail({
     to: ticket.email,
     subject: `Re: ${ticket.subject}`,
-    html: `<p>${escapeHtml(parsed.data.message).replace(/\n/g, "<br/>")}</p><p style="color:#6B7280;font-size:12px;margin-top:16px;">Reply to this email, or continue the thread on our support page.</p>`,
+    html: `<p>${escapeHtml(parsed.data.message).replace(/\n/g, "<br/>")}</p><p style="color:#6B7280;font-size:12px;margin-top:16px;"><a href="${ticketUrl}">View and reply on our support page</a> — replies to this email address aren't monitored.</p>`,
   });
 
   return NextResponse.json({ ok: true });
