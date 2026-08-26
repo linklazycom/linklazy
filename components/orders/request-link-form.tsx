@@ -36,6 +36,9 @@ export function RequestLinkForm({
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [couponCode, setCouponCode] = useState("");
+  const [couponChecking, setCouponChecking] = useState(false);
+  const [couponResult, setCouponResult] = useState<{ valid: boolean; error?: string; discountAmount?: number; finalAmount?: number } | null>(null);
 
   useEffect(() => {
     async function loadWallet() {
@@ -59,6 +62,21 @@ export function RequestLinkForm({
       setPaymentMethod("bkash");
     }
   }, [walletBalance, priceAmount, orderType]);
+
+  async function handleApplyCoupon() {
+    if (!couponCode.trim() || priceAmount == null) return;
+    setCouponChecking(true);
+    setCouponResult(null);
+    try {
+      const res = await fetch(
+        `/api/coupons/validate?code=${encodeURIComponent(couponCode.trim())}&amount=${priceAmount}`
+      );
+      const body = await res.json();
+      setCouponResult(body);
+    } finally {
+      setCouponChecking(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -98,6 +116,7 @@ export function RequestLinkForm({
       target_url: targetUrl,
       anchor_text: anchorText,
       notes,
+      coupon_code: paymentMethod !== "wallet" && couponResult?.valid ? couponCode.trim() : undefined,
     };
 
     const res = await fetch("/api/orders", {
@@ -204,6 +223,44 @@ export function RequestLinkForm({
               </a>
               .
             </p>
+          )}
+          {paymentMethod !== "wallet" && (
+            <div className="mt-3">
+              <label htmlFor="coupon_code" className="mb-1 block text-sm text-muted">
+                Coupon code (optional)
+              </label>
+              <div className="flex gap-2">
+                <input
+                  id="coupon_code"
+                  value={couponCode}
+                  onChange={(e) => {
+                    setCouponCode(e.target.value);
+                    setCouponResult(null);
+                  }}
+                  placeholder="LINKLAZY10"
+                  className="w-full rounded-chip border border-line px-3 py-2 text-sm outline-none focus:border-signal"
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleApplyCoupon}
+                  disabled={couponChecking || !couponCode.trim()}
+                >
+                  {couponChecking ? "Checking…" : "Apply"}
+                </Button>
+              </div>
+              {couponResult && !couponResult.valid && (
+                <p className="mt-1 text-xs text-red-600">{couponResult.error}</p>
+              )}
+              {couponResult?.valid && (
+                <p className="mt-1 text-xs text-signal">
+                  Coupon applied — new total <Money amount={couponResult.finalAmount ?? priceAmount} />
+                </p>
+              )}
+              <p className="mt-1 text-xs text-muted">
+                Coupons apply to bKash and PayPal checkout only, not wallet payment.
+              </p>
+            </div>
           )}
         </div>
       )}

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { checkCoupon } from "@/lib/coupons";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -9,35 +10,18 @@ export async function GET(request: Request) {
   if (!code) return NextResponse.json({ valid: false, error: "Missing code" }, { status: 400 });
 
   const supabase = createServiceClient();
-  const { data: coupon } = await supabase
-    .from("coupons")
-    .select("id, code, discount_type, discount_value, max_redemptions, redemption_count, active, expires_at")
-    .eq("code", code)
-    .maybeSingle();
+  const result = await checkCoupon(supabase, code, amount);
 
-  if (!coupon || !coupon.active) {
-    return NextResponse.json({ valid: false, error: "Invalid or inactive coupon code." });
+  if (!result.ok || !result.coupon) {
+    return NextResponse.json({ valid: false, error: result.error });
   }
-
-  if (coupon.expires_at && new Date(coupon.expires_at) < new Date()) {
-    return NextResponse.json({ valid: false, error: "This coupon has expired." });
-  }
-
-  if (coupon.max_redemptions !== null && coupon.redemption_count >= coupon.max_redemptions) {
-    return NextResponse.json({ valid: false, error: "This coupon has reached its usage limit." });
-  }
-
-  const discount =
-    coupon.discount_type === "percent"
-      ? Math.round(amount * (coupon.discount_value / 100))
-      : Math.min(amount, Math.round(coupon.discount_value));
 
   return NextResponse.json({
     valid: true,
-    couponId: coupon.id,
-    discountType: coupon.discount_type,
-    discountValue: coupon.discount_value,
-    discountAmount: discount,
-    finalAmount: Math.max(0, amount - discount),
+    couponId: result.coupon.id,
+    discountType: result.coupon.discount_type,
+    discountValue: result.coupon.discount_value,
+    discountAmount: result.discountAmount,
+    finalAmount: result.finalAmount,
   });
 }

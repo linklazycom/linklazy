@@ -8,6 +8,7 @@ export const createOrderSchema = z.object({
   target_url: z.string().url(),
   anchor_text: z.string().trim().min(1).max(200),
   notes: z.string().trim().max(1000).optional(),
+  coupon_code: z.string().trim().max(50).optional(),
 });
 
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
