@@ -11,7 +11,7 @@ const paySchema = z.object({
 /** Reads the platform's BDT-per-USD exchange rate (same source as /api/currency). */
 async function getBdtPerUsd(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data } = await supabase
-    .from("admin_settings")
+    .from("site_settings")
     .select("value")
     .eq("key", "bdt_per_usd")
     .maybeSingle();

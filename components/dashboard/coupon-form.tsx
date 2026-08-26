@@ -11,7 +11,6 @@ export function CouponForm() {
   const [code, setCode] = useState("");
   const [discountType, setDiscountType] = useState<"percent" | "fixed">("percent");
   const [discountValue, setDiscountValue] = useState("");
-  const [appliesTo, setAppliesTo] = useState<"subscription" | "order" | "both">("both");
   const [maxRedemptions, setMaxRedemptions] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -24,11 +23,13 @@ export function CouponForm() {
 
     // RLS ("admins can manage coupons") enforces this insert only
     // succeeds for an admin session — no separate API route needed.
+    // applies_to is always "order": subscription plans were removed
+    // product-wide, so orders are the only thing a coupon can discount.
     const { error } = await supabase.from("coupons").insert({
       code: code.trim().toUpperCase(),
       discount_type: discountType,
       discount_value: Number(discountValue),
-      applies_to: appliesTo,
+      applies_to: "order",
       max_redemptions: maxRedemptions ? Number(maxRedemptions) : null,
       expires_at: expiresAt ? new Date(expiresAt).toISOString() : null,
     });
@@ -89,21 +90,6 @@ export function CouponForm() {
           onChange={(e) => setDiscountValue(e.target.value)}
           className="w-full rounded-chip border border-line px-3 py-2 text-sm outline-none focus:border-signal"
         />
-      </div>
-      <div>
-        <label htmlFor="applies_to" className="mb-1 block text-sm text-muted">
-          Applies to
-        </label>
-        <select
-          id="applies_to"
-          value={appliesTo}
-          onChange={(e) => setAppliesTo(e.target.value as "subscription" | "order" | "both")}
-          className="w-full rounded-chip border border-line px-3 py-2 text-sm outline-none focus:border-signal"
-        >
-          <option value="both">Both plans & orders</option>
-          <option value="subscription">Subscriptions only</option>
-          <option value="order">Orders only</option>
-        </select>
       </div>
       <div>
         <label htmlFor="max_redemptions" className="mb-1 block text-sm text-muted">

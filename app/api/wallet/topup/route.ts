@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   if (provider === "paypal") {
     try {
       const { data: rateRow } = await supabase
-        .from("admin_settings")
+        .from("site_settings")
         .select("value")
         .eq("key", "bdt_per_usd")
         .maybeSingle();

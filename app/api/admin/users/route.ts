@@ -77,7 +77,11 @@ export async function POST(request: Request) {
     email,
     password: tempPassword,
     email_confirm: true,
-    user_metadata: { full_name },
+    // created_by_admin lets the enforce_signup_open DB trigger (see
+    // sql/002_enforce_signup_open.sql) tell an admin-created account apart
+    // from public self-registration, so admins can still add users while
+    // signup is toggled closed to the public.
+    user_metadata: { full_name, created_by_admin: true },
   });
 
   if (createError || !created?.user) {

@@ -29,7 +29,11 @@ export default async function AdminCouponsPage() {
                   value={c.discount_type === "percent" ? `${c.discount_value}%` : `৳${c.discount_value}`}
                   tone="price"
                 />
-                <MetricChip label={c.active ? "Active" : "Inactive"} value={c.applies_to} tone={c.active ? "verified" : "default"} />
+                <MetricChip
+                  label={c.active ? "Active" : "Inactive"}
+                  value={c.active ? "yes" : "no"}
+                  tone={c.active ? "verified" : "default"}
+                />
               </div>
             </div>
             <p className="text-xs text-muted">
