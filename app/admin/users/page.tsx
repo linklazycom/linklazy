@@ -16,11 +16,6 @@ interface UserRow {
   is_banned: boolean;
   banned_reason: string | null;
   seller_tier: string | null;
-  buyer_plan: string;
-  buyer_views_quota: number;
-  buyer_views_used: number;
-  buyer_plan_renews_at: string | null;
-  seller_plan: string | null;
   wallet_balance: number;
   email_confirmed: boolean;
 }
@@ -32,20 +27,12 @@ interface FraudSignal {
   total_sites: number;
 }
 
-const BUYER_PLANS = ["free", "starter", "growth", "pro"];
-const SELLER_PLANS = ["commission", "monthly"];
-
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [signals, setSignals] = useState<Map<string, FraudSignal>>(new Map());
   const [busyId, setBusyId] = useState<string | null>(null);
   const [showOnlyFlagged, setShowOnlyFlagged] = useState(false);
   const [search, setSearch] = useState("");
-  const [expandedSub, setExpandedSub] = useState<string | null>(null);
-  const [subDraft, setSubDraft] = useState<{ buyer_plan: string; seller_plan: string }>({
-    buyer_plan: "free",
-    seller_plan: "commission",
-  });
   const [expandedWallet, setExpandedWallet] = useState<string | null>(null);
   const [walletDraft, setWalletDraft] = useState<{ amount: string; notes: string }>({
     amount: "",
@@ -173,31 +160,6 @@ export default function AdminUsersPage() {
     load();
   }
 
-  function openSubscriptionPanel(u: UserRow) {
-    setExpandedSub(expandedSub === u.id ? null : u.id);
-    setSubDraft({ buyer_plan: u.buyer_plan, seller_plan: u.seller_plan ?? "commission" });
-  }
-
-  async function saveSubscription(u: UserRow) {
-    setBusyId(u.id);
-    const res = await fetch(`/api/admin/users/${u.id}/subscription`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        buyer_plan: subDraft.buyer_plan,
-        seller_plan: subDraft.seller_plan,
-      }),
-    });
-    setBusyId(null);
-    if (!res.ok) {
-      const body = await res.json();
-      setMessage(body.error ?? "Could not update subscription.");
-      return;
-    }
-    setExpandedSub(null);
-    load();
-  }
-
   const visibleUsers = users
     .filter((u) => (showOnlyFlagged ? u.is_flagged || signals.has(u.id) : true))
     .filter((u) => {
@@ -255,8 +217,6 @@ export default function AdminUsersPage() {
                     {u.seller_tier && u.seller_tier !== "unranked" && (
                       <MetricChip label="Tier" value={u.seller_tier} tone="verified" />
                     )}
-                    <MetricChip label="Buyer plan" value={u.buyer_plan} />
-                    {u.seller_plan && <MetricChip label="Seller plan" value={u.seller_plan} />}
                     {u.is_suspended && <MetricChip label="Status" value="suspended" />}
                     {u.is_banned && <MetricChip label="Status" value="banned" tone="price" />}
                     {u.is_flagged && <MetricChip label="Flagged" value="yes" tone="price" />}
@@ -310,14 +270,6 @@ export default function AdminUsersPage() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => openSubscriptionPanel(u)}
-                    disabled={busyId === u.id}
-                  >
-                    {expandedSub === u.id ? "Close" : "Manage subscription"}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
                     onClick={() => openWalletPanel(u)}
                     disabled={busyId === u.id}
                   >
@@ -332,46 +284,6 @@ export default function AdminUsersPage() {
                   </button>
                 </div>
 
-                {expandedSub === u.id && (
-                  <div className="mt-3 flex flex-wrap items-end gap-3 border-t border-line pt-3">
-                    <div>
-                      <label className="mb-1 block text-xs text-muted">Buyer plan</label>
-                      <select
-                        value={subDraft.buyer_plan}
-                        onChange={(e) => setSubDraft((prev) => ({ ...prev, buyer_plan: e.target.value }))}
-                        className="rounded-chip border border-line px-2 py-1.5 text-sm"
-                      >
-                        {BUYER_PLANS.map((p) => (
-                          <option key={p} value={p}>
-                            {p}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs text-muted">Seller plan</label>
-                      <select
-                        value={subDraft.seller_plan}
-                        onChange={(e) => setSubDraft((prev) => ({ ...prev, seller_plan: e.target.value }))}
-                        className="rounded-chip border border-line px-2 py-1.5 text-sm"
-                      >
-                        {SELLER_PLANS.map((p) => (
-                          <option key={p} value={p}>
-                            {p}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <p className="text-xs text-muted">
-                      Views used: {u.buyer_views_used}/{u.buyer_views_quota} · Wallet ৳{u.wallet_balance}
-                      {u.buyer_plan_renews_at &&
-                        ` · renews ${new Date(u.buyer_plan_renews_at).toLocaleDateString()}`}
-                    </p>
-                    <Button size="sm" onClick={() => saveSubscription(u)} disabled={busyId === u.id}>
-                      {busyId === u.id ? "Saving…" : "Save"}
-                    </Button>
-                  </div>
-                )}
 
                 {expandedWallet === u.id && (
                   <div className="mt-3 flex flex-wrap items-end gap-3 border-t border-line pt-3">

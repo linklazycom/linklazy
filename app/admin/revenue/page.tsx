@@ -5,7 +5,6 @@ import { Money } from "@/components/currency/money";
 interface DayBucket {
   date: string;
   commission: number;
-  subscription: number;
   payPerView: number;
 }
 
@@ -31,10 +30,16 @@ export default async function AdminRevenuePage({
   const sinceIso = since.toISOString();
 
   // ---- 1. Order commissions (escrow fee on completed paid orders) ----
+  // Commission is finalized when the buyer accepts delivery (order status
+  // flips to "accepted" — see app/api/orders/[id]/accept/route.ts). Orders
+  // never carry a "released" status themselves ("released" is a *payments*
+  // row status); querying orders for status "released" silently matched
+  // zero rows and made this whole section always show ৳0.
   const { data: releasedOrders } = await supabase
     .from("orders")
     .select("id, commission_amount, price_amount, created_at, status")
-    .eq("status", "released")
+    .eq("status", "accepted")
+    .not("commission_amount", "is", null)
     .gte("created_at", sinceIso);
 
   const commissionTotal = (releasedOrders ?? []).reduce(
@@ -43,17 +48,7 @@ export default async function AdminRevenuePage({
   );
   const gmvFromOrders = (releasedOrders ?? []).reduce((sum, o) => sum + (o.price_amount ?? 0), 0);
 
-  // ---- 2. Subscription revenue (buyer + seller monthly plans, via bKash) ----
-  const { data: subscriptionPayments } = await supabase
-    .from("payments")
-    .select("amount, created_at")
-    .not("subscription_id", "is", null)
-    .eq("status", "released")
-    .gte("created_at", sinceIso);
-
-  const subscriptionTotal = (subscriptionPayments ?? []).reduce((sum, p) => sum + p.amount, 0);
-
-  // ---- 3. Pay-per-view platform fees (20% cut, logged in wallet_ledger) ----
+  // ---- 2. Pay-per-view platform fees (20% cut, logged in wallet_ledger) ----
   const { data: ppvFees } = await supabase
     .from("wallet_ledger")
     .select("amount, created_at")
@@ -78,7 +73,7 @@ export default async function AdminRevenuePage({
 
   const pendingWithdrawalTotal = (pendingWithdrawals ?? []).reduce((sum, w) => sum + w.amount, 0);
 
-  const totalRevenue = commissionTotal + subscriptionTotal + ppvFeeTotal;
+  const totalRevenue = commissionTotal + ppvFeeTotal;
 
   // ---- Daily breakdown (for the ranges people actually look at day-by-day) ----
   const buckets = new Map<string, DayBucket>();
@@ -86,12 +81,11 @@ export default async function AdminRevenuePage({
 
   function addTo(iso: string, field: keyof Omit<DayBucket, "date">, amount: number) {
     const key = keyFn(iso);
-    if (!buckets.has(key)) buckets.set(key, { date: key, commission: 0, subscription: 0, payPerView: 0 });
+    if (!buckets.has(key)) buckets.set(key, { date: key, commission: 0, payPerView: 0 });
     buckets.get(key)![field] += amount;
   }
 
   (releasedOrders ?? []).forEach((o) => addTo(o.created_at, "commission", o.commission_amount ?? 0));
-  (subscriptionPayments ?? []).forEach((p) => addTo(p.created_at, "subscription", p.amount));
   (ppvFees ?? []).forEach((f) => addTo(f.created_at, "payPerView", Math.abs(f.amount)));
 
   const rows = [...buckets.values()].sort((a, b) => (a.date < b.date ? 1 : -1));
@@ -139,7 +133,6 @@ export default async function AdminRevenuePage({
       <div className="mb-8 flex flex-wrap gap-2">
         <MetricChip label={`Total revenue (${days}d)`} value={totalRevenue} tone="price" />
         <MetricChip label="Order commissions" value={commissionTotal} />
-        <MetricChip label="Subscriptions" value={subscriptionTotal} />
         <MetricChip label="Pay-per-view fees" value={ppvFeeTotal} />
         <MetricChip label="GMV (paid orders)" value={gmvFromOrders} />
       </div>
@@ -169,7 +162,6 @@ export default async function AdminRevenuePage({
               <tr className="border-b border-line text-left text-xs text-muted">
                 <th className="py-2 font-normal">{days > 30 ? "Month" : "Date"}</th>
                 <th className="py-2 text-right font-normal">Commission</th>
-                <th className="py-2 text-right font-normal">Subscription</th>
                 <th className="py-2 text-right font-normal">Pay-per-view</th>
                 <th className="py-2 text-right font-normal">Total</th>
               </tr>
@@ -182,19 +174,16 @@ export default async function AdminRevenuePage({
                     <Money amount={r.commission} />
                   </td>
                   <td className="py-2 text-right font-mono">
-                    <Money amount={r.subscription} />
-                  </td>
-                  <td className="py-2 text-right font-mono">
                     <Money amount={r.payPerView} />
                   </td>
                   <td className="py-2 text-right font-mono font-medium">
-                    <Money amount={r.commission + r.subscription + r.payPerView} />
+                    <Money amount={r.commission + r.payPerView} />
                   </td>
                 </tr>
               ))}
               {!rows.length && (
                 <tr>
-                  <td colSpan={5} className="py-4 text-center text-muted">
+                  <td colSpan={4} className="py-4 text-center text-muted">
                     No revenue recorded in this period.
                   </td>
                 </tr>
@@ -238,8 +227,8 @@ export default async function AdminRevenuePage({
       </div>
 
       <p className="mt-6 text-xs text-muted">
-        Commission and subscription figures count as revenue when the underlying escrow/payment is
-        released (not just initiated). Pay-per-view fees are counted at the moment of unlock — the
+        Commission counts as revenue as soon as the buyer accepts delivery (escrow is released to
+        the seller at that point). Pay-per-view fees are counted at the moment of unlock — the
         seller&apos;s 80% share still sits in the hold period tracked on the{" "}
         <a href="/admin/ppv-unlocks" className="underline">
           Pay-per-view unlocks
