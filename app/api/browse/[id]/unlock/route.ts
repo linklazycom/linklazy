@@ -57,9 +57,9 @@ async function handleQuotaUnlock(
     .eq("id", userId)
     .single();
 
-  if (!profile || profile.buyer_plan === "free") {
+  if (!profile || profile.buyer_plan === "free" || !profile.buyer_views_quota) {
     return NextResponse.json(
-      { error: "Upgrade to a paid plan to unlock site details." },
+      { error: "No plan views available on this account. Try paying per view instead." },
       { status: 402 }
     );
   }

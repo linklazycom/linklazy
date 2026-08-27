@@ -10,47 +10,6 @@ import { VerifyEmailBanner } from "@/components/layout/verify-email-banner";
 import { GlobalSearch } from "@/components/search/global-search";
 import { AdSlot } from "@/components/ads/ad-slot";
 
-const NAV: AdminNavGroup[] = [
-  {
-    label: "Overview",
-    href: "/dashboard",
-    items: [
-      { href: "/dashboard", label: "Overview" },
-      { href: "/dashboard/analytics", label: "My analytics" },
-    ],
-  },
-  {
-    label: "Marketplace",
-    items: [
-      { href: "/browse", label: "Browse" },
-      { href: "/dashboard/sites", label: "My sites" },
-      { href: "/dashboard/scan-site", label: "Scan my site for links" },
-      { href: "/dashboard/scan-site/history", label: "Scan history" },
-      { href: "/dashboard/matches", label: "Exchange matches" },
-      { href: "/dashboard/watchlist", label: "Watchlist" },
-      { href: "/dashboard/saved-searches", label: "Saved searches" },
-    ],
-  },
-  {
-    label: "Orders",
-    items: [
-      { href: "/dashboard/orders", label: "Orders" },
-      { href: "/dashboard/inquiries", label: "Pre-sale inquiries" },
-      { href: "/dashboard/press-releases", label: "Press releases" },
-    ],
-  },
-  {
-    label: "Account",
-    items: [
-      { href: "/dashboard/messages", label: "Messages" },
-      { href: "/dashboard/support", label: "My tickets" },
-      { href: "/dashboard/referrals", label: "Referrals" },
-      { href: "/dashboard/billing", label: "Billing" },
-      { href: "/dashboard/wallet", label: "Wallet" },
-    ],
-  },
-];
-
 export default async function DashboardLayout({
   children,
 }: {
@@ -68,6 +27,54 @@ export default async function DashboardLayout({
     .select("full_name, role")
     .eq("id", user.id)
     .single();
+
+  const role = profile?.role ?? "buyer";
+  const canSell = role === "seller" || role === "both" || role === "admin";
+
+  const NAV: AdminNavGroup[] = [
+    {
+      label: "Overview",
+      href: "/dashboard",
+      items: [
+        { href: "/dashboard", label: "Overview" },
+        { href: "/dashboard/analytics", label: "My analytics" },
+      ],
+    },
+    {
+      label: "Marketplace",
+      items: [
+        { href: "/browse", label: "Browse" },
+        ...(canSell
+          ? [
+              { href: "/dashboard/sites", label: "My sites" },
+              { href: "/dashboard/scan-site", label: "Scan my site for links" },
+              { href: "/dashboard/scan-site/history", label: "Scan history" },
+              { href: "/dashboard/matches", label: "Exchange matches" },
+            ]
+          : []),
+        { href: "/dashboard/watchlist", label: "Watchlist" },
+        { href: "/dashboard/saved-searches", label: "Saved searches" },
+      ],
+    },
+    {
+      label: "Orders",
+      items: [
+        { href: "/dashboard/orders", label: "Orders" },
+        { href: "/dashboard/inquiries", label: "Pre-sale inquiries" },
+        ...(canSell ? [{ href: "/dashboard/press-releases", label: "Press releases" }] : []),
+      ],
+    },
+    {
+      label: "Account",
+      items: [
+        { href: "/dashboard/messages", label: "Messages" },
+        { href: "/dashboard/support", label: "My tickets" },
+        { href: "/dashboard/referrals", label: "Referrals" },
+        { href: "/dashboard/billing", label: "Billing" },
+        { href: "/dashboard/wallet", label: "Wallet" },
+      ],
+    },
+  ];
 
   const sidebarContent = (
     <>

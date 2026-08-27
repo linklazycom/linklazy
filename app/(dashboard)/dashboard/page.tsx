@@ -11,9 +11,12 @@ export default async function DashboardOverviewPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, role, buyer_plan, buyer_views_quota, buyer_views_used")
+    .select("full_name, role, wallet_balance")
     .eq("id", user!.id)
     .single();
+
+  const role = profile?.role ?? "buyer";
+  const canSell = role === "seller" || role === "both" || role === "admin";
 
   const [
     { count: mySitesCount },
@@ -47,8 +50,6 @@ export default async function DashboardOverviewPage() {
       .eq("status", "disputed"),
   ]);
 
-  const remaining = Math.max((profile?.buyer_views_quota ?? 0) - (profile?.buyer_views_used ?? 0), 0);
-
   return (
     <div>
       <h1 className="mb-1 font-display text-2xl font-medium">
@@ -57,18 +58,20 @@ export default async function DashboardOverviewPage() {
       <p className="mb-8 text-sm text-muted capitalize">{profile?.role ?? "buyer"} account</p>
 
       <div className="mb-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-        <div className="rounded-chip border border-line bg-white p-5">
-          <p className="mb-1 text-xs text-muted">My sites</p>
-          <p className="mb-3 font-display text-2xl font-medium">{mySitesCount ?? 0}</p>
-          {!!pendingSitesCount && (
-            <MetricChip label="Pending review" value={pendingSitesCount} tone="price" />
-          )}
-          <div className="mt-3">
-            <Link href="/dashboard/sites" className="text-sm text-brand-violet underline">
-              Manage sites
-            </Link>
+        {canSell && (
+          <div className="rounded-chip border border-line bg-white p-5">
+            <p className="mb-1 text-xs text-muted">My sites</p>
+            <p className="mb-3 font-display text-2xl font-medium">{mySitesCount ?? 0}</p>
+            {!!pendingSitesCount && (
+              <MetricChip label="Pending review" value={pendingSitesCount} tone="price" />
+            )}
+            <div className="mt-3">
+              <Link href="/dashboard/sites" className="text-sm text-brand-violet underline">
+                Manage sites
+              </Link>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="rounded-chip border border-line bg-white p-5">
           <p className="mb-1 text-xs text-muted">Active orders</p>
@@ -84,13 +87,11 @@ export default async function DashboardOverviewPage() {
         </div>
 
         <div className="rounded-chip border border-line bg-white p-5">
-          <p className="mb-1 text-xs text-muted">Buyer views left</p>
-          <p className="mb-3 font-display text-2xl font-medium">
-            {profile?.buyer_plan === "free" ? "—" : `${remaining}/${profile?.buyer_views_quota ?? 0}`}
-          </p>
+          <p className="mb-1 text-xs text-muted">Wallet balance</p>
+          <p className="mb-3 font-display text-2xl font-medium">৳{profile?.wallet_balance ?? 0}</p>
           <div className="mt-3">
-            <Link href="/dashboard/billing" className="text-sm text-brand-violet underline">
-              {profile?.buyer_plan === "free" ? "Upgrade plan" : "Manage plan"}
+            <Link href="/dashboard/wallet" className="text-sm text-brand-violet underline">
+              Top up / manage
             </Link>
           </div>
         </div>
@@ -125,9 +126,11 @@ export default async function DashboardOverviewPage() {
                 Browse sites
               </Button>
             </Link>
-            <Link href="/dashboard/sites/new">
-              <Button size="sm">List a site</Button>
-            </Link>
+            {canSell && (
+              <Link href="/dashboard/sites/new">
+                <Button size="sm">List a site</Button>
+              </Link>
+            )}
           </div>
         </div>
       </div>

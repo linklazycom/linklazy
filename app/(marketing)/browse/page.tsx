@@ -2,13 +2,13 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { SlidersHorizontal, ShieldCheck, SearchX } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { MetricChip } from "@/components/ui/metric-chip";
 import { Field } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { SiteCard } from "@/components/sites/site-card";
 import { AdSlot } from "@/components/ads/ad-slot";
 import { maskDomain } from "@/lib/mask-domain";
 import { getSellerRatings } from "@/lib/seller-ratings";
+import { getUnlockedSiteIds } from "@/lib/unlocked-sites";
 
 export const metadata: Metadata = {
   title: "Browse Sites",
@@ -37,23 +37,10 @@ export default async function PublicBrowsePage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  let profile: { buyer_plan: string; buyer_views_quota: number; buyer_views_used: number } | null = null;
   let unlockedIds = new Set<string>();
 
   if (user) {
-    const { data: profileData } = await supabase
-      .from("profiles")
-      .select("buyer_plan, buyer_views_quota, buyer_views_used")
-      .eq("id", user.id)
-      .single();
-    profile = profileData;
-
-    const { data: unlocks } = await supabase
-      .from("credits_ledger")
-      .select("related_site_id")
-      .eq("user_id", user.id)
-      .eq("type", "unlock_spend");
-    unlockedIds = new Set((unlocks ?? []).map((u) => u.related_site_id));
+    unlockedIds = await getUnlockedSiteIds(supabase, user.id);
   }
 
   let query = supabase
@@ -81,9 +68,6 @@ export default async function PublicBrowsePage({
   const tierByOwner = new Map((sellerProfiles ?? []).map((p) => [p.id, p.seller_tier]));
   const nameByOwner = new Map((sellerProfiles ?? []).map((p) => [p.id, p.display_name]));
   const ratingByOwner = await getSellerRatings(supabase, ownerIds);
-
-  const isPaidPlan = profile && profile.buyer_plan !== "free";
-  const remaining = profile ? Math.max(profile.buyer_views_quota - profile.buyer_views_used, 0) : 0;
 
   return (
     <main className="relative">
@@ -115,29 +99,12 @@ export default async function PublicBrowsePage({
               site and place an order.
             </p>
           </div>
-          {user ? (
-            <MetricChip
-              label="Views left"
-              value={isPaidPlan ? `${remaining}/${profile!.buyer_views_quota}` : "Upgrade to unlock"}
-              tone={isPaidPlan && remaining > 0 ? "verified" : "default"}
-            />
-          ) : (
+          {!user && (
             <Link href="/register">
               <Button size="sm">Log in to unlock</Button>
             </Link>
           )}
         </div>
-
-        {user && !isPaidPlan && (
-          <div className="mb-6 rounded-chip border border-amber/40 bg-amber-soft p-4 text-sm">
-            You&apos;re on the Free plan — upgrade to unlock full listing
-            details and place orders.{" "}
-            <Link href="/dashboard/billing" className="underline">
-              View plans
-            </Link>
-            .
-          </div>
-        )}
 
         <form className="relative mb-8 grid grid-cols-2 gap-4 overflow-hidden rounded-chip border border-line bg-white p-5 shadow-sm md:grid-cols-5">
           <div className="absolute inset-x-0 top-0 h-1 bg-brand-gradient" />

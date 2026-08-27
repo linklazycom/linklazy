@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { WatchlistButton } from "@/components/watchlist/watchlist-button";
 import { SiteCard, type SiteCardData } from "@/components/sites/site-card";
+import { maskDomain } from "@/lib/mask-domain";
 
 const MAX_BULK = 10;
 
@@ -21,12 +22,17 @@ export function BulkOrderSelector({
   nameByOwner,
   ratingByOwner,
   currentUserId,
+  unlockedIds,
 }: {
   sites: SiteCardData[];
   tierByOwner: Map<string, string | null>;
   nameByOwner?: Map<string, string | null>;
   ratingByOwner?: Map<string, { avg: number; count: number }>;
   currentUserId: string;
+  /** Sites this buyer has already unlocked — shown with real domain and
+   * "View details" instead of a masked domain. Omit to always show the
+   * real domain (e.g. for surfaces with no unlock concept). */
+  unlockedIds?: Set<string>;
 }) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -52,6 +58,7 @@ export function BulkOrderSelector({
       <div className="grid gap-4 sm:grid-cols-2">
         {sites.map((site) => {
           const canBulk = site.accepts_paid && site.owner_id !== currentUserId;
+          const unlocked = !unlockedIds || unlockedIds.has(site.id);
           return (
             <SiteCard
               key={site.id}
@@ -61,6 +68,8 @@ export function BulkOrderSelector({
               sellerName={nameByOwner?.get(site.owner_id)}
               sellerRating={ratingByOwner?.get(site.owner_id) ?? null}
               sellerHref={`/profile/${site.owner_id}`}
+              displayDomain={unlocked ? site.domain : maskDomain(site.domain)}
+              ctaLabel={unlocked ? "View details" : "View Site"}
               actions={<WatchlistButton siteId={site.id} />}
               leading={
                 canBulk ? (

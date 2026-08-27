@@ -11,10 +11,10 @@ import { TrustBadges } from "@/components/reviews/trust-badges";
 import { ReviewsList } from "@/components/reviews/reviews-list";
 import { AdSlotClient } from "@/components/ads/ad-slot-client";
 import { SellerSidebarCard } from "@/components/profile/seller-sidebar-card";
+import { RequestLinkForm } from "@/components/orders/request-link-form";
 import { maskDomain } from "@/lib/mask-domain";
 import { Money } from "@/components/currency/money";
 import { FormattedText } from "@/components/ui/formatted-text";
-import { siteCtaLabel } from "@/lib/site-cta";
 
 interface SiteDetail {
   id: string;
@@ -74,9 +74,9 @@ export function SiteDetailClient({
   const [reviews, setReviews] = useState<Review[]>([]);
   const [unlocked, setUnlocked] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [buyerPlan, setBuyerPlan] = useState<string | null>(null);
-  const [quotaRemaining, setQuotaRemaining] = useState<number | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [walletBalance, setWalletBalance] = useState(0);
+  const [quotaViewsLeft, setQuotaViewsLeft] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -86,18 +86,22 @@ export function SiteDetailClient({
       data: { user },
     } = await supabase.auth.getUser();
     setIsLoggedIn(Boolean(user));
+    setCurrentUserId(user?.id ?? null);
 
     let unlockedNow = false;
     if (user) {
       const { data: profile } = await supabase
         .from("profiles")
-        .select("buyer_plan, wallet_balance, buyer_views_quota, buyer_views_used")
+        .select("wallet_balance, buyer_views_quota, buyer_views_used")
         .eq("id", user.id)
         .single();
-      setBuyerPlan(profile?.buyer_plan ?? "free");
       setWalletBalance(profile?.wallet_balance ?? 0);
-      setQuotaRemaining(
-        profile ? Math.max(0, (profile.buyer_views_quota ?? 0) - (profile.buyer_views_used ?? 0)) : null
+      // Most buyers have no admin-granted plan (quota 0) — pay-per-view is
+      // the only unlock path for them. This just detects the rare case
+      // where an admin has granted extra plan views, without ever
+      // advertising a self-serve "upgrade" that doesn't exist.
+      setQuotaViewsLeft(
+        Math.max(0, (profile?.buyer_views_quota ?? 0) - (profile?.buyer_views_used ?? 0))
       );
 
       const { data: existingQuotaUnlock } = await supabase
@@ -176,9 +180,8 @@ export function SiteDetailClient({
 
   if (loading || !site) return <main className="mx-auto max-w-2xl px-6 py-16 text-muted">Loading…</main>;
 
-  const isFree = buyerPlan === "free";
-  const quotaExhausted = !isFree && quotaRemaining !== null && quotaRemaining <= 0;
   const canPayPerView = site.pay_per_view_enabled && site.view_price != null;
+  const isOwner = Boolean(currentUserId && currentUserId === site.owner_id);
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
@@ -223,18 +226,14 @@ export function SiteDetailClient({
         />
       </div>
 
-      {!unlocked ? (
-        <div className="rounded-chip border border-line bg-white p-6 text-center">
+      {!unlocked && (
+        <div className="mb-6 rounded-chip border border-line bg-white p-6 text-center">
           <p className="mb-4 text-sm text-muted">
             {!isLoggedIn
-              ? "Log in to see the site URL, full metrics, seller guidelines, and place an order."
-              : isFree && !canPayPerView
-                ? "Upgrade to a paid plan to unlock this listing and place an order."
-                : quotaExhausted && !canPayPerView
-                  ? "You've used all your plan views for this billing period. Upgrade your plan for more views."
-                  : quotaExhausted && canPayPerView
-                    ? "You've used all your plan views for this billing period — pay per view from your wallet instead, or upgrade your plan."
-                    : "Unlock this listing to see the site URL, referring domains, backlink count, and seller guidelines."}
+              ? "Log in to see the site URL, referring domains, backlink count, and seller guidelines. Not required to place an order below — DA/DR/traffic and price are already shown above."
+              : canPayPerView || quotaViewsLeft > 0
+                ? "Unlock this listing to see the site URL, referring domains, backlink count, and seller guidelines. Optional — you can place an order below without unlocking."
+                : "This seller hasn't enabled instant unlock for this listing — you can still place an order or exchange request below using the metrics shown above."}
           </p>
           {!isLoggedIn ? (
             <Link href="/register">
@@ -242,22 +241,14 @@ export function SiteDetailClient({
             </Link>
           ) : (
             <div className="flex flex-wrap items-center justify-center gap-2">
-              {isFree ? (
-                <Link href="/dashboard/billing">
-                  <Button>View plans</Button>
-                </Link>
-              ) : quotaExhausted ? (
-                <Link href="/dashboard/billing">
-                  <Button>Upgrade plan for more views</Button>
-                </Link>
-              ) : (
+              {quotaViewsLeft > 0 && (
                 <Button onClick={() => handleUnlock("quota")} disabled={busy}>
-                  {busy ? "Unlocking…" : "View Site (1 view)"}
+                  {busy ? "Unlocking…" : `View Site (${quotaViewsLeft} view${quotaViewsLeft === 1 ? "" : "s"} left)`}
                 </Button>
               )}
               {canPayPerView && (
                 <Button
-                  variant="secondary"
+                  variant={quotaViewsLeft > 0 ? "secondary" : "primary"}
                   onClick={() => handleUnlock("wallet")}
                   disabled={busy || walletBalance < (site.view_price ?? 0)}
                 >
@@ -283,7 +274,9 @@ export function SiteDetailClient({
           )}
           {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
         </div>
-      ) : (
+      )}
+
+      {unlocked && (
         <>
           <a href={site.url} target="_blank" rel="noreferrer" className="mb-4 block text-sm text-muted underline">
             {site.url}
@@ -307,10 +300,20 @@ export function SiteDetailClient({
               <FormattedText text={site.guidelines} className="text-sm text-muted" />
             </div>
           )}
-          <Link href={`/dashboard/browse/${site.id}`}>
-            <Button size="lg">{siteCtaLabel(site.accepts_paid, site.accepts_exchange)}</Button>
-          </Link>
         </>
+      )}
+
+      {/* Ordering never requires unlocking first — the metrics chips above
+          (DA/DR/traffic/price) are already enough to decide, and paying for
+          the link is itself the "purchase". Gating it behind a separate
+          view-unlock was redundant friction. */}
+      {isLoggedIn && !isOwner && (site.accepts_paid || site.accepts_exchange) && (
+        <RequestLinkForm
+          siteId={site.id}
+          acceptsExchange={site.accepts_exchange}
+          acceptsPaid={site.accepts_paid}
+          priceAmount={site.price_amount}
+        />
       )}
 
       <div className="mt-8">

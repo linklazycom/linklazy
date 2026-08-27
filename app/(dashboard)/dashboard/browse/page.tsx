@@ -1,14 +1,11 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { MetricChip } from "@/components/ui/metric-chip";
 import { Field } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
-import { SiteCard } from "@/components/sites/site-card";
-import { WatchlistButton } from "@/components/watchlist/watchlist-button";
 import { SaveSearchButton } from "@/components/watchlist/save-search-button";
 import { BulkOrderSelector } from "@/components/sites/bulk-order-selector";
 import { AdSlot } from "@/components/ads/ad-slot";
 import { getSellerRatings } from "@/lib/seller-ratings";
+import { getUnlockedSiteIds } from "@/lib/unlocked-sites";
 
 interface Filters {
   niche?: string;
@@ -32,20 +29,7 @@ export default async function BrowsePage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("buyer_plan, buyer_views_quota, buyer_views_used")
-    .eq("id", user!.id)
-    .single();
-
-  // Which sites has this buyer already unlocked (so re-viewing doesn't
-  // burn another quota slot)?
-  const { data: unlocks } = await supabase
-    .from("credits_ledger")
-    .select("related_site_id")
-    .eq("user_id", user!.id)
-    .eq("type", "unlock_spend");
-  const unlockedIds = new Set((unlocks ?? []).map((u) => u.related_site_id));
+  const unlockedIds = await getUnlockedSiteIds(supabase, user!.id);
 
   let query = supabase
     .from("sites")
@@ -71,34 +55,13 @@ export default async function BrowsePage({
   const nameByOwner = new Map((sellerProfiles ?? []).map((p) => [p.id, p.display_name]));
   const ratingByOwner = await getSellerRatings(supabase, ownerIds);
 
-  const quota = profile?.buyer_views_quota ?? 0;
-  const used = profile?.buyer_views_used ?? 0;
-  const remaining = Math.max(quota - used, 0);
-  const isFree = (profile?.buyer_plan ?? "free") === "free";
-
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="font-display text-2xl font-medium">Browse sites</h1>
-        <MetricChip
-          label="Views left"
-          value={isFree ? "Upgrade to unlock" : `${remaining}/${quota}`}
-          tone={isFree ? "default" : remaining > 0 ? "verified" : "default"}
-        />
       </div>
 
       <AdSlot placement="browse_top" />
-
-      {isFree && (
-        <div className="mb-6 rounded-chip border border-amber/40 bg-amber-soft p-4 text-sm">
-          You&apos;re on the Free plan — you can see listing metrics below, but
-          need a paid plan to unlock full site details and place orders.{" "}
-          <Link href="/dashboard/billing" className="underline">
-            View plans
-          </Link>
-          .
-        </div>
-      )}
 
       <form className="mb-6 grid grid-cols-2 gap-4 rounded-chip border border-line bg-white p-4 md:grid-cols-5">
         <Field id="niche" name="niche" label="Niche" defaultValue={filters.niche} />
@@ -133,36 +96,14 @@ export default async function BrowsePage({
         <SaveSearchButton filters={filters} />
       </div>
 
-      {!isFree ? (
-        <BulkOrderSelector
-          sites={sites ?? []}
-          tierByOwner={tierByOwner}
-          nameByOwner={nameByOwner}
-          ratingByOwner={ratingByOwner}
-          currentUserId={user!.id}
-        />
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {sites?.map((site) => {
-            const unlocked = unlockedIds.has(site.id);
-            return (
-              <SiteCard
-                key={site.id}
-                site={site}
-                href={`/dashboard/browse/${site.id}`}
-                sellerTier={tierByOwner.get(site.owner_id) ?? null}
-                sellerName={nameByOwner.get(site.owner_id)}
-                sellerRating={ratingByOwner.get(site.owner_id) ?? null}
-                sellerHref={`/profile/${site.owner_id}`}
-                displayDomain={unlocked || !isFree ? site.domain : "Site details locked"}
-                ctaLabel={unlocked ? "View details" : "Unlock & view"}
-                actions={<WatchlistButton siteId={site.id} />}
-              />
-            );
-          })}
-          {!sites?.length && <p className="text-muted">No sites match these filters.</p>}
-        </div>
-      )}
+      <BulkOrderSelector
+        sites={sites ?? []}
+        tierByOwner={tierByOwner}
+        nameByOwner={nameByOwner}
+        ratingByOwner={ratingByOwner}
+        currentUserId={user!.id}
+        unlockedIds={unlockedIds}
+      />
     </div>
   );
 }

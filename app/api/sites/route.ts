@@ -14,6 +14,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  const canSell = profile?.role === "seller" || profile?.role === "both" || profile?.role === "admin";
+  if (!canSell) {
+    return NextResponse.json(
+      { error: "Switch your account to Sell links or Both (Profile settings) to list a site." },
+      { status: 403 }
+    );
+  }
+
   const body = await request.json();
   const parsed = siteSubmissionSchema.safeParse(body);
 

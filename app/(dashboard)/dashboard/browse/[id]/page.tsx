@@ -37,6 +37,8 @@ interface SiteDetail {
   placement: string;
   turnaround_hours: number;
   guidelines: string | null;
+  pay_per_view_enabled: boolean;
+  view_price: number | null;
 }
 
 interface SellerInfo {
@@ -70,8 +72,8 @@ export default function SiteDetailPage({
   const [reviews, setReviews] = useState<Review[]>([]);
   const [unlocked, setUnlocked] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [buyerPlan, setBuyerPlan] = useState<string | null>(null);
-  const [quotaRemaining, setQuotaRemaining] = useState<number | null>(null);
+  const [quotaViewsLeft, setQuotaViewsLeft] = useState(0);
+  const [walletBalance, setWalletBalance] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [unlocking, setUnlocking] = useState(false);
@@ -82,17 +84,35 @@ export default function SiteDetailPage({
     } = await supabase.auth.getUser();
     setCurrentUserId(user?.id ?? null);
 
-    const { data: existing } = await supabase
-      .from("credits_ledger")
-      .select("id")
-      .eq("user_id", user!.id)
-      .eq("type", "unlock_spend")
-      .eq("related_site_id", id)
-      .maybeSingle();
+    // A site can be unlocked two ways — spending a plan view (credits_ledger,
+    // rare: only buyers an admin has manually granted a quota to) or paying
+    // per view from the wallet (site_unlocks). Both have to be checked, or
+    // wallet-unlocked sites wrongly show as locked again on next visit.
+    const [{ data: quotaUnlock }, { data: walletUnlock }] = await Promise.all([
+      supabase
+        .from("credits_ledger")
+        .select("id")
+        .eq("user_id", user!.id)
+        .eq("type", "unlock_spend")
+        .eq("related_site_id", id)
+        .maybeSingle(),
+      supabase
+        .from("site_unlocks")
+        .select("id, expires_at")
+        .eq("buyer_id", user!.id)
+        .eq("site_id", id)
+        .order("unlocked_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    const walletUnlockActive =
+      walletUnlock && (!walletUnlock.expires_at || new Date(walletUnlock.expires_at) > new Date());
+    const isUnlocked = Boolean(quotaUnlock) || Boolean(walletUnlockActive);
 
     let siteData: SiteDetail | null = null;
 
-    if (existing) {
+    if (isUnlocked) {
       setUnlocked(true);
       const { data: s } = await supabase.from("sites").select("*").eq("id", id).single();
       siteData = s as SiteDetail;
@@ -100,24 +120,23 @@ export default function SiteDetailPage({
       // Show a metrics-only teaser without the URL/guidelines.
       const { data: s } = await supabase
         .from("sites")
-        .select("id, owner_id, niche, da, pa, dr, organic_traffic, price_amount, accepts_exchange, accepts_paid, link_type")
+        .select(
+          "id, owner_id, niche, da, pa, dr, organic_traffic, price_amount, accepts_exchange, accepts_paid, link_type, pay_per_view_enabled, view_price"
+        )
         .eq("id", id)
         .single();
       siteData = s as SiteDetail;
     }
     setSite(siteData);
 
-    // Plan/quota status, so the unlock button can explain up front why it
-    // might not work (free plan, no views left) instead of only surfacing
-    // that after a failed click.
     const { data: profile } = await supabase
       .from("profiles")
-      .select("buyer_plan, buyer_views_quota, buyer_views_used")
+      .select("buyer_views_quota, buyer_views_used, wallet_balance")
       .eq("id", user!.id)
       .single();
     if (profile) {
-      setBuyerPlan(profile.buyer_plan);
-      setQuotaRemaining((profile.buyer_views_quota ?? 0) - (profile.buyer_views_used ?? 0));
+      setQuotaViewsLeft(Math.max(0, (profile.buyer_views_quota ?? 0) - (profile.buyer_views_used ?? 0)));
+      setWalletBalance(profile.wallet_balance ?? 0);
     }
 
     if (siteData?.owner_id) {
@@ -145,11 +164,15 @@ export default function SiteDetailPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  async function handleUnlock() {
+  async function handleUnlock(method: "quota" | "wallet") {
     setError(null);
     setUnlocking(true);
     try {
-      const res = await fetch(`/api/browse/${id}/unlock`, { method: "POST" });
+      const res = await fetch(`/api/browse/${id}/unlock`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ method }),
+      });
       // The API can fail before it ever returns JSON (e.g. an unhandled
       // 500 renders an HTML error page) — parse defensively so that case
       // shows a real error instead of silently doing nothing.
@@ -171,8 +194,7 @@ export default function SiteDetailPage({
 
   if (loading || !site) return <p className="text-muted">Loading…</p>;
 
-  const isFree = buyerPlan === "free";
-  const quotaExhausted = !isFree && quotaRemaining !== null && quotaRemaining <= 0;
+  const canPayPerView = site.pay_per_view_enabled && site.view_price != null;
 
   return (
     <div className="max-w-2xl">
@@ -224,31 +246,39 @@ export default function SiteDetailPage({
       {!unlocked && (
         <div className="mb-6 rounded-chip border border-line bg-white p-4 text-center">
           <p className="mb-3 text-sm text-muted">
-            {isFree
-              ? "Upgrade to a paid plan to unlock the site URL, backlink data, and seller guidelines. Not required to place an order below — DA/DR/traffic and price are already shown above."
-              : quotaExhausted
-                ? "You've used all your plan views for this billing period. Upgrade for more views to unlock the site URL and full details. Not required to place an order below."
-                : "Unlock this listing to see the site URL, referring domains, backlink count, and seller guidelines. Optional — you can place an order below without unlocking."}
+            {canPayPerView || quotaViewsLeft > 0
+              ? "Unlock this listing to see the site URL, referring domains, backlink count, and seller guidelines. Optional — you can place an order below without unlocking."
+              : "This seller hasn't enabled instant unlock for this listing — you can still place an order or exchange request below using the metrics shown above."}
           </p>
-          {isFree ? (
-            <Link href="/dashboard/billing">
-              <Button size="sm" variant="secondary">View plans</Button>
-            </Link>
-          ) : quotaExhausted ? (
-            <Link href="/dashboard/billing">
-              <Button size="sm" variant="secondary">Upgrade plan for more views</Button>
-            </Link>
-          ) : (
-            <Button size="sm" variant="secondary" onClick={handleUnlock} disabled={unlocking}>
-              {unlocking ? "Unlocking…" : "Unlock full details (1 view)"}
-            </Button>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {quotaViewsLeft > 0 && (
+              <Button size="sm" variant="secondary" onClick={() => handleUnlock("quota")} disabled={unlocking}>
+                {unlocking ? "Unlocking…" : `Unlock full details (${quotaViewsLeft} view${quotaViewsLeft === 1 ? "" : "s"} left)`}
+              </Button>
+            )}
+            {canPayPerView && (
+              <Button
+                size="sm"
+                variant={quotaViewsLeft > 0 ? "ghost" : "secondary"}
+                onClick={() => handleUnlock("wallet")}
+                disabled={unlocking || walletBalance < (site.view_price ?? 0)}
+              >
+                {unlocking ? "Unlocking…" : `Pay ৳${site.view_price} from wallet`}
+              </Button>
+            )}
+          </div>
+          {canPayPerView && walletBalance < (site.view_price ?? 0) && (
+            <p className="mt-2 text-xs text-muted">
+              Wallet balance ৳{walletBalance} isn&apos;t enough to cover this —{" "}
+              <Link href="/dashboard/billing" className="underline">
+                top up
+              </Link>
+              .
+            </p>
           )}
           {error && (
             <div className="mt-3 rounded-chip border border-red-200 bg-red-50 p-3 text-left text-sm text-red-700">
               <p>{error}</p>
-              <Link href="/dashboard/billing" className="mt-1 inline-block underline">
-                View plans
-              </Link>
             </div>
           )}
         </div>
