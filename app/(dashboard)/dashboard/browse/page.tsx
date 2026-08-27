@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { SaveSearchButton } from "@/components/watchlist/save-search-button";
 import { BulkOrderSelector } from "@/components/sites/bulk-order-selector";
 import { AdSlot } from "@/components/ads/ad-slot";
+import { NICHES } from "@/lib/niches";
 import { getSellerRatings } from "@/lib/seller-ratings";
 import { getUnlockedSiteIds } from "@/lib/unlocked-sites";
 
@@ -36,7 +37,7 @@ export default async function BrowsePage({
     .select("id, owner_id, domain, niche, da, dr, dr_verified, organic_traffic, price_amount, link_type, accepts_exchange, accepts_paid, is_featured, created_at")
     .eq("status", "approved");
 
-  if (filters.niche) query = query.ilike("niche", `%${filters.niche}%`);
+  if (filters.niche) query = query.eq("niche", filters.niche);
   if (filters.da_min) query = query.gte("da", Number(filters.da_min));
   if (filters.da_max) query = query.lte("da", Number(filters.da_max));
   if (filters.price_max) query = query.lte("price_amount", Number(filters.price_max));
@@ -64,7 +65,24 @@ export default async function BrowsePage({
       <AdSlot placement="browse_top" />
 
       <form className="mb-6 grid grid-cols-2 gap-4 rounded-chip border border-line bg-white p-4 md:grid-cols-5">
-        <Field id="niche" name="niche" label="Niche" defaultValue={filters.niche} />
+        <div>
+          <label htmlFor="niche" className="mb-1 block text-sm text-muted">
+            Niche
+          </label>
+          <select
+            id="niche"
+            name="niche"
+            defaultValue={filters.niche ?? ""}
+            className="w-full rounded-chip border border-line px-3 py-2 text-sm outline-none focus:border-signal"
+          >
+            <option value="">Any niche</option>
+            {NICHES.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </div>
         <Field id="da_min" name="da_min" type="number" label="DA min" defaultValue={filters.da_min} />
         <Field id="da_max" name="da_max" type="number" label="DA max" defaultValue={filters.da_max} />
         <Field id="price_max" name="price_max" type="number" label="Max price (৳)" defaultValue={filters.price_max} />

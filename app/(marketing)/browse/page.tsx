@@ -6,6 +6,7 @@ import { Field } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { SiteCard } from "@/components/sites/site-card";
 import { AdSlot } from "@/components/ads/ad-slot";
+import { NICHES } from "@/lib/niches";
 import { maskDomain } from "@/lib/mask-domain";
 import { getSellerRatings } from "@/lib/seller-ratings";
 import { getUnlockedSiteIds } from "@/lib/unlocked-sites";
@@ -50,7 +51,7 @@ export default async function PublicBrowsePage({
     )
     .eq("status", "approved");
 
-  if (filters.niche) query = query.ilike("niche", `%${filters.niche}%`);
+  if (filters.niche) query = query.eq("niche", filters.niche);
   if (filters.da_min) query = query.gte("da", Number(filters.da_min));
   if (filters.da_max) query = query.lte("da", Number(filters.da_max));
   if (filters.price_max) query = query.lte("price_amount", Number(filters.price_max));
@@ -112,7 +113,24 @@ export default async function PublicBrowsePage({
             <SlidersHorizontal className="h-3.5 w-3.5" />
             Filter listings
           </div>
-          <Field id="niche" name="niche" label="Niche" defaultValue={filters.niche} />
+          <div>
+            <label htmlFor="niche" className="mb-1 block text-sm text-muted">
+              Niche
+            </label>
+            <select
+              id="niche"
+              name="niche"
+              defaultValue={filters.niche ?? ""}
+              className="w-full rounded-chip border border-line px-3 py-2 text-sm outline-none focus:border-signal"
+            >
+              <option value="">Any niche</option>
+              {NICHES.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </div>
           <Field id="da_min" name="da_min" type="number" label="DA min" defaultValue={filters.da_min} />
           <Field id="da_max" name="da_max" type="number" label="DA max" defaultValue={filters.da_max} />
           <Field id="price_max" name="price_max" type="number" label="Max price (৳)" defaultValue={filters.price_max} />

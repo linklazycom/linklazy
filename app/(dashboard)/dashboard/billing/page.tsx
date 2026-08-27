@@ -83,7 +83,12 @@ export default function BillingPage() {
       <p className="mb-6 text-sm text-muted">
         No subscriptions — LinkLazy is free to join. Sellers list guest posts for free and only
         pay a commission on completed sales; buyers only pay when ordering or unlocking a site.
-        This wallet is for pay-per-view site unlocks and receiving seller payouts.
+        This page is for topping up your wallet. To withdraw a seller balance or referral
+        credit to bKash, go to{" "}
+        <Link href="/dashboard/wallet" className="underline">
+          Wallet
+        </Link>
+        .
       </p>
 
       {walletMessage && (

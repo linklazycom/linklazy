@@ -70,7 +70,7 @@ export default async function DashboardLayout({
         { href: "/dashboard/messages", label: "Messages" },
         { href: "/dashboard/support", label: "My tickets" },
         { href: "/dashboard/referrals", label: "Referrals" },
-        { href: "/dashboard/billing", label: "Billing" },
+        { href: "/dashboard/billing", label: "Top up wallet" },
         { href: "/dashboard/wallet", label: "Wallet" },
       ],
     },

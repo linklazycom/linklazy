@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { PaymentProtectionBadge } from "@/components/trust/payment-protection-badge";
 import { Field } from "@/components/ui/field";
 import { Money } from "@/components/currency/money";
+import { useCurrency } from "@/components/currency/currency-provider";
 import { siteCtaLabel } from "@/lib/site-cta";
 
 type PaymentMethod = "wallet" | "bkash" | "paypal";
@@ -29,6 +30,7 @@ export function RequestLinkForm({
 }) {
   const router = useRouter();
   const supabase = createClient();
+  const { rate } = useCurrency();
   const [orderType, setOrderType] = useState<"exchange" | "paid">(
     acceptsPaid ? "paid" : "exchange"
   );
@@ -54,6 +56,15 @@ export function RequestLinkForm({
   }, []);
 
   const canPayFromWallet = priceAmount != null && walletBalance != null && walletBalance >= priceAmount;
+
+  // bKash always charges in BDT and PayPal always charges in USD (see
+  // /api/orders/[id]/pay) — the amount shown here has to follow whichever
+  // processor is selected, not the site's separate BDT/USD display-currency
+  // toggle, or the total silently doesn't match what the buyer is charged.
+  function formatForMethod(amount: number, method: PaymentMethod): string {
+    if (method === "paypal") return `$${(amount / rate).toFixed(2)}`;
+    return `৳${amount.toLocaleString()}`;
+  }
 
   // If the wallet can't cover it once we know the balance, default to
   // bKash instead of leaving "Wallet" selected with a disabled button.
@@ -212,7 +223,10 @@ export function RequestLinkForm({
             </button>
           </div>
           <p className="mt-2 text-sm">
-            Total: <Money amount={priceAmount} />
+            Total: <span className="font-medium">{formatForMethod(priceAmount, paymentMethod)}</span>
+            {paymentMethod === "paypal" && (
+              <span className="ml-1 text-xs text-muted">(converted from ৳{priceAmount.toLocaleString()})</span>
+            )}
           </p>
           {!canPayFromWallet && walletBalance != null && (
             <p className="mt-1 text-xs text-muted">
@@ -254,7 +268,8 @@ export function RequestLinkForm({
               )}
               {couponResult?.valid && (
                 <p className="mt-1 text-xs text-signal">
-                  Coupon applied — new total <Money amount={couponResult.finalAmount ?? priceAmount} />
+                  Coupon applied — new total{" "}
+                  {formatForMethod(couponResult.finalAmount ?? priceAmount, paymentMethod)}
                 </p>
               )}
               <p className="mt-1 text-xs text-muted">
