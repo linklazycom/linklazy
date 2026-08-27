@@ -30,6 +30,7 @@ export default async function DashboardLayout({
 
   const role = profile?.role ?? "buyer";
   const canSell = role === "seller" || role === "both" || role === "admin";
+  const canBuy = role === "buyer" || role === "both" || role === "admin";
 
   const NAV: AdminNavGroup[] = [
     {
@@ -47,13 +48,17 @@ export default async function DashboardLayout({
         ...(canSell
           ? [
               { href: "/dashboard/sites", label: "My sites" },
-              { href: "/dashboard/scan-site", label: "Scan my site for links" },
-              { href: "/dashboard/scan-site/history", label: "Scan history" },
               { href: "/dashboard/matches", label: "Exchange matches" },
             ]
           : []),
-        { href: "/dashboard/watchlist", label: "Watchlist" },
-        { href: "/dashboard/saved-searches", label: "Saved searches" },
+        ...(canBuy
+          ? [
+              { href: "/dashboard/scan-site", label: "Scan my site for links" },
+              { href: "/dashboard/scan-site/history", label: "Scan history" },
+              { href: "/dashboard/watchlist", label: "Watchlist" },
+              { href: "/dashboard/saved-searches", label: "Saved searches" },
+            ]
+          : []),
       ],
     },
     {
