@@ -34,6 +34,12 @@ export default async function OrdersPage({
     .eq("id", user!.id)
     .single();
   const canSell = profile?.role === "seller" || profile?.role === "both" || profile?.role === "admin";
+  const canBuy = profile?.role === "buyer" || profile?.role === "both" || profile?.role === "admin";
+  // Both tabs only make sense for a "both"/admin account — a pure buyer can
+  // never receive orders (they can't list a site) and a pure seller has no
+  // buying-side dashboard tools (see Marketplace nav), so for either of
+  // those this page should just show their one side with no tab bar at all.
+  const showTabs = canBuy && canSell;
 
   const { data: allOrders } = await supabase
     .from("orders")
@@ -43,7 +49,7 @@ export default async function OrdersPage({
     .or(`buyer_id.eq.${user!.id},seller_id.eq.${user!.id}`)
     .order("created_at", { ascending: false });
 
-  const buying = (allOrders ?? []).filter((o) => o.buyer_id === user!.id);
+  const buying = canBuy ? (allOrders ?? []).filter((o) => o.buyer_id === user!.id) : [];
   const selling = canSell ? (allOrders ?? []).filter((o) => o.seller_id === user!.id) : [];
 
   // Default to whichever side actually has orders — most users lean buyer
@@ -51,9 +57,9 @@ export default async function OrdersPage({
   const role =
     roleParam === "selling" && canSell
       ? "selling"
-      : roleParam === "buying"
+      : roleParam === "buying" && canBuy
         ? "buying"
-        : buying.length > 0 || selling.length === 0
+        : canBuy && (buying.length > 0 || !canSell || selling.length === 0)
           ? "buying"
           : "selling";
   const orders = role === "buying" ? buying : selling;
@@ -63,7 +69,7 @@ export default async function OrdersPage({
     <div>
       <h1 className="mb-6 font-display text-2xl font-medium">Orders</h1>
 
-      {canSell && (
+      {showTabs && (
         <div className="mb-6 flex gap-2 border-b border-line">
           <Link
             href="/dashboard/orders?role=buying"
