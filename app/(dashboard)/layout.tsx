@@ -37,7 +37,7 @@ export default async function DashboardLayout({
       href: "/dashboard",
       items: [
         { href: "/dashboard", label: "Overview" },
-        { href: "/dashboard/analytics", label: "My analytics" },
+        ...(canSell ? [{ href: "/dashboard/analytics", label: "My analytics" }] : []),
       ],
     },
     {
@@ -61,7 +61,7 @@ export default async function DashboardLayout({
       items: [
         { href: "/dashboard/orders", label: "Orders" },
         { href: "/dashboard/inquiries", label: "Pre-sale inquiries" },
-        ...(canSell ? [{ href: "/dashboard/press-releases", label: "Press releases" }] : []),
+        { href: "/dashboard/press-releases", label: "Press releases" },
       ],
     },
     {

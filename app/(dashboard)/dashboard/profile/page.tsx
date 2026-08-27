@@ -124,7 +124,9 @@ export default function ProfilePage() {
         {profile.seller_tier && profile.seller_tier !== "unranked" && (
           <MetricChip label="Seller tier" value={profile.seller_tier} tone="verified" />
         )}
-        <MetricChip label="Buyer plan" value={profile.buyer_plan} />
+        {profile.buyer_plan !== "free" && (
+          <MetricChip label="Buyer plan" value={profile.buyer_plan} tone="verified" />
+        )}
       </div>
 
       {profile.role !== "both" && (

@@ -50,6 +50,15 @@ export default async function SellerAnalyticsPage() {
     .in("related_site_id", siteIds)
     .gte("created_at", since.toISOString());
 
+  // Wallet (pay-per-view) unlocks land in a separate table from plan-quota
+  // unlocks — both count as a buyer unlocking the listing, so sellers'
+  // conversion numbers need both or they'll look artificially low.
+  const { data: walletUnlocks } = await serviceClient
+    .from("site_unlocks")
+    .select("site_id")
+    .in("site_id", siteIds)
+    .gte("unlocked_at", since.toISOString());
+
   const viewCounts = new Map<string, number>();
   for (const id of siteIds) {
     viewCounts.set(id, (views ?? []).filter((v) => v.path.includes(id)).length);
@@ -57,6 +66,9 @@ export default async function SellerAnalyticsPage() {
   const unlockCounts = new Map<string, number>();
   for (const u of unlocks ?? []) {
     unlockCounts.set(u.related_site_id, (unlockCounts.get(u.related_site_id) ?? 0) + 1);
+  }
+  for (const u of walletUnlocks ?? []) {
+    unlockCounts.set(u.site_id, (unlockCounts.get(u.site_id) ?? 0) + 1);
   }
 
   const maxViews = Math.max(1, ...siteIds.map((id) => viewCounts.get(id) ?? 0));

@@ -28,6 +28,13 @@ export default async function OrdersPage({
     data: { user },
   } = await supabase.auth.getUser();
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user!.id)
+    .single();
+  const canSell = profile?.role === "seller" || profile?.role === "both" || profile?.role === "admin";
+
   const { data: allOrders } = await supabase
     .from("orders")
     .select(
@@ -37,11 +44,18 @@ export default async function OrdersPage({
     .order("created_at", { ascending: false });
 
   const buying = (allOrders ?? []).filter((o) => o.buyer_id === user!.id);
-  const selling = (allOrders ?? []).filter((o) => o.seller_id === user!.id);
+  const selling = canSell ? (allOrders ?? []).filter((o) => o.seller_id === user!.id) : [];
 
   // Default to whichever side actually has orders — most users lean buyer
   // or seller, not both, so land them on the tab with something to see.
-  const role = roleParam === "selling" || roleParam === "buying" ? roleParam : buying.length > 0 || selling.length === 0 ? "buying" : "selling";
+  const role =
+    roleParam === "selling" && canSell
+      ? "selling"
+      : roleParam === "buying"
+        ? "buying"
+        : buying.length > 0 || selling.length === 0
+          ? "buying"
+          : "selling";
   const orders = role === "buying" ? buying : selling;
   const activeCount = orders.filter((o) => ACTIVE_STATUSES.includes(o.status)).length;
 
@@ -49,24 +63,26 @@ export default async function OrdersPage({
     <div>
       <h1 className="mb-6 font-display text-2xl font-medium">Orders</h1>
 
-      <div className="mb-6 flex gap-2 border-b border-line">
-        <Link
-          href="/dashboard/orders?role=buying"
-          className={`border-b-2 px-3 pb-3 text-sm font-medium ${
-            role === "buying" ? "border-ink text-ink" : "border-transparent text-muted hover:text-ink"
-          }`}
-        >
-          Orders I&apos;m buying <span className="text-xs text-muted">({buying.length})</span>
-        </Link>
-        <Link
-          href="/dashboard/orders?role=selling"
-          className={`border-b-2 px-3 pb-3 text-sm font-medium ${
-            role === "selling" ? "border-ink text-ink" : "border-transparent text-muted hover:text-ink"
-          }`}
-        >
-          Orders I&apos;m fulfilling <span className="text-xs text-muted">({selling.length})</span>
-        </Link>
-      </div>
+      {canSell && (
+        <div className="mb-6 flex gap-2 border-b border-line">
+          <Link
+            href="/dashboard/orders?role=buying"
+            className={`border-b-2 px-3 pb-3 text-sm font-medium ${
+              role === "buying" ? "border-ink text-ink" : "border-transparent text-muted hover:text-ink"
+            }`}
+          >
+            Orders I&apos;m buying <span className="text-xs text-muted">({buying.length})</span>
+          </Link>
+          <Link
+            href="/dashboard/orders?role=selling"
+            className={`border-b-2 px-3 pb-3 text-sm font-medium ${
+              role === "selling" ? "border-ink text-ink" : "border-transparent text-muted hover:text-ink"
+            }`}
+          >
+            Orders I&apos;m fulfilling <span className="text-xs text-muted">({selling.length})</span>
+          </Link>
+        </div>
+      )}
 
       {orders.length > 0 && (
         <p className="mb-4 text-sm text-muted">
