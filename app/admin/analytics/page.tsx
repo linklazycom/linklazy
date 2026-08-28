@@ -269,17 +269,25 @@ export default async function AdminAnalyticsPage({
         <div className="rounded-chip border border-line bg-white p-5">
           <h2 className="mb-4 text-sm font-medium">Top traffic sources</h2>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[280px] text-sm">
+            <table className="w-full table-fixed text-sm">
+              <colgroup>
+                <col />
+                <col className="w-16" />
+              </colgroup>
               <tbody>
                 {topSources.map(([source, count]) => (
                   <tr key={source} className="border-b border-line last:border-0">
-                    <td className="max-w-[1px] truncate py-2">{source}</td>
+                    <td className="truncate py-2 pr-2" title={source}>
+                      {source}
+                    </td>
                     <td className="py-2 text-right font-mono">{count}</td>
                   </tr>
                 ))}
                 {!topSources.length && (
                   <tr>
-                    <td className="py-2 text-muted">No data yet.</td>
+                    <td colSpan={2} className="py-2 text-muted">
+                      No data yet.
+                    </td>
                   </tr>
                 )}
               </tbody>
@@ -290,17 +298,25 @@ export default async function AdminAnalyticsPage({
         <div className="rounded-chip border border-line bg-white p-5">
           <h2 className="mb-4 text-sm font-medium">Top pages</h2>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[280px] text-sm">
+            <table className="w-full table-fixed text-sm">
+              <colgroup>
+                <col />
+                <col className="w-16" />
+              </colgroup>
               <tbody>
                 {topPaths.map(([path, count]) => (
                   <tr key={path} className="border-b border-line last:border-0">
-                    <td className="max-w-[1px] truncate py-2 font-mono text-xs">{path}</td>
+                    <td className="truncate py-2 pr-2 font-mono text-xs" title={path}>
+                      {path}
+                    </td>
                     <td className="py-2 text-right font-mono">{count}</td>
                   </tr>
                 ))}
                 {!topPaths.length && (
                   <tr>
-                    <td className="py-2 text-muted">No data yet.</td>
+                    <td colSpan={2} className="py-2 text-muted">
+                      No data yet.
+                    </td>
                   </tr>
                 )}
               </tbody>
