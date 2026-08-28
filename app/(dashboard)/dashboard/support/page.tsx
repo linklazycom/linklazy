@@ -5,9 +5,14 @@ import { Button } from "@/components/ui/button";
 
 export default async function MyTicketsPage() {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const { data: tickets } = await supabase
     .from("support_tickets")
     .select("id, subject, status, created_at, updated_at")
+    .eq("user_id", user!.id)
     .order("updated_at", { ascending: false });
 
   return (

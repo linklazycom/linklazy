@@ -20,7 +20,7 @@ const DEFAULTS: Record<string, unknown> = {
   footer_links: {
     Company: [
       { label: "About", href: "/about" },
-      { label: "Contact", href: "/contact" },
+      { label: "Get Support", href: "/contact" },
       { label: "How it works", href: "/how-it-works" },
     ],
     Legal: [

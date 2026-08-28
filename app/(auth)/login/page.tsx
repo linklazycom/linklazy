@@ -1,18 +1,27 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 
-export default function LoginPage() {
+function safeNext(next: string | null): string {
+  // Only ever redirect within the app — an absolute/external `next` value
+  // would make this an open redirect.
+  return next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const next = safeNext(searchParams.get("next"));
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -27,7 +36,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/dashboard");
+    router.push(next);
     router.refresh();
   }
 
@@ -68,10 +77,21 @@ export default function LoginPage() {
       </form>
       <p className="mt-6 text-center text-sm text-muted">
         No account?{" "}
-        <Link href="/register" className="text-ink underline">
+        <Link href={next !== "/dashboard" ? `/register?next=${encodeURIComponent(next)}` : "/register"} className="text-ink underline">
           Register
         </Link>
       </p>
     </div>
+  );
+}
+
+// useSearchParams() must be wrapped in <Suspense> in Next.js App Router,
+// or the build fails with "useSearchParams() should be wrapped in a
+// suspense boundary" (see the same fix in register-form.tsx).
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

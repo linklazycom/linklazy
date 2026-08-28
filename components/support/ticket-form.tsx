@@ -5,7 +5,15 @@ import { useRouter } from "next/navigation";
 import { Field } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 
-export function TicketForm({ contactEmail }: { contactEmail: string }) {
+export function TicketForm({
+  contactEmail,
+  defaultName,
+  defaultEmail,
+}: {
+  contactEmail: string;
+  defaultName?: string;
+  defaultEmail?: string;
+}) {
   const router = useRouter();
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,14 +41,17 @@ export function TicketForm({ contactEmail }: { contactEmail: string }) {
       return;
     }
 
-    const { id, access_token } = await res.json();
-    router.push(`/support/${id}?token=${access_token}`);
+    const { id } = await res.json();
+    // The support page requires login (see app/(marketing)/support/page.tsx),
+    // so every ticket created here already has a user_id — send them to
+    // their dashboard ticket view instead of the guest access_token link.
+    router.push(`/dashboard/support/${id}`);
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 rounded-chip border border-line bg-white p-5">
-      <Field id="name" name="name" label="Name" required />
-      <Field id="email" name="email" type="email" label="Email" required />
+      <Field id="name" name="name" label="Name" defaultValue={defaultName} required />
+      <Field id="email" name="email" type="email" label="Email" defaultValue={defaultEmail} required />
       <Field id="subject" name="subject" label="Subject" required />
       <div>
         <label htmlFor="message" className="mb-1 block text-sm text-muted">

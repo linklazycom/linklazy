@@ -6,6 +6,10 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 
+function safeNext(next: string | null): string {
+  return next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
+}
+
 function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -19,6 +23,7 @@ function RegisterForm() {
   const [loading, setLoading] = useState(false);
 
   const refCode = searchParams.get("ref");
+  const next = safeNext(searchParams.get("next"));
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -62,7 +67,7 @@ function RegisterForm() {
 
     await supabase.from("profiles").update(updates).eq("id", data.user.id);
 
-    router.push("/dashboard?welcome=1");
+    router.push(next === "/dashboard" ? "/dashboard?welcome=1" : next);
     router.refresh();
   }
 
@@ -143,7 +148,10 @@ function RegisterForm() {
       </form>
       <p className="mt-6 text-center text-sm text-muted">
         Already have an account?{" "}
-        <Link href="/login" className="text-ink underline">
+        <Link
+          href={next !== "/dashboard" ? `/login?next=${encodeURIComponent(next)}` : "/login"}
+          className="text-ink underline"
+        >
           Log in
         </Link>
       </p>
