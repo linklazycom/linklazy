@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { MetricChip } from "@/components/ui/metric-chip";
+import { maskDomain } from "@/lib/mask-domain";
+import { getUnlockedSiteIds } from "@/lib/unlocked-sites";
 
 export default async function WatchlistPage() {
   const supabase = await createClient();
@@ -8,11 +10,16 @@ export default async function WatchlistPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: watched } = await supabase
-    .from("watchlists")
-    .select("site_id, created_at, sites(id, domain, niche, da, dr, organic_traffic, price_amount, status)")
-    .eq("user_id", user!.id)
-    .order("created_at", { ascending: false });
+  const [{ data: watched }, unlockedIds] = await Promise.all([
+    supabase
+      .from("watchlists")
+      .select(
+        "site_id, created_at, sites(id, owner_id, domain, niche, da, dr, organic_traffic, price_amount, status)"
+      )
+      .eq("user_id", user!.id)
+      .order("created_at", { ascending: false }),
+    getUnlockedSiteIds(supabase, user!.id),
+  ]);
 
   return (
     <div>
@@ -22,6 +29,7 @@ export default async function WatchlistPage() {
         {watched?.map((w) => {
           const site = w.sites as unknown as {
             id: string;
+            owner_id: string;
             domain: string;
             niche: string;
             da: number | null;
@@ -31,6 +39,7 @@ export default async function WatchlistPage() {
             status: string;
           } | null;
           if (!site) return null;
+          const unlocked = site.owner_id === user!.id || unlockedIds.has(site.id);
           return (
             <Link
               key={w.site_id}
@@ -38,7 +47,7 @@ export default async function WatchlistPage() {
               className="block rounded-chip border border-line bg-white p-4 hover:border-ink"
             >
               <div className="mb-2 flex items-center justify-between">
-                <span className="font-medium">{site.domain}</span>
+                <span className="font-medium">{unlocked ? site.domain : maskDomain(site.domain)}</span>
                 {site.status !== "approved" && (
                   <MetricChip label="Status" value={site.status} />
                 )}

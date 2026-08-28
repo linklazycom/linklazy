@@ -59,9 +59,9 @@ export default async function WalletPage() {
 
   const { data: withdrawalRequests } = await supabase
     .from("withdrawal_requests")
-    .select("id, amount, bkash_number, status, admin_note, created_at")
+    .select("id, amount, bkash_number, status, admin_note, requested_at")
     .eq("user_id", user!.id)
-    .order("created_at", { ascending: false })
+    .order("requested_at", { ascending: false })
     .limit(20);
 
   const totalLocked = (withdrawalRequests ?? [])
@@ -136,7 +136,7 @@ export default async function WalletPage() {
                   />
                 </div>
                 <p className="mt-1 text-xs text-muted">
-                  To {r.bkash_number} · {new Date(r.created_at).toLocaleString()}
+                  To {r.bkash_number} · {new Date(r.requested_at).toLocaleString()}
                 </p>
                 {r.admin_note && (
                   <p className="mt-1 text-xs text-muted">
