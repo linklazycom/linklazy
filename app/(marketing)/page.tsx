@@ -9,10 +9,16 @@ import {
   Repeat,
   Sparkles,
   ArrowRight,
+  LayoutGrid,
+  Newspaper,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MetricChip } from "@/components/ui/metric-chip";
+import { SiteCard, type SiteCardData } from "@/components/sites/site-card";
+import { ArticleCardGrid } from "@/components/blog/article-card-grid";
 import { searchPexelsPhoto } from "@/lib/pexels";
+import { maskDomain } from "@/lib/mask-domain";
+import { createClient } from "@/lib/supabase/server";
 
 const FEATURES = [
   {
@@ -118,7 +124,37 @@ const FAQS = [
 ];
 
 export default async function HomePage() {
-  const heroPhoto = await searchPexelsPhoto("web analytics dashboard laptop");
+  const supabase = await createClient();
+
+  const [heroPhoto, { data: freshSites }, { data: nicheSites }, { data: articles }] = await Promise.all([
+    searchPexelsPhoto("web analytics dashboard laptop"),
+    // Real, changing marketplace content — freshly-approved listings, not
+    // static copy. Gives the homepage something new for search engines to
+    // crawl on every visit and links straight into individual /browse/[id]
+    // pages, which helps those get indexed too.
+    supabase
+      .from("sites")
+      .select(
+        "id, owner_id, domain, niche, da, dr, dr_verified, organic_traffic, price_amount, link_type, accepts_exchange, accepts_paid, is_featured, created_at"
+      )
+      .eq("status", "approved")
+      .order("created_at", { ascending: false })
+      .limit(6),
+    supabase.from("sites").select("niche").eq("status", "approved"),
+    supabase
+      .from("articles")
+      .select("slug, title, meta_description, target_keyword, category, published_at")
+      .eq("status", "published")
+      .order("published_at", { ascending: false })
+      .limit(3),
+  ]);
+
+  const nicheCounts = new Map<string, number>();
+  for (const s of nicheSites ?? []) {
+    const key = s.niche.trim();
+    nicheCounts.set(key, (nicheCounts.get(key) ?? 0) + 1);
+  }
+  const topNiches = [...nicheCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
 
   const faqSchema = {
     "@context": "https://schema.org",
@@ -243,12 +279,79 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* Fresh listings — real, changing marketplace content */}
+      {freshSites && freshSites.length > 0 && (
+        <section className="mx-auto max-w-6xl px-6 pb-20">
+          <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="font-display text-2xl font-medium tracking-tight sm:text-3xl">
+                Freshly listed sites
+              </h2>
+              <p className="mt-2 text-muted">Newest ownership-verified listings on the marketplace.</p>
+            </div>
+            <Link href="/browse" className="inline-flex items-center gap-1 text-sm font-medium text-brand-violet">
+              Browse all sites
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {(freshSites as SiteCardData[]).map((site) => (
+              <SiteCard
+                key={site.id}
+                site={site}
+                href={`/browse/${site.id}`}
+                sellerTier={null}
+                displayDomain={maskDomain(site.domain)}
+                ctaLabel="View listing"
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Popular niches — internal links into topically-matched listings */}
+      {topNiches.length > 0 && (
+        <section className="border-t border-line bg-paper">
+          <div className="mx-auto max-w-6xl px-6 py-20">
+            <div className="mx-auto mb-10 max-w-lg text-center">
+              <p className="mb-3 inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-widest text-brand-violet">
+                <LayoutGrid className="h-3.5 w-3.5" />
+                Directory
+              </p>
+              <h2 className="font-display text-3xl font-medium tracking-tight">Popular niches</h2>
+              <p className="mt-3 text-muted">Find sites that already talk to your audience.</p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-2.5">
+              {topNiches.map(([niche, count]) => (
+                <Link
+                  key={niche}
+                  href={`/browse?niche=${encodeURIComponent(niche)}`}
+                  className="inline-flex items-center gap-2 rounded-full border border-line bg-white px-4 py-2 text-sm transition-colors hover:border-brand-violet hover:text-brand-violet"
+                >
+                  {niche}
+                  <span className="text-xs text-muted">{count}</span>
+                </Link>
+              ))}
+            </div>
+            <div className="mt-8 text-center">
+              <Link
+                href="/niches"
+                className="inline-flex items-center gap-1 text-sm font-medium text-brand-violet"
+              >
+                See every niche
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Features */}
       <section className="border-t border-line bg-white">
         <div className="mx-auto max-w-6xl px-6 py-20">
           <div className="mx-auto mb-12 max-w-lg text-center">
             <h2 className="font-display text-3xl font-medium tracking-tight">
-              Everything you'd want to check, already checked
+              Everything you&apos;d want to check, already checked
             </h2>
             <p className="mt-3 text-muted">
               Built so you can move fast without trading away the diligence a
@@ -352,6 +455,30 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* From the blog */}
+      {articles && articles.length > 0 && (
+        <section className="border-t border-line bg-paper">
+          <div className="mx-auto max-w-6xl px-6 py-20">
+            <div className="mb-10 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="mb-3 inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-widest text-brand-violet">
+                  <Newspaper className="h-3.5 w-3.5" />
+                  From the blog
+                </p>
+                <h2 className="font-display text-3xl font-medium tracking-tight">
+                  Guides on link building &amp; organic growth
+                </h2>
+              </div>
+              <Link href="/blog" className="inline-flex items-center gap-1 text-sm font-medium text-brand-violet">
+                All articles
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+            <ArticleCardGrid articles={articles} />
+          </div>
+        </section>
+      )}
 
       {/* FAQ */}
       <section className="mx-auto max-w-3xl px-6 py-20">

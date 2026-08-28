@@ -5,13 +5,16 @@ import { createClient } from "@/lib/supabase/client";
 import { Field } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { NavLinksEditor } from "@/components/dashboard/nav-links-editor";
+import { FooterLinksEditor } from "@/components/dashboard/footer-links-editor";
 import { SiteToggles } from "@/components/dashboard/site-toggles";
 
 const SIMPLE_STRING_KEYS = [
   { key: "bdt_per_usd", label: "BDT per USD exchange rate", placeholder: "125" },
   { key: "contact_email", label: "Contact email" },
   { key: "ga_measurement_id", label: "Google Analytics 4 Measurement ID", placeholder: "G-XXXXXXX" },
+  { key: "ga4_property_id", label: "GA4 property ID (numeric, for API reports — Admin → Property Settings)", placeholder: "123456789" },
   { key: "gsc_verification_code", label: "Google Search Console verification code", placeholder: "content value from the HTML tag method" },
+  { key: "gsc_site_url", label: "GSC property URL (for API reports — exactly as shown in Search Console)", placeholder: "sc-domain:linklazy.com" },
   { key: "bing_verification_code", label: "Bing Webmaster Tools verification code" },
   { key: "pinterest_verification_code", label: "Pinterest domain verification code" },
   { key: "yandex_verification_code", label: "Yandex Webmaster verification code" },
@@ -32,26 +35,51 @@ const DEFAULT_NAV_LINKS: NavLink[] = [
   { label: "Blog", href: "/blog" },
 ];
 
+const DEFAULT_FOOTER_LINKS: Record<string, NavLink[]> = {
+  Company: [
+    { label: "About", href: "/about" },
+    { label: "Get Support", href: "/contact" },
+    { label: "How it works", href: "/how-it-works" },
+  ],
+  Legal: [
+    { label: "Privacy Policy", href: "/privacy" },
+    { label: "Terms & Conditions", href: "/terms" },
+    { label: "Trust & payment protection", href: "/trust" },
+  ],
+  Resources: [
+    { label: "Niches", href: "/niches" },
+    { label: "How it works", href: "/how-it-works" },
+    { label: "Blog", href: "/blog" },
+  ],
+};
+
 export default function AdminSettingsPage() {
   const supabase = createClient();
   const [values, setValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [navLinks, setNavLinks] = useState<NavLink[] | null>(null);
+  const [footerLinks, setFooterLinks] = useState<Record<string, NavLink[]> | null>(null);
 
   useEffect(() => {
     async function load() {
       const { data } = await supabase
         .from("site_settings")
         .select("key, value")
-        .in("key", [...SIMPLE_STRING_KEYS.map((k) => k.key), "nav_links"]);
+        .in("key", [...SIMPLE_STRING_KEYS.map((k) => k.key), "nav_links", "footer_links"]);
 
       const map: Record<string, string> = {};
       let loadedNavLinks: NavLink[] | null = null;
+      let loadedFooterLinks: Record<string, NavLink[]> | null = null;
 
       for (const row of data ?? []) {
         if (row.key === "nav_links") {
           loadedNavLinks = Array.isArray(row.value) ? (row.value as NavLink[]) : null;
+        } else if (row.key === "footer_links") {
+          loadedFooterLinks =
+            row.value && typeof row.value === "object" && !Array.isArray(row.value)
+              ? (row.value as Record<string, NavLink[]>)
+              : null;
         } else {
           map[row.key] = typeof row.value === "string" ? row.value : JSON.stringify(row.value);
         }
@@ -59,6 +87,7 @@ export default function AdminSettingsPage() {
 
       setValues(map);
       setNavLinks(loadedNavLinks ?? DEFAULT_NAV_LINKS);
+      setFooterLinks(loadedFooterLinks ?? DEFAULT_FOOTER_LINKS);
     }
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -95,6 +124,16 @@ export default function AdminSettingsPage() {
           immediately — no deploy needed.
         </p>
         {navLinks && <NavLinksEditor initialLinks={navLinks} />}
+      </div>
+
+      <div className="mb-10 rounded-chip border border-line bg-white p-5">
+        <h2 className="mb-1 font-display text-lg font-medium">Footer links</h2>
+        <p className="mb-4 text-sm text-muted">
+          Controls the footer columns shown across the site (e.g. the
+          Company/Legal/Resources columns). Changes apply immediately — no
+          deploy needed.
+        </p>
+        {footerLinks && <FooterLinksEditor initialColumns={footerLinks} />}
       </div>
 
       <div className="space-y-5">
