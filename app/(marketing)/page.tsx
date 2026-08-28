@@ -11,6 +11,10 @@ import {
   ArrowRight,
   LayoutGrid,
   Newspaper,
+  Compass,
+  Rocket,
+  TrendingUp,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MetricChip } from "@/components/ui/metric-chip";
@@ -89,14 +93,23 @@ const USE_CASES = [
   {
     title: "Testing a new niche",
     body: "Start with a handful of relevant exchanges before committing real budget to a niche you haven't worked in yet.",
+    icon: Compass,
+    tint: "blue",
+    bullets: ["No upfront cost — start with free exchanges", "Validate relevance before spending", "Scale up once it's working"],
   },
   {
     title: "Running a real campaign",
     body: "Bulk order across a shortlist of vetted sites in one checkout, then track the whole batch from a single dashboard view.",
+    icon: Rocket,
+    tint: "violet",
+    bullets: ["Bulk-select across vetted listings", "One checkout for the whole batch", "Track every order from one dashboard"],
   },
   {
     title: "Content that lives on traffic",
     body: "Put a listicle or resource page on Pay-Per-View pricing and pay in proportion to the views it actually earns.",
+    icon: TrendingUp,
+    tint: "signal",
+    bullets: ["Pay only as real views accrue", "Set a budget cap up front", "No flat fee if it underperforms"],
   },
 ];
 
@@ -146,7 +159,7 @@ export default async function HomePage() {
       .select("slug, title, meta_description, target_keyword, category, published_at")
       .eq("status", "published")
       .order("published_at", { ascending: false })
-      .limit(3),
+      .limit(4),
   ]);
 
   const nicheCounts = new Map<string, number>();
@@ -417,15 +430,32 @@ export default async function HomePage() {
             </p>
           </div>
           <div className="grid gap-6 md:grid-cols-3">
-            {USE_CASES.map((u) => (
-              <div
-                key={u.title}
-                className="rounded-chip bg-white p-6 shadow-sm ring-1 ring-line"
-              >
-                <p className="mb-2 font-display text-base font-medium">{u.title}</p>
-                <p className="text-sm leading-relaxed text-muted">{u.body}</p>
-              </div>
-            ))}
+            {USE_CASES.map((u) => {
+              const Icon = u.icon;
+              const tint = TINTS[u.tint];
+              return (
+                <div
+                  key={u.title}
+                  className="rounded-chip bg-white p-6 shadow-sm ring-1 ring-line"
+                >
+                  <div
+                    className={`mb-4 flex h-11 w-11 items-center justify-center rounded-chip ${tint.bg} ${tint.text}`}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <p className="mb-2 font-display text-base font-medium">{u.title}</p>
+                  <p className="mb-4 text-sm leading-relaxed text-muted">{u.body}</p>
+                  <ul className="space-y-1.5">
+                    {u.bullets.map((b) => (
+                      <li key={b} className="flex items-start gap-2 text-sm text-muted">
+                        <Check className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${tint.text}`} />
+                        <span>{b}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -439,8 +469,14 @@ export default async function HomePage() {
           <div className="grid gap-6 sm:grid-cols-3">
             <div className="rounded-chip border border-line p-6">
               <ShieldCheck className="mx-auto mb-2 h-6 w-6 text-brand-blue" />
-              <p className="font-display text-3xl font-semibold text-brand-blue">100%</p>
-              <p className="mt-1 text-sm text-muted">Ownership-verified listings</p>
+              <p className="font-display text-3xl font-semibold text-brand-blue">
+                {(nicheSites?.length ?? 0) > 0 ? `${nicheSites!.length}+` : "100%"}
+              </p>
+              <p className="mt-1 text-sm text-muted">
+                {(nicheSites?.length ?? 0) > 0
+                  ? "Ownership-verified listings live now"
+                  : "Ownership-verified listings"}
+              </p>
             </div>
             <div className="rounded-chip border border-line p-6">
               <Lock className="mx-auto mb-2 h-6 w-6 text-signal" />
