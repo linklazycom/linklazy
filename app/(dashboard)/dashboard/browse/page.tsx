@@ -3,10 +3,13 @@ import { Field } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { SaveSearchButton } from "@/components/watchlist/save-search-button";
 import { BulkOrderSelector } from "@/components/sites/bulk-order-selector";
+import { Pagination } from "@/components/ui/pagination";
 import { AdSlot } from "@/components/ads/ad-slot";
 import { NICHES } from "@/lib/niches";
 import { getSellerRatings } from "@/lib/seller-ratings";
 import { getUnlockedSiteIds } from "@/lib/unlocked-sites";
+
+const PAGE_SIZE = 12;
 
 interface Filters {
   niche?: string;
@@ -15,6 +18,7 @@ interface Filters {
   price_max?: string;
   link_type?: string;
   exchange_only?: string;
+  page?: string;
   [key: string]: string | undefined;
 }
 
@@ -34,7 +38,10 @@ export default async function BrowsePage({
 
   let query = supabase
     .from("sites")
-    .select("id, owner_id, domain, niche, da, dr, dr_verified, organic_traffic, price_amount, link_type, accepts_exchange, accepts_paid, is_featured, created_at")
+    .select(
+      "id, owner_id, domain, niche, da, dr, dr_verified, organic_traffic, price_amount, link_type, accepts_exchange, accepts_paid, is_featured, created_at",
+      { count: "exact" }
+    )
     .eq("status", "approved");
 
   if (filters.niche) query = query.eq("niche", filters.niche);
@@ -44,9 +51,16 @@ export default async function BrowsePage({
   if (filters.link_type) query = query.eq("link_type", filters.link_type);
   if (filters.exchange_only === "1") query = query.eq("accepts_exchange", true);
 
-  const { data: sites } = await query
+  const currentPage = Math.max(1, Number(filters.page) || 1);
+  const from = (currentPage - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
+  const { data: sites, count: totalCount } = await query
     .order("is_featured", { ascending: false })
-    .order("da", { ascending: false, nullsFirst: false });
+    .order("da", { ascending: false, nullsFirst: false })
+    .range(from, to);
+
+  const totalPages = Math.max(1, Math.ceil((totalCount ?? 0) / PAGE_SIZE));
 
   const ownerIds = [...new Set((sites ?? []).map((s) => s.owner_id))];
   const { data: sellerProfiles } = ownerIds.length
@@ -110,7 +124,11 @@ export default async function BrowsePage({
         </div>
       </form>
 
-      <div className="mb-6 flex justify-end">
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <p className="text-sm text-muted">
+          {totalCount ?? 0} {totalCount === 1 ? "site" : "sites"} match your filters
+          {totalPages > 1 && ` — page ${currentPage} of ${totalPages}`}
+        </p>
         <SaveSearchButton filters={filters} />
       </div>
 
@@ -121,6 +139,13 @@ export default async function BrowsePage({
         ratingByOwner={ratingByOwner}
         currentUserId={user!.id}
         unlockedIds={unlockedIds}
+      />
+
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        basePath="/dashboard/browse"
+        params={filters}
       />
     </div>
   );

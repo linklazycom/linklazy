@@ -12,7 +12,7 @@ export function SaveSearchButton({ filters }: { filters: Record<string, string |
   async function handleSave() {
     setSaving(true);
     const cleanFilters = Object.fromEntries(
-      Object.entries(filters).filter(([, v]) => v !== undefined && v !== "")
+      Object.entries(filters).filter(([k, v]) => k !== "page" && v !== undefined && v !== "")
     );
 
     await fetch("/api/saved-searches", {

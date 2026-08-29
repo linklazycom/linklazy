@@ -5,11 +5,14 @@ import { createClient } from "@/lib/supabase/server";
 import { Field } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { SiteCard } from "@/components/sites/site-card";
+import { Pagination } from "@/components/ui/pagination";
 import { AdSlot } from "@/components/ads/ad-slot";
 import { NICHES } from "@/lib/niches";
 import { maskDomain } from "@/lib/mask-domain";
 import { getSellerRatings } from "@/lib/seller-ratings";
 import { getUnlockedSiteIds } from "@/lib/unlocked-sites";
+
+const PAGE_SIZE = 12;
 
 export const metadata: Metadata = {
   title: "Browse Sites",
@@ -23,6 +26,7 @@ interface Filters {
   price_max?: string;
   link_type?: string;
   exchange_only?: string;
+  page?: string;
   [key: string]: string | undefined;
 }
 
@@ -47,7 +51,8 @@ export default async function PublicBrowsePage({
   let query = supabase
     .from("sites")
     .select(
-      "id, owner_id, domain, niche, da, dr, dr_verified, organic_traffic, price_amount, link_type, accepts_exchange, accepts_paid, pay_per_view_enabled, view_price, is_featured, created_at"
+      "id, owner_id, domain, niche, da, dr, dr_verified, organic_traffic, price_amount, link_type, accepts_exchange, accepts_paid, pay_per_view_enabled, view_price, is_featured, created_at",
+      { count: "exact" }
     )
     .eq("status", "approved");
 
@@ -58,9 +63,16 @@ export default async function PublicBrowsePage({
   if (filters.link_type) query = query.eq("link_type", filters.link_type);
   if (filters.exchange_only === "1") query = query.eq("accepts_exchange", true);
 
-  const { data: sites } = await query
+  const currentPage = Math.max(1, Number(filters.page) || 1);
+  const from = (currentPage - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
+  const { data: sites, count: totalCount } = await query
     .order("is_featured", { ascending: false })
-    .order("da", { ascending: false, nullsFirst: false });
+    .order("da", { ascending: false, nullsFirst: false })
+    .range(from, to);
+
+  const totalPages = Math.max(1, Math.ceil((totalCount ?? 0) / PAGE_SIZE));
 
   const ownerIds = [...new Set((sites ?? []).map((s) => s.owner_id))];
   const { data: sellerProfiles } = ownerIds.length
@@ -158,13 +170,14 @@ export default async function PublicBrowsePage({
           </div>
         </form>
 
-        {sites && sites.length > 0 && (
+        {totalCount != null && totalCount > 0 && (
           <p className="mb-4 text-sm text-muted">
-            {sites.length} {sites.length === 1 ? "site matches" : "sites match"} your filters
+            {totalCount} {totalCount === 1 ? "site matches" : "sites match"} your filters
+            {totalPages > 1 && ` — page ${currentPage} of ${totalPages}`}
           </p>
         )}
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {sites?.map((site) => {
             const unlocked = unlockedIds.has(site.id);
             return (
@@ -182,6 +195,8 @@ export default async function PublicBrowsePage({
             );
           })}
         </div>
+
+        <Pagination currentPage={currentPage} totalPages={totalPages} basePath="/browse" params={filters} />
 
         {!sites?.length && (
           <div className="flex flex-col items-center justify-center gap-3 rounded-chip border border-dashed border-line bg-paper px-6 py-16 text-center">

@@ -55,7 +55,7 @@ export function BulkOrderSelector({
 
   return (
     <div className="pb-20">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {sites.map((site) => {
           const canBulk = site.accepts_paid && site.owner_id !== currentUserId;
           const unlocked = !unlockedIds || unlockedIds.has(site.id);
