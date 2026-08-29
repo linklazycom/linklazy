@@ -29,7 +29,7 @@ export async function BlogSidebar({ excludeSlug }: { excludeSlug?: string }) {
   const posts = (recent ?? []).filter((a) => a.slug !== excludeSlug).slice(0, 5);
 
   return (
-    <aside className="flex flex-col gap-6">
+    <aside className="flex h-full flex-col gap-6">
       <div className="rounded-chip border border-line bg-white p-5">
         <p className="mb-3 text-sm font-medium">Recent articles</p>
         <ul className="flex flex-col gap-3">
@@ -47,7 +47,7 @@ export async function BlogSidebar({ excludeSlug }: { excludeSlug?: string }) {
         </ul>
       </div>
 
-      <div className="rounded-chip border border-brand-violet/30 bg-brand-soft p-5">
+      <div className="rounded-chip border border-brand-violet/30 bg-brand-soft p-5 lg:sticky lg:top-20">
         <p className="mb-1 font-display text-base font-medium">Find sites worth linking to</p>
         <p className="mb-4 text-sm text-muted">
           Every listing is ownership-verified with real metrics — browse for free, no signup

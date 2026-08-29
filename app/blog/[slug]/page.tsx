@@ -133,7 +133,7 @@ export default async function ArticlePage({
             </div>
           )}
         </div>
-        <div className="hidden lg:sticky lg:top-20 lg:block lg:self-start">
+        <div className="hidden lg:block">
           <BlogSidebar excludeSlug={slug} />
         </div>
         <div className="lg:hidden">
