@@ -2,6 +2,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { MetricChip } from "@/components/ui/metric-chip";
 import { Button } from "@/components/ui/button";
+import { CommissionTierCard } from "@/components/dashboard/commission-tier-card";
+import { startOfCurrentMonthISO } from "@/lib/commission";
 
 export default async function DashboardOverviewPage() {
   const supabase = await createClient();
@@ -25,6 +27,7 @@ export default async function DashboardOverviewPage() {
     { count: needsActionCount },
     { count: watchlistCount },
     { count: unreadDisputesCount },
+    { data: monthOrders },
   ] = await Promise.all([
     supabase.from("sites").select("id", { count: "exact", head: true }).eq("owner_id", user!.id),
     supabase
@@ -48,7 +51,21 @@ export default async function DashboardOverviewPage() {
       .select("id", { count: "exact", head: true })
       .or(`buyer_id.eq.${user!.id},seller_id.eq.${user!.id}`)
       .eq("status", "disputed"),
+    // Same definition of "this month's released sales" the actual
+    // commission calc uses (see /api/orders/[id]/accept) — keeping this
+    // query identical to that one is what keeps the widget honest.
+    canSell
+      ? supabase
+          .from("orders")
+          .select("price_amount")
+          .eq("seller_id", user!.id)
+          .eq("order_type", "paid")
+          .eq("status", "accepted")
+          .gte("accepted_at", startOfCurrentMonthISO())
+      : Promise.resolve({ data: [] as { price_amount: number }[] }),
   ]);
+
+  const cumulativeThisMonth = (monthOrders ?? []).reduce((sum, o) => sum + (o.price_amount ?? 0), 0);
 
   return (
     <div>
@@ -56,6 +73,12 @@ export default async function DashboardOverviewPage() {
         Welcome back{profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}
       </h1>
       <p className="mb-8 text-sm text-muted capitalize">{profile?.role ?? "buyer"} account</p>
+
+      {canSell && (
+        <div className="mb-6">
+          <CommissionTierCard cumulativeThisMonth={cumulativeThisMonth} />
+        </div>
+      )}
 
       <div className="mb-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         {canSell && (
