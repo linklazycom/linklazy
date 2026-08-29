@@ -38,7 +38,10 @@ export default async function CaseStudyPage({
 
   if (!study) notFound();
 
-  const html = sanitizeArticleHtml(await marked.parse(study.content) as string);
+  // Same defensive guard as app/blog/[slug]/page.tsx — a row with an
+  // empty/missing body shouldn't crash the whole route.
+  const hasContent = typeof study.content === "string" && study.content.trim().length > 0;
+  const html = hasContent ? sanitizeArticleHtml((await marked.parse(study.content)) as string) : "";
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://linklazy.com";
 
   const schema = {
@@ -61,7 +64,11 @@ export default async function CaseStudyPage({
           {study.metric_before} → {study.metric_after}
         </div>
       )}
-      <div className="article-content" dangerouslySetInnerHTML={{ __html: html }} />
+      {hasContent ? (
+        <div className="article-content" dangerouslySetInnerHTML={{ __html: html }} />
+      ) : (
+        <p className="text-muted">This case study&apos;s content isn&apos;t published yet.</p>
+      )}
     </main>
   );
 }
