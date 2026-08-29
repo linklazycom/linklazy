@@ -4,6 +4,7 @@ import { MetricChip } from "@/components/ui/metric-chip";
 import { Button } from "@/components/ui/button";
 import { CommissionTierCard } from "@/components/dashboard/commission-tier-card";
 import { startOfCurrentMonthISO } from "@/lib/commission";
+import { getBdtPerUsd } from "@/lib/exchange-rate";
 
 export default async function DashboardOverviewPage() {
   const supabase = await createClient();
@@ -28,6 +29,7 @@ export default async function DashboardOverviewPage() {
     { count: watchlistCount },
     { count: unreadDisputesCount },
     { data: monthOrders },
+    bdtPerUsd,
   ] = await Promise.all([
     supabase.from("sites").select("id", { count: "exact", head: true }).eq("owner_id", user!.id),
     supabase
@@ -63,6 +65,7 @@ export default async function DashboardOverviewPage() {
           .eq("status", "accepted")
           .gte("accepted_at", startOfCurrentMonthISO())
       : Promise.resolve({ data: [] as { price_amount: number }[] }),
+    canSell ? getBdtPerUsd(supabase) : Promise.resolve(125),
   ]);
 
   const cumulativeThisMonth = (monthOrders ?? []).reduce((sum, o) => sum + (o.price_amount ?? 0), 0);
@@ -76,7 +79,7 @@ export default async function DashboardOverviewPage() {
 
       {canSell && (
         <div className="mb-6">
-          <CommissionTierCard cumulativeThisMonth={cumulativeThisMonth} />
+          <CommissionTierCard cumulativeThisMonthBdt={cumulativeThisMonth} bdtPerUsd={bdtPerUsd} />
         </div>
       )}
 

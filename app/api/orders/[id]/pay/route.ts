@@ -3,21 +3,11 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createBkashPayment } from "@/lib/bkash/client";
 import { createPaypalOrder } from "@/lib/paypal/client";
+import { getBdtPerUsd } from "@/lib/exchange-rate";
 
 const paySchema = z.object({
   provider: z.enum(["bkash", "paypal"]).default("bkash"),
 });
-
-/** Reads the platform's BDT-per-USD exchange rate (same source as /api/currency). */
-async function getBdtPerUsd(supabase: Awaited<ReturnType<typeof createClient>>) {
-  const { data } = await supabase
-    .from("site_settings")
-    .select("value")
-    .eq("key", "bdt_per_usd")
-    .maybeSingle();
-  const rate = Number(data?.value ?? 125);
-  return Number.isFinite(rate) && rate > 0 ? rate : 125;
-}
 
 export async function POST(
   request: Request,

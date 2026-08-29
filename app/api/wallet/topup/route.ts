@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createBkashPayment } from "@/lib/bkash/client";
 import { createPaypalOrder } from "@/lib/paypal/client";
+import { getBdtPerUsd } from "@/lib/exchange-rate";
 
 const topupSchema = z.object({
   amount: z.coerce.number().int().min(50, "Minimum top-up is ৳50").max(50000, "Maximum top-up is ৳50,000"),
@@ -33,13 +34,7 @@ export async function POST(request: Request) {
 
   if (provider === "paypal") {
     try {
-      const { data: rateRow } = await supabase
-        .from("site_settings")
-        .select("value")
-        .eq("key", "bdt_per_usd")
-        .maybeSingle();
-      const rate = Number(rateRow?.value ?? 125);
-      const bdtPerUsd = Number.isFinite(rate) && rate > 0 ? rate : 125;
+      const bdtPerUsd = await getBdtPerUsd(supabase);
       const usdAmount = Number((amount / bdtPerUsd).toFixed(2));
 
       const payment = await createPaypalOrder({

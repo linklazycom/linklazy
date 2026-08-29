@@ -3,20 +3,40 @@ import { commissionTierProgress } from "@/lib/commission";
 
 /** Shows a seller where they sit on the tiered-commission ladder this
  * month, and — the actual point of it — how close they are to the next,
- * lower rate: "sell ৳X more this month and your commission drops to Y%".
+ * lower rate: "sell $X more this month and your commission drops to Y%".
  * Framing it as a nudge rather than a flat fee table is what turns a
- * pricing disclosure into something that motivates more selling. */
-export function CommissionTierCard({ cumulativeThisMonth }: { cumulativeThisMonth: number }) {
-  const progress = commissionTierProgress(cumulativeThisMonth);
-  const { tiers, currentIndex, currentRate, nextTier, amountToNextTier, isTopTier } = progress;
+ * pricing disclosure into something that motivates more selling.
+ *
+ * The tiers themselves are defined in USD ($500 / $1000), while the
+ * seller's actual sales are stored and priced in ৳ — so both units are
+ * shown together (USD as the rule, ৳ as what it means in practice, since
+ * that's the currency sellers actually price their listings in). */
+export function CommissionTierCard({
+  cumulativeThisMonthBdt,
+  bdtPerUsd,
+}: {
+  cumulativeThisMonthBdt: number;
+  bdtPerUsd: number;
+}) {
+  const progress = commissionTierProgress(cumulativeThisMonthBdt, bdtPerUsd);
+  const {
+    tiers,
+    currentIndex,
+    currentRate,
+    cumulativeThisMonthUsd,
+    nextTier,
+    amountToNextTierUsd,
+    amountToNextTierBdt,
+    isTopTier,
+  } = progress;
 
-  // Progress within the *current* tier's own span, for the bar fill —
+  // Progress within the *current* tier's own USD span, for the bar fill —
   // not progress across the whole ladder, so the bar visibly moves even
   // early in a tier instead of looking stuck at a sliver.
-  const tierFloor = tiers[currentIndex].minCumulative;
-  const tierSpan = nextTier ? nextTier.minCumulative - tierFloor : tierFloor || 1;
-  const withinTier = cumulativeThisMonth - tierFloor;
-  const fillPct = isTopTier ? 100 : Math.min(100, Math.round((withinTier / tierSpan) * 100));
+  const tierFloorUsd = tiers[currentIndex].minUsd;
+  const tierSpanUsd = nextTier ? nextTier.minUsd - tierFloorUsd : tierFloorUsd || 1;
+  const withinTierUsd = cumulativeThisMonthUsd - tierFloorUsd;
+  const fillPct = isTopTier ? 100 : Math.min(100, Math.round((withinTierUsd / tierSpanUsd) * 100));
 
   return (
     <div className="rounded-chip border border-line bg-white p-5">
@@ -28,7 +48,7 @@ export function CommissionTierCard({ cumulativeThisMonth }: { cumulativeThisMont
       </div>
 
       {/* Tier ladder — each rung lit up once the seller's cumulative
-          sales for the month reach it. */}
+          sales for the month (converted to USD) reach it. */}
       <div className="mb-3 flex gap-1">
         {tiers.map((tier, i) => (
           <div
@@ -49,7 +69,7 @@ export function CommissionTierCard({ cumulativeThisMonth }: { cumulativeThisMont
       <div className="mb-4 flex justify-between text-xs text-muted">
         {tiers.map((tier) => (
           <span key={tier.rate}>
-            ৳{tier.minCumulative.toLocaleString()}+ · {tier.rate}%
+            ${tier.minUsd.toLocaleString()}+ · {tier.rate}%
           </span>
         ))}
       </div>
@@ -60,19 +80,24 @@ export function CommissionTierCard({ cumulativeThisMonth }: { cumulativeThisMont
             You&apos;ve hit LinkLazy&apos;s lowest rate — <span className="font-medium">10%</span> on
             everything else you sell this month.
           </>
-        ) : cumulativeThisMonth === 0 ? (
+        ) : cumulativeThisMonthUsd === 0 ? (
           <>
             Every seller starts the month at 20%.{" "}
-            <span className="font-medium">Sell ৳{amountToNextTier.toLocaleString()}</span> this month
-            and your commission drops to{" "}
+            <span className="font-medium">
+              Sell ${amountToNextTierUsd.toLocaleString()} (≈ ৳{amountToNextTierBdt.toLocaleString()})
+            </span>{" "}
+            this month and your commission drops to{" "}
             <span className="font-medium text-brand-violet">{nextTier!.rate}%</span>.
           </>
         ) : (
           <>
-            <span className="font-medium">৳{amountToNextTier.toLocaleString()} more</span> in sales this
-            month and your commission drops to{" "}
+            <span className="font-medium">
+              ${amountToNextTierUsd.toLocaleString()} more (≈ ৳{amountToNextTierBdt.toLocaleString()})
+            </span>{" "}
+            in sales this month and your commission drops to{" "}
             <span className="font-medium text-brand-violet">{nextTier!.rate}%</span> — you&apos;ve
-            already sold ৳{cumulativeThisMonth.toLocaleString()} this month.
+            already sold ${cumulativeThisMonthUsd.toFixed(0)} (৳{cumulativeThisMonthBdt.toLocaleString()})
+            this month.
           </>
         )}
       </p>

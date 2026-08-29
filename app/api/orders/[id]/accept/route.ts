@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { commissionRateForCumulative, startOfCurrentMonthISO } from "@/lib/commission";
+import { commissionRateForCumulativeUsd, startOfCurrentMonthISO } from "@/lib/commission";
+import { getBdtPerUsd } from "@/lib/exchange-rate";
 
 export async function POST(
   _request: Request,
@@ -59,7 +60,10 @@ export async function POST(
       0
     );
     const cumulativeAfterThisOrder = priorMonthTotal + order.price_amount;
-    const commissionRate = commissionRateForCumulative(cumulativeAfterThisOrder);
+    // Tiers are defined in USD — convert the ৳-denominated cumulative
+    // total before comparing against them (see lib/commission.ts).
+    const bdtPerUsd = await getBdtPerUsd(service);
+    const commissionRate = commissionRateForCumulativeUsd(cumulativeAfterThisOrder / bdtPerUsd);
     const commissionAmount = Math.round((order.price_amount * commissionRate) / 100);
     const sellerEarning = order.price_amount - commissionAmount;
 

@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { commissionRateForCumulative, startOfCurrentMonthISO } from "@/lib/commission";
+import { commissionRateForCumulativeUsd, startOfCurrentMonthISO } from "@/lib/commission";
+import { getBdtPerUsd } from "@/lib/exchange-rate";
 import { z } from "zod";
 
 const resolveSchema = z.object({
@@ -110,7 +111,8 @@ export async function POST(
         0
       );
       const cumulativeAfterThisOrder = priorMonthTotal + order.price_amount;
-      const commissionRate = commissionRateForCumulative(cumulativeAfterThisOrder);
+      const bdtPerUsd = await getBdtPerUsd(service);
+      const commissionRate = commissionRateForCumulativeUsd(cumulativeAfterThisOrder / bdtPerUsd);
       const commissionAmount = Math.round((order.price_amount * commissionRate) / 100);
       const sellerEarning = order.price_amount - commissionAmount;
 

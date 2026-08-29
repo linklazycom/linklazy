@@ -71,8 +71,8 @@ export default async function TermsPage() {
             successful delivery, after which funds are released to the
             seller minus the applicable platform commission. Commission is
             tiered by each seller&apos;s cumulative sales within the
-            calendar month — 20% by default, dropping to 15% past ৳500 and
-            10% past ৳1,000 in released sales that month, resetting at the
+            calendar month — 20% by default, dropping to 15% past $500 and
+            10% past $1,000 in released sales that month, resetting at the
             start of each month. Fees and commission rates may change with
             notice.
           </p>
