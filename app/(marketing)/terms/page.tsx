@@ -69,17 +69,19 @@ export default async function TermsPage() {
             We currently support payment via bKash and PayPal. For flat-fee
             paid orders, buyer funds are held until the buyer confirms
             successful delivery, after which funds are released to the
-            seller minus the applicable platform commission. Sellers on a
-            monthly subscription plan may be subject to different commission
-            terms, as confirmed with our support team when the plan is
-            assigned. Fees and commission rates may change with notice.
+            seller minus the applicable platform commission. Commission is
+            tiered by each seller&apos;s cumulative sales within the
+            calendar month — 20% by default, dropping to 15% past ৳500 and
+            10% past ৳1,000 in released sales that month, resetting at the
+            start of each month. Fees and commission rates may change with
+            notice.
           </p>
         </section>
         <section>
           <h2 className="mb-2 font-display text-lg font-medium">6. Pay-Per-View orders and wallet balance</h2>
           <p>
             Some listings support Pay-Per-View (PPV) pricing, where payment
-            is deducted incrementally from a buyer's prepaid wallet balance
+            is deducted incrementally from a buyer&apos;s prepaid wallet balance
             as verified views accrue against the linked content, up to a
             budget cap the buyer sets at order time. Wallet funds are
             prepaid and buyer-owned until spent; unspent wallet balance
@@ -95,8 +97,8 @@ export default async function TermsPage() {
         <section>
           <h2 className="mb-2 font-display text-lg font-medium">7. Referral program</h2>
           <p>
-            Users may earn a commission credit — currently 50% of LinkLazy's
-            commission on a referred user's completed paid orders — by
+            Users may earn a commission credit — currently 50% of LinkLazy&apos;s
+            commission on a referred user&apos;s completed paid orders — by
             referring new users with their unique referral link. Referral
             credits are informational account balances until a withdrawal
             process is made available; LinkLazy reserves the right to adjust

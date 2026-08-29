@@ -120,7 +120,7 @@ const FAQS = [
   },
   {
     q: "Is it free to list my site?",
-    a: "Yes. Listing is free under the Commission plan — LinkLazy only takes a percentage when you complete a paid order. A flat Monthly plan with 0% commission is also available for established sellers — contact support to switch.",
+    a: "Yes, listing a site is always free. LinkLazy only takes a commission when you complete a paid order, and that rate drops automatically the more you sell in a month — 20% to start, down to 15% past ৳500 and 10% past ৳1,000 in that month's sales.",
   },
   {
     q: "What happens if a seller doesn't deliver?",
