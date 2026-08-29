@@ -48,18 +48,24 @@ export default async function ArticlePage({
 
   if (!article) notFound();
 
-  const wordCount = article.content.split(/\s+/).filter(Boolean).length;
+  // Some rows can have an empty/missing body (e.g. a draft that only ever
+  // got a title and metadata) — render the rest of the page normally
+  // instead of crashing the whole route on `.split()`/`marked.parse()`
+  // with `content: null`.
+  const hasContent = typeof article.content === "string" && article.content.trim().length > 0;
+
+  const wordCount = hasContent ? article.content.split(/\s+/).filter(Boolean).length : 0;
   const inlineImageCount = Math.min(4, Math.max(0, Math.floor(wordCount / 450)));
 
   const [rawHtml, photo, inlinePhotos] = await Promise.all([
-    marked.parse(article.content),
+    hasContent ? marked.parse(article.content) : Promise.resolve(""),
     searchPexelsPhoto(article.target_keyword || article.title, slug),
     inlineImageCount > 0
       ? searchPexelsPhotos(article.target_keyword || article.title, inlineImageCount, slug)
       : Promise.resolve([]),
   ]);
 
-  const html = sanitizeArticleHtml(injectInlineImages(rawHtml as string, inlinePhotos));
+  const html = hasContent ? sanitizeArticleHtml(injectInlineImages(rawHtml as string, inlinePhotos)) : "";
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://linklazy.com";
 
@@ -105,7 +111,13 @@ export default async function ArticlePage({
             </Link>
           )}
           <h1 className="mb-4 font-display text-3xl font-medium">{article.title}</h1>
-          <div className="article-content" dangerouslySetInnerHTML={{ __html: html }} />
+          {hasContent ? (
+            <div className="article-content" dangerouslySetInnerHTML={{ __html: html }} />
+          ) : (
+            <p className="text-muted">
+              This article&apos;s content isn&apos;t published yet — check back soon.
+            </p>
+          )}
 
           {article.tags?.length > 0 && (
             <div className="mt-8 flex flex-wrap gap-2 border-t border-line pt-6">
