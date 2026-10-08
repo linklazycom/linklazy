@@ -110,3 +110,13 @@ body {
 .animate-toast-in {
   animation: toast-in 0.2s ease-out;
 }
+
+/* Navigation progress bar animation (used by components/layout/navigation-progress.tsx) */
+@keyframes nav-progress {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(50%); }
+  100% { transform: translateX(220%); }
+}
+.animate-nav-progress {
+  animation: nav-progress 1.1s ease-in-out infinite;
+}

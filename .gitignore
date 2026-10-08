@@ -1,6 +1,22 @@
+# dependencies
 node_modules
+
+# next.js
 .next
-.env.local
+out
+
+# env files (never commit real keys)
 .env
+.env.local
+.env.*.local
+.env.production
+
+# typescript / build caches
+*.tsbuildinfo
+
+# logs & OS
 *.log
 .DS_Store
+
+# vercel
+.vercel
