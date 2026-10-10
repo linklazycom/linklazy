@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { runVerification } from "@/lib/verification";
 
 export async function POST(
@@ -40,7 +41,9 @@ export async function POST(
 
   const result = await runVerification(verification.method, site.url, verification.token);
 
-  await supabase
+  // Trusted write: the result comes from our own check above, so it is saved
+  // with the service client (sellers cannot set "verified" themselves).
+  await createServiceClient()
     .from("site_verifications")
     .update({
       status: result.ok ? "verified" : "failed",

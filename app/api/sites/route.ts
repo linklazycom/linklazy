@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { siteSubmissionSchema } from "@/lib/validators/site";
 import { generateVerificationToken } from "@/lib/verification";
 import { fetchDomainRating } from "@/lib/ahrefs";
@@ -61,7 +62,9 @@ export async function POST(request: Request) {
   try {
     const result = await fetchDomainRating(parsed.data.url);
     if (result.ok && result.domainRating != null) {
-      await supabase
+      // Trusted write: DR comes from Ahrefs, so it must not go through the
+      // seller's own session (the DB blocks sellers from changing dr_verified).
+      await createServiceClient()
         .from("sites")
         .update({
           dr_verified: result.domainRating,
