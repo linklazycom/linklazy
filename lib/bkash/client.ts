@@ -30,6 +30,8 @@ interface ExecutePaymentResponse {
   transactionStatus: string;
   amount: string;
   currency: string;
+  statusCode?: string;
+  statusMessage?: string;
 }
 
 function requireEnv(name: string): string {
@@ -109,7 +111,19 @@ export async function createBkashPayment(params: {
 
 /** Finalizes payment after the buyer approves it on bKash's hosted page. */
 export async function executeBkashPayment(paymentID: string): Promise<ExecutePaymentResponse> {
-  return authedFetch("/tokenized/checkout/execute", { paymentID }) as Promise<ExecutePaymentResponse>;
+  const result = (await authedFetch("/tokenized/checkout/execute", { paymentID })) as ExecutePaymentResponse;
+  // SECURITY: bKash can answer HTTP 200 with an error body (statusCode != "0000").
+  // Only a "Completed" transaction counts as paid.
+  if (
+    !result ||
+    (result.statusCode && result.statusCode !== "0000") ||
+    result.transactionStatus !== "Completed"
+  ) {
+    throw new Error(
+      `bKash payment not completed: ${result?.statusCode ?? ""} ${result?.statusMessage ?? result?.transactionStatus ?? ""}`.trim()
+    );
+  }
+  return result;
 }
 
 /** Queries the current status of a payment (used for reconciliation/support). */

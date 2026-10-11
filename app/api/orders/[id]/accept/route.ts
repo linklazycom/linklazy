@@ -24,12 +24,38 @@ export async function POST(
     return NextResponse.json({ error: "Order isn't awaiting acceptance" }, { status: 400 });
   }
 
-  const { error } = await supabase
+  const service = createServiceClient();
+
+  // SECURITY: a paid order may only be accepted (and the seller paid) if the
+  // buyer's money is really held in escrow for it.
+  if (order.order_type === "paid" && order.price_amount) {
+    const { data: held } = await service
+      .from("payments")
+      .select("id")
+      .eq("order_id", id)
+      .eq("status", "held_escrow");
+    if (!held || held.length === 0) {
+      return NextResponse.json(
+        { error: "No held payment found for this order. Please contact support." },
+        { status: 409 }
+      );
+    }
+  }
+
+  // Atomic claim: only one request can move delivered -> accepted, so a
+  // double click or two concurrent requests can never pay the seller twice.
+  const { data: claimed, error } = await service
     .from("orders")
     .update({ status: "accepted", accepted_at: new Date().toISOString() })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("status", "delivered")
+    .eq("buyer_id", user.id)
+    .select("id");
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!claimed || claimed.length === 0) {
+    return NextResponse.json({ error: "Order isn't awaiting acceptance" }, { status: 409 });
+  }
 
   revalidatePath("/dashboard/orders");
   revalidatePath(`/dashboard/orders/${id}`);
@@ -40,10 +66,9 @@ export async function POST(
   // tiered on the seller's cumulative sales for the current calendar
   // month — see lib/commission.ts.
   if (order.order_type === "paid" && order.price_amount) {
-    // Service-role client: this sum needs to see every one of the
-    // seller's orders regardless of RLS, and the wallet credit below is
-    // a privileged write the buyer's own session shouldn't have.
-    const service = createServiceClient();
+    // `service` (service-role client, declared above): this sum needs to see
+    // every one of the seller's orders regardless of RLS, and the wallet credit
+    // below is a privileged write the buyer's own session shouldn't have.
 
     const monthStart = startOfCurrentMonthISO();
     const { data: priorOrders } = await service
