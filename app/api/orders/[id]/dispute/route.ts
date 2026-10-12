@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { z } from "zod";
 
 const disputeSchema = z.object({
@@ -17,6 +18,7 @@ export async function POST(
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
+  // Participation is checked with the user's own session (RLS).
   const { data: order } = await supabase
     .from("orders")
     .select("id, buyer_id, seller_id, status")
@@ -39,15 +41,28 @@ export async function POST(
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { error: disputeError } = await supabase.from("disputes").insert({
+  // The disputes table has no INSERT policy for normal sessions, so the write
+  // happens with the service client (after the checks above).
+  const service = createServiceClient();
+
+  const { data: existing } = await service
+    .from("disputes")
+    .select("id")
+    .eq("order_id", orderId)
+    .in("status", ["open", "under_review"])
+    .limit(1);
+  if (existing && existing.length > 0) {
+    return NextResponse.json({ error: "A dispute is already open for this order." }, { status: 409 });
+  }
+
+  const { error: disputeError } = await service.from("disputes").insert({
     order_id: orderId,
     raised_by: user.id,
     reason: parsed.data.reason,
   });
-
   if (disputeError) return NextResponse.json({ error: disputeError.message }, { status: 500 });
 
-  await supabase.from("orders").update({ status: "disputed" }).eq("id", orderId);
+  await service.from("orders").update({ status: "disputed" }).eq("id", orderId);
 
   return NextResponse.json({ ok: true });
 }

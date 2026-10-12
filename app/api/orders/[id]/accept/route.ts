@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { commissionRateForCumulativeUsd, startOfCurrentMonthISO } from "@/lib/commission";
-import { getBdtPerUsd } from "@/lib/exchange-rate";
+import { releaseOrderToSeller } from "@/lib/order-money";
 
 export async function POST(
   _request: Request,
@@ -25,10 +24,11 @@ export async function POST(
   }
 
   const service = createServiceClient();
+  const isPaid = order.order_type === "paid" && !!order.price_amount;
 
   // SECURITY: a paid order may only be accepted (and the seller paid) if the
   // buyer's money is really held in escrow for it.
-  if (order.order_type === "paid" && order.price_amount) {
+  if (isPaid) {
     const { data: held } = await service
       .from("payments")
       .select("id")
@@ -57,56 +57,9 @@ export async function POST(
     return NextResponse.json({ error: "Order isn't awaiting acceptance" }, { status: 409 });
   }
 
-  revalidatePath("/dashboard/orders");
-  revalidatePath(`/dashboard/orders/${id}`);
-  revalidatePath("/admin/orders");
-
-  // Release escrowed payment and pay the seller, if this was a paid order.
-  // Commission is finalized here (not at order creation) because it's
-  // tiered on the seller's cumulative sales for the current calendar
-  // month — see lib/commission.ts.
-  if (order.order_type === "paid" && order.price_amount) {
-    // `service` (service-role client, declared above): this sum needs to see
-    // every one of the seller's orders regardless of RLS, and the wallet credit
-    // below is a privileged write the buyer's own session shouldn't have.
-
-    const monthStart = startOfCurrentMonthISO();
-    const { data: priorOrders } = await service
-      .from("orders")
-      .select("price_amount")
-      .eq("seller_id", order.seller_id)
-      .eq("order_type", "paid")
-      .eq("status", "accepted")
-      .gte("accepted_at", monthStart)
-      .neq("id", id);
-
-    const priorMonthTotal = (priorOrders ?? []).reduce(
-      (sum, o) => sum + (o.price_amount ?? 0),
-      0
-    );
-    const cumulativeAfterThisOrder = priorMonthTotal + order.price_amount;
-    // Tiers are defined in USD — convert the ৳-denominated cumulative
-    // total before comparing against them (see lib/commission.ts).
-    const bdtPerUsd = await getBdtPerUsd(service);
-    const commissionRate = commissionRateForCumulativeUsd(cumulativeAfterThisOrder / bdtPerUsd);
-    const commissionAmount = Math.round((order.price_amount * commissionRate) / 100);
-    const sellerEarning = order.price_amount - commissionAmount;
-
-    await service
-      .from("orders")
-      .update({ commission_rate: commissionRate, commission_amount: commissionAmount })
-      .eq("id", id);
-
-    const { error: creditError } = await service.rpc("adjust_wallet_balance", {
-      p_user_id: order.seller_id,
-      p_delta: sellerEarning,
-      p_type: "seller_earning",
-      p_related_site_id: order.site_id,
-      p_related_user_id: order.buyer_id,
-      p_notes: `Order payout after ${commissionRate}% commission`,
-    });
-
-    if (creditError) {
+  if (isPaid) {
+    const result = await releaseOrderToSeller(service, order);
+    if (!result.ok) {
       // Nothing was paid out, so re-open the order: the buyer can press Accept
       // again instead of leaving an "accepted" order whose seller was never paid.
       await service
@@ -119,14 +72,11 @@ export async function POST(
         { status: 500 }
       );
     }
-
-    // Release the escrow record only after the seller was really paid.
-    await service
-      .from("payments")
-      .update({ status: "released" })
-      .eq("order_id", id)
-      .eq("status", "held_escrow");
   }
+
+  revalidatePath("/dashboard/orders");
+  revalidatePath(`/dashboard/orders/${id}`);
+  revalidatePath("/admin/orders");
 
   return NextResponse.json({ ok: true });
 }
