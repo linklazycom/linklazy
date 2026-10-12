@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "gen:types": "supabase gen types typescript --project-id YOUR_PROJECT_ID --schema public > types/database.ts"
+    "gen:types": "supabase gen types typescript --project-id YOUR_PROJECT_ID --schema public > types/database.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --experimental-strip-types --import ./tests/alias-register.mjs \"tests/*.test.ts\""
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",

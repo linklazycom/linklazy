@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email";
+import { requireCron } from "@/lib/cron-auth";
+import { safeFetch, SafeFetchError } from "@/lib/safe-fetch";
 
 // This route loops sequentially over many items with external API/email
 // calls per item, which can exceed Vercel's default serverless timeout
@@ -17,10 +19,8 @@ export const maxDuration = 300;
  * a dispute since a temporary CMS hiccup shouldn't trigger one automatically.
  */
 export async function GET(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const denied = requireCron(request);
+  if (denied) return denied;
 
   const supabase = createServiceClient();
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -36,18 +36,27 @@ export async function GET(request: Request) {
 
   let stillLive = 0;
   let wentDown = 0;
+  let skipped = 0;
 
   for (const order of orders) {
     const wasOk = order.last_link_check_ok;
     let isOk = false;
 
     try {
-      const res = await fetch(order.proof_url!, { signal: AbortSignal.timeout(10_000) });
+      // SECURITY (audit R2): proof_url is supplied by the seller, so it must
+      // never be fetched with a bare fetch(). safeFetch blocks internal /
+      // private / metadata targets and caps time and size.
+      const res = await safeFetch(order.proof_url!, { timeoutMs: 10_000, maxBytes: 3 * 1024 * 1024, truncate: true });
       if (res.ok) {
-        const html = await res.text();
-        isOk = html.includes(order.target_url);
+        isOk = res.text.includes(order.target_url);
       }
-    } catch {
+    } catch (err) {
+      if (err instanceof SafeFetchError && (err.code === "blocked" || err.code === "invalid_url")) {
+        // A URL we refuse to fetch is not evidence the link is gone: leave
+        // the order's check state untouched and move on.
+        skipped++;
+        continue;
+      }
       isOk = false;
     }
 
@@ -84,5 +93,5 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json({ checked: orders.length, stillLive, wentDown });
+  return NextResponse.json({ checked: orders.length, stillLive, wentDown, skipped });
 }

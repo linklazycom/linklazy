@@ -1,6 +1,14 @@
-# Supabase SQL — চালানোর ক্রম (Batch 5)
+# Supabase SQL — চালানোর ক্রম
 
 > প্রতিটি ফাইল Supabase → SQL Editor-এ পেস্ট করে Run করুন। "আলাদা Run" লেখা অংশ একসাথে চালাবেন না।
+> **নতুন নিয়ম (Batch 6 থেকে):** শুধু additive মাইগ্রেশন (নতুন টেবিল/কলাম/ফাংশন); প্রতিটি ফাইলের মাথায় PRE-CHECK ও ROLLBACK আছে; কোনো ড্রপ/ট্রাঙ্কেট/রিসেট নেই।
+
+## Batch 6 (নতুন)
+1. [ ] GitHub-এ Batch 6-এর কোড ফাইল আপলোড → Vercel ডিপ্লয় শেষ হওয়ার অপেক্ষা
+2. [ ] `022_tasks.sql` — আগে ফাইলের মাথার PRE-CHECK কোয়েরি চালান (দুটো কলামই `NULL` আসা উচিত), তারপর পুরো ফাইল Run
+3. [ ] `023_api_providers.sql` — একইভাবে PRE-CHECK, তারপর Run
+4. [ ] Vercel → Environment Variables-এ `PROVIDER_KEY_ENCRYPTION_SECRET` যোগ (৩২+ অক্ষরের র‍্যান্ডম স্ট্রিং) → Redeploy
+5. [ ] `/admin/api-providers` পেজ খুলে দেখুন লোড হয় কিনা
 
 ## আগের ব্যাচ (সব চালানো হয়েছে): 010–017
 

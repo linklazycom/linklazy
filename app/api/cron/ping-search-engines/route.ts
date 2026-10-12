@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireCron } from "@/lib/cron-auth";
 
 /**
  * Pings search engines to re-fetch the sitemap. Doesn't guarantee faster
@@ -11,10 +12,8 @@ import { NextResponse } from "next/server";
  * is still active as of writing and is included here.
  */
 export async function GET(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const denied = requireCron(request);
+  if (denied) return denied;
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://linklazy.com";
   const sitemapUrl = `${siteUrl}/sitemap.xml`;

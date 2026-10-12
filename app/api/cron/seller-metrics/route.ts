@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { requireCron } from "@/lib/cron-auth";
 
 // This route loops sequentially over many items with external API/email
 // calls per item, which can exceed Vercel's default serverless timeout
@@ -16,10 +17,8 @@ const FINISHED_STATUSES = ["accepted", "disputed", "refunded"];
  * catalog size here doesn't call for anything fancier yet.
  */
 export async function GET(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const denied = requireCron(request);
+  if (denied) return denied;
 
   const supabase = createServiceClient();
 

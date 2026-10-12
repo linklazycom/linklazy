@@ -1,4 +1,5 @@
 import { NICHE_KEYWORDS } from "@/lib/niche-keywords";
+import { safeFetch, SafeFetchError } from "@/lib/safe-fetch";
 
 export interface ScanResult {
   detectedNiche: string | null;
@@ -55,68 +56,29 @@ export async function scanBuyerSite(url: string): Promise<ScanResult> {
   return { detectedNiche: bestNiche, confidence, matchedKeywords: bestMatches, pageText: text };
 }
 
-// SECURITY: this URL is buyer-supplied and this function runs server-side,
-// so without a check it's an SSRF vector — a buyer could point the scanner
-// at localhost, a private/internal IP, or the cloud metadata endpoint
-// (169.254.169.254) instead of a real public site.
-function assertPublicHttpUrl(rawUrl: string) {
-  const parsed = new URL(rawUrl);
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw new Error("Only http(s) URLs are allowed.");
-  }
-  const host = parsed.hostname.toLowerCase();
-  const blocked =
-    host === "localhost" ||
-    host === "127.0.0.1" ||
-    host === "::1" ||
-    host === "169.254.169.254" || // cloud metadata
-    host.endsWith(".local") ||
-    /^10\./.test(host) ||
-    /^192\.168\./.test(host) ||
-    /^172\.(1[6-9]|2\d|3[01])\./.test(host);
-  if (blocked) {
-    throw new Error("This URL points to a private or internal address and can't be scanned.");
-  }
-}
-
+// SECURITY: this URL is buyer-supplied and this function runs server-side, so
+// it is an SSRF vector. All fetching goes through lib/safe-fetch.ts, which
+// blocks private/internal/metadata addresses (checked on the RESOLVED IP, on
+// every redirect hop, and at connect time), restricts ports/protocols, and
+// caps time and response size.
 async function fetchHtml(url: string): Promise<string> {
-  // SECURITY: we validate the initial URL, but a malicious site could
-  // itself be safe and then 302-redirect to a private/internal address
-  // (e.g. 169.254.169.254) to bypass the check above. `redirect: "follow"`
-  // would follow that transparently, so instead we follow redirects
-  // manually and re-validate the host at every hop.
-  let currentUrl = url;
-  const MAX_REDIRECTS = 5;
-
-  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-    assertPublicHttpUrl(currentUrl);
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-    let res: Response;
-    try {
-      res = await fetch(currentUrl, {
-        signal: controller.signal,
-        redirect: "manual",
-        headers: {
-          "User-Agent": "Mozilla/5.0 (compatible; LinkLazyScanner/1.0; +https://linklazy.com)",
-        },
-      });
-    } finally {
-      clearTimeout(timeout);
+  let res;
+  try {
+    res = await safeFetch(url, {
+      timeoutMs: 8000,
+      maxBytes: 2 * 1024 * 1024,
+      truncate: true, // title/meta/headings/early paragraphs are all we need
+      maxRedirects: 5,
+      headers: { "user-agent": "Mozilla/5.0 (compatible; LinkLazyScanner/1.0; +https://linklazy.com)" },
+    });
+  } catch (err) {
+    if (err instanceof SafeFetchError && err.code === "blocked") {
+      throw new Error("This URL points to a private or internal address and can't be scanned.");
     }
-
-    if (res.status >= 300 && res.status < 400 && res.headers.get("location")) {
-      if (hop === MAX_REDIRECTS) throw new Error("Too many redirects.");
-      currentUrl = new URL(res.headers.get("location")!, currentUrl).toString();
-      continue;
-    }
-
-    if (!res.ok) throw new Error(`Site responded with status ${res.status}`);
-    return await res.text();
+    throw err;
   }
-
-  throw new Error("Too many redirects.");
+  if (!res.ok) throw new Error(`Site responded with status ${res.status}`);
+  return res.text;
 }
 
 /** Pulls <title>, meta description, H1-H3 text, and a slice of body
