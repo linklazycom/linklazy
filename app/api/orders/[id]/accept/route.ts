@@ -97,12 +97,6 @@ export async function POST(
       .update({ commission_rate: commissionRate, commission_amount: commissionAmount })
       .eq("id", id);
 
-    await service
-      .from("payments")
-      .update({ status: "released" })
-      .eq("order_id", id)
-      .eq("status", "held_escrow");
-
     const { error: creditError } = await service.rpc("adjust_wallet_balance", {
       p_user_id: order.seller_id,
       p_delta: sellerEarning,
@@ -113,11 +107,25 @@ export async function POST(
     });
 
     if (creditError) {
+      // Nothing was paid out, so re-open the order: the buyer can press Accept
+      // again instead of leaving an "accepted" order whose seller was never paid.
+      await service
+        .from("orders")
+        .update({ status: "delivered", accepted_at: null, commission_rate: null, commission_amount: null })
+        .eq("id", id)
+        .eq("status", "accepted");
       return NextResponse.json(
-        { error: `Order accepted, but crediting seller failed: ${creditError.message}` },
+        { error: "Could not pay the seller right now. The order is still open — please try again." },
         { status: 500 }
       );
     }
+
+    // Release the escrow record only after the seller was really paid.
+    await service
+      .from("payments")
+      .update({ status: "released" })
+      .eq("order_id", id)
+      .eq("status", "held_escrow");
   }
 
   return NextResponse.json({ ok: true });
