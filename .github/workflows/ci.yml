@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # Strict: these must pass.
+      - name: Type check
+        run: npm run typecheck
+      - name: Unit tests
+        run: npm test
+
+      # Not strict yet: ~45 old lint findings exist, and the build needs real
+      # Supabase env values. Turn these strict (remove continue-on-error) once
+      # they are clean — tracked in LINKLAZY_PLAN.md.
+      - name: Lint
+        run: npm run lint
+        continue-on-error: true
+      - name: Build
+        run: npm run build
+        continue-on-error: true
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+          NEXT_PUBLIC_SITE_URL: https://example.com
