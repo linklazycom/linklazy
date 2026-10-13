@@ -54,11 +54,11 @@ export async function POST(request: Request) {
   // wallet checkout doesn't support this yet). Re-checks the coupon here
   // rather than trusting a discount the client sends, since the client
   // could otherwise submit any price it wants.
+  const service = createServiceClient();
   let finalPrice = input.order_type === "paid" ? site.price_amount : null;
   let appliedCoupon: { id: string; redemption_count: number; discountAmount: number } | null = null;
 
   if (input.order_type === "paid" && input.coupon_code && finalPrice != null) {
-    const service = createServiceClient();
     const couponResult = await checkCoupon(service, input.coupon_code, finalPrice);
     if (!couponResult.ok || !couponResult.coupon) {
       return NextResponse.json({ error: couponResult.error ?? "Invalid coupon." }, { status: 400 });
@@ -71,9 +71,33 @@ export async function POST(request: Request) {
     };
   }
 
+  // SECURITY (Batch 7): everything below the insert is trusted server data.
+  // The orders table no longer accepts inserts from the browser (SQL 025 drops
+  // the buyer insert policy) because a buyer could otherwise POST straight to
+  // the database API with price_amount set to anything.
+
+  if (input.slot_id) {
+    const { data: slot } = await service
+      .from("site_link_slots")
+      .select("id")
+      .eq("id", input.slot_id)
+      .eq("site_id", site.id)
+      .maybeSingle();
+    if (!slot) return NextResponse.json({ error: "That link slot doesn't belong to this site" }, { status: 400 });
+  }
+  if (input.order_type === "exchange" && input.buyer_site_id) {
+    const { data: ownSite } = await service
+      .from("sites")
+      .select("id")
+      .eq("id", input.buyer_site_id)
+      .eq("owner_id", user.id)
+      .maybeSingle();
+    if (!ownSite) return NextResponse.json({ error: "The site you offered in exchange isn't yours" }, { status: 400 });
+  }
+
   const deadline = new Date(Date.now() + (site.turnaround_hours ?? 48) * 3600 * 1000);
 
-  const { data: order, error } = await supabase
+  const { data: order, error } = await service
     .from("orders")
     .insert({
       buyer_id: user.id,
@@ -98,7 +122,6 @@ export async function POST(request: Request) {
   // -applied discount, it just means the coupon's usage count / the
   // admin revenue "cost given up" figure might be slightly behind.
   if (appliedCoupon) {
-    const service = createServiceClient();
     await recordCouponRedemption(service, {
       couponId: appliedCoupon.id,
       currentRedemptionCount: appliedCoupon.redemption_count,

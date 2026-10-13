@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { sanitizeTrackPayload, TRACK_LIMITS } from "@/lib/track-payload";
 import { createMemoryRateLimiter } from "@/lib/memory-rate-limit";
 
@@ -34,7 +35,11 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  await supabase.from("page_views").insert({ ...payload, user_id: user?.id ?? null });
+  // SECURITY (Batch 7): the insert goes through the server-side service client
+  // so SQL 025 can remove the public "anyone may insert" policy on page_views.
+  // Otherwise anyone holding the public anon key could flood the table directly.
+  const service = createServiceClient();
+  await service.from("page_views").insert({ ...payload, user_id: user?.id ?? null });
 
   return NextResponse.json({ ok: true });
 }

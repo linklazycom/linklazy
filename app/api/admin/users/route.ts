@@ -82,6 +82,11 @@ export async function POST(request: Request) {
     // from public self-registration, so admins can still add users while
     // signup is toggled closed to the public.
     user_metadata: { full_name, created_by_admin: true },
+    // SECURITY (Batch 7): app_metadata can only be set by the server (service
+    // role), never by a visitor signing up, so the enforce_signup_open trigger
+    // trusts THIS flag. user_metadata above is kept only for the transition
+    // period before SQL 025 is applied and can be removed afterwards.
+    app_metadata: { created_by_admin: true },
   });
 
   if (createError || !created?.user) {

@@ -64,7 +64,7 @@ export default async function BrowsePage({
 
   const ownerIds = [...new Set((sites ?? []).map((s) => s.owner_id))];
   const { data: sellerProfiles } = ownerIds.length
-    ? await supabase.from("profiles").select("id, display_name, seller_tier").in("id", ownerIds)
+    ? await supabase.from("public_profile_cards").select("id, display_name, seller_tier").in("id", ownerIds)
     : { data: [] };
   const tierByOwner = new Map((sellerProfiles ?? []).map((p) => [p.id, p.seller_tier]));
   const nameByOwner = new Map((sellerProfiles ?? []).map((p) => [p.id, p.display_name]));

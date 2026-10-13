@@ -140,8 +140,10 @@ export default function SiteDetailPage({
     }
 
     if (siteData?.owner_id) {
+      // Another user's stats: read the public view, never the profiles table
+      // (profiles rows hold wallet balances and are private since SQL 025).
       const { data: sellerData } = await supabase
-        .from("profiles")
+        .from("public_profile_cards")
         .select("seller_tier, response_rate, completion_rate, avg_response_hours, dispute_rate, completed_order_count")
         .eq("id", siteData.owner_id)
         .single();

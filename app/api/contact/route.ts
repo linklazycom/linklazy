@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { z } from "zod";
 import { checkRateLimit, getRequestIp } from "@/lib/rate-limit";
 
@@ -22,7 +22,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const supabase = await createClient();
+  // SECURITY (Batch 7): server-side insert (after the rate limit above) so the
+  // open "anyone may insert" policy on contact_messages can be removed.
+  const supabase = createServiceClient();
   const { error } = await supabase.from("contact_messages").insert(parsed.data);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

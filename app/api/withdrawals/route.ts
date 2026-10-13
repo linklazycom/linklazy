@@ -85,7 +85,10 @@ export async function POST(request: Request) {
     }
   }
 
-  const { error } = await supabase.from("withdrawal_requests").insert({
+  // SECURITY (Batch 7): inserted server-side so a user can't create a request
+  // for any amount straight through the database API (SQL 025 drops the
+  // client insert policy). The balance check above is the only gate.
+  const { error } = await createServiceClient().from("withdrawal_requests").insert({
     user_id: user.id,
     amount: parsed.data.amount,
     bkash_number: parsed.data.bkash_number,

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { createPressReleaseOrderSchema } from "@/lib/validators/press-release";
 
 export async function POST(request: Request) {
@@ -22,7 +23,11 @@ export async function POST(request: Request) {
 
   const unitTotal = products.reduce((sum, product) => sum + Number(product.price_amount), 0);
   const total = unitTotal * input.quantity;
-  const { data: order, error } = await supabase
+  // SECURITY (Batch 7): prices come from the products read above; the insert is
+  // server-side so total_amount / unit_price can't be forged through the
+  // database API (SQL 025 drops the client insert policies).
+  const service = createServiceClient();
+  const { data: order, error } = await service
     .from("press_release_orders")
     .insert({
       user_id: user.id, quantity: input.quantity, headline: input.headline,
@@ -33,7 +38,7 @@ export async function POST(request: Request) {
     .single();
   if (error || !order) return NextResponse.json({ error: error?.message ?? "Could not create the order" }, { status: 500 });
 
-  const { error: itemError } = await supabase.from("press_release_order_items").insert(
+  const { error: itemError } = await service.from("press_release_order_items").insert(
     products.map((product) => ({ order_id: order.id, product_id: product.id, product_name: product.name, unit_price: product.price_amount }))
   );
   if (itemError) return NextResponse.json({ error: itemError.message }, { status: 500 });
