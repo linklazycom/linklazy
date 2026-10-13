@@ -13,13 +13,34 @@ export default async function WatchlistPage() {
   const [{ data: watched }, unlockedIds] = await Promise.all([
     supabase
       .from("watchlists")
-      .select(
-        "site_id, created_at, sites(id, owner_id, domain, niche, da, dr, organic_traffic, price_amount, status)"
-      )
+      .select("site_id, created_at")
       .eq("user_id", user!.id)
       .order("created_at", { ascending: false }),
     getUnlockedSiteIds(supabase, user!.id),
   ]);
+
+  // Site details come from the sites_public view (domain is masked unless the
+  // viewer owns/unlocked the site) instead of a direct sites(...) join.
+  type WatchSite = {
+    id: string;
+    owner_id: string;
+    domain: string;
+    niche: string;
+    da: number | null;
+    dr: number | null;
+    organic_traffic: number | null;
+    price_amount: number | null;
+    status: string;
+  };
+  const watchedIds = (watched ?? []).map((w) => w.site_id as string);
+  const sitesById = new Map<string, WatchSite>();
+  if (watchedIds.length > 0) {
+    const { data: siteRows } = await supabase
+      .from("sites_public")
+      .select("id, owner_id, domain, niche, da, dr, organic_traffic, price_amount, status")
+      .in("id", watchedIds);
+    (siteRows ?? []).forEach((s) => sitesById.set(s.id as string, s as unknown as WatchSite));
+  }
 
   return (
     <div>
@@ -27,17 +48,7 @@ export default async function WatchlistPage() {
 
       <div className="space-y-3">
         {watched?.map((w) => {
-          const site = w.sites as unknown as {
-            id: string;
-            owner_id: string;
-            domain: string;
-            niche: string;
-            da: number | null;
-            dr: number | null;
-            organic_traffic: number | null;
-            price_amount: number | null;
-            status: string;
-          } | null;
+          const site = sitesById.get(w.site_id as string);
           if (!site) return null;
           const unlocked = site.owner_id === user!.id || unlockedIds.has(site.id);
           return (

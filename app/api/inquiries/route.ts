@@ -66,10 +66,25 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("inquiries")
-    .select("id, site_id, buyer_id, seller_id, updated_at, sites(domain)")
+    .select("id, site_id, buyer_id, seller_id, updated_at")
     .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
     .order("updated_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ inquiries: data ?? [] });
+
+  // The domain comes from the sites_public view, so a buyer who has only sent
+  // an inquiry (not unlocked or ordered) sees it masked, while the seller who
+  // owns the site sees the real one. Embedding sites(domain) directly would
+  // reveal domains to anyone who can message a seller for free.
+  const siteIds = Array.from(new Set((data ?? []).map((i) => i.site_id as string)));
+  const domainBySite = new Map<string, string>();
+  if (siteIds.length > 0) {
+    const { data: siteRows } = await supabase.from("sites_public").select("id, domain").in("id", siteIds);
+    (siteRows ?? []).forEach((s) => domainBySite.set(s.id as string, s.domain as string));
+  }
+  const inquiries = (data ?? []).map((i) => ({
+    ...i,
+    sites: domainBySite.has(i.site_id as string) ? { domain: domainBySite.get(i.site_id as string) } : null,
+  }));
+  return NextResponse.json({ inquiries });
 }

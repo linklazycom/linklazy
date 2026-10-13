@@ -17,7 +17,7 @@ export default async function InquiryDetailPage({
 
   const { data: inquiry } = await supabase
     .from("inquiries")
-    .select("id, site_id, buyer_id, seller_id, sites(domain, niche)")
+    .select("id, site_id, buyer_id, seller_id")
     .eq("id", id)
     .single();
 
@@ -25,8 +25,14 @@ export default async function InquiryDetailPage({
     notFound();
   }
 
-  // @ts-expect-error -- joined relation shape isn't in the placeholder Database type
-  const site = inquiry.sites as { domain: string; niche: string } | null;
+  // Read via sites_public so a buyer who has only sent an inquiry sees the
+  // domain masked (the seller, as owner, sees it in full).
+  const { data: siteRow } = await supabase
+    .from("sites_public")
+    .select("domain, niche")
+    .eq("id", inquiry.site_id as string)
+    .maybeSingle();
+  const site = siteRow as { domain: string; niche: string } | null;
   const role = inquiry.buyer_id === user.id ? "buyer" : "seller";
 
   return (
