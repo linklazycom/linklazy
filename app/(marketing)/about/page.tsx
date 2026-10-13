@@ -95,8 +95,8 @@ export default async function AboutPage() {
   const [heroPhoto, secondPhoto, { count: siteCount }, { data: nicheRows }] = await Promise.all([
     searchPexelsPhoto("team working office collaboration"),
     searchPexelsPhoto("handshake business deal agreement"),
-    supabase.from("sites").select("id", { count: "exact", head: true }).eq("status", "approved"),
-    supabase.from("sites").select("niche").eq("status", "approved"),
+    supabase.from("sites_public").select("id", { count: "exact", head: true }).eq("status", "approved"),
+    supabase.from("sites_public").select("niche").eq("status", "approved"),
   ]);
 
   const nicheCount = new Set((nicheRows ?? []).map((r) => r.niche.trim())).size;

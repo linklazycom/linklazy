@@ -44,7 +44,7 @@ export default function BulkOrderPage() {
       }
       const supabase = createClient();
       const [{ data: siteRows }, { data: userRes }] = await Promise.all([
-        supabase.from("sites").select("id, domain, niche, price_amount").in("id", ids),
+        supabase.from("sites_public").select("id, domain, niche, price_amount").in("id", ids),
         supabase.auth.getUser(),
       ]);
       setSites((siteRows as SiteRow[]) ?? []);

@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   }
 
   const { data: site } = await supabase
-    .from("sites")
+    .from("sites_public")
     .select("id, owner_id")
     .eq("id", parsed.data.site_id)
     .single();

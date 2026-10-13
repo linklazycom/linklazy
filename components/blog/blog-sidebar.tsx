@@ -19,7 +19,7 @@ export async function BlogSidebar({ excludeSlug }: { excludeSlug?: string }) {
     // reader an actual reason to click through instead of a generic
     // "browse sites" box with nothing to look at.
     supabase
-      .from("sites")
+      .from("sites_public")
       .select("id, domain, niche, da, dr, price_amount")
       .eq("status", "approved")
       .order("created_at", { ascending: false })

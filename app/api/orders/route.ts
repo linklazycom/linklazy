@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   const input = parsed.data;
 
   const { data: site } = await supabase
-    .from("sites")
+    .from("sites_public")
     .select("id, owner_id, status, price_amount, turnaround_hours, accepts_exchange, accepts_paid")
     .eq("id", input.site_id)
     .single();

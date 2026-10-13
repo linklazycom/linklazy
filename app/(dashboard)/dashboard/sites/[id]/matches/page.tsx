@@ -33,7 +33,7 @@ export default function SiteMatchesPage({
 
   async function load() {
     const { data: site } = await supabase
-      .from("sites")
+      .from("sites_public")
       .select("id, domain, niche, da")
       .eq("id", id)
       .single();
@@ -41,7 +41,7 @@ export default function SiteMatchesPage({
     if (!site) return;
 
     const { data: others } = await supabase
-      .from("sites")
+      .from("sites_public")
       .select("id, domain, niche, da, dr, organic_traffic")
       .eq("status", "approved")
       .eq("accepts_exchange", true)

@@ -132,7 +132,7 @@ export function SiteDetailClient({
     const selectFields = unlockedNow
       ? "*"
       : "id, owner_id, niche, da, pa, dr, dr_verified, organic_traffic, price_amount, accepts_exchange, accepts_paid, link_type, pay_per_view_enabled, view_price";
-    const { data: s } = await supabase.from("sites").select(selectFields).eq("id", id).single();
+    const { data: s } = await supabase.from("sites_public").select(selectFields).eq("id", id).single();
     const siteData = s as unknown as SiteDetail;
     setSite(siteData);
 

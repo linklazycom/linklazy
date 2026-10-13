@@ -24,7 +24,7 @@ interface PublicSiteFields {
 async function getPublicSiteFields(id: string): Promise<PublicSiteFields | null> {
   const supabase = await createClient();
   const { data } = await supabase
-    .from("sites")
+    .from("sites_public")
     .select("id, niche, da, dr, dr_verified, price_amount, link_type, accepts_exchange, accepts_paid, organic_traffic")
     .eq("id", id)
     .eq("status", "approved")

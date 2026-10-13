@@ -37,7 +37,7 @@ export default async function BrowsePage({
   const unlockedIds = await getUnlockedSiteIds(supabase, user!.id);
 
   let query = supabase
-    .from("sites")
+    .from("sites_public")
     .select(
       "id, owner_id, domain, niche, da, dr, dr_verified, organic_traffic, price_amount, link_type, accepts_exchange, accepts_paid, is_featured, created_at",
       { count: "exact" }

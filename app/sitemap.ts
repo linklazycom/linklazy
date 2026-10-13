@@ -60,7 +60,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   const { data: sites } = await supabase
-    .from("sites")
+    .from("sites_public")
     .select("id, updated_at")
     .eq("status", "approved");
 
@@ -72,7 +72,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   const { data: niches } = await supabase
-    .from("sites")
+    .from("sites_public")
     .select("niche")
     .eq("status", "approved");
 

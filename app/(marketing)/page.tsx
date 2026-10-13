@@ -146,14 +146,14 @@ export default async function HomePage() {
     // crawl on every visit and links straight into individual /browse/[id]
     // pages, which helps those get indexed too.
     supabase
-      .from("sites")
+      .from("sites_public")
       .select(
         "id, owner_id, domain, niche, da, dr, dr_verified, organic_traffic, price_amount, link_type, accepts_exchange, accepts_paid, is_featured, created_at"
       )
       .eq("status", "approved")
       .order("created_at", { ascending: false })
       .limit(6),
-    supabase.from("sites").select("niche").eq("status", "approved"),
+    supabase.from("sites_public").select("niche").eq("status", "approved"),
     supabase
       .from("articles")
       .select("slug, title, meta_description, target_keyword, category, published_at")

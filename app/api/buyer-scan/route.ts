@@ -223,7 +223,7 @@ export async function POST(request: Request) {
   // show up in the scan result; accepts_paid only matters later when
   // the buyer actually tries to place a paid order against one.
   const { data: candidateSites } = await supabase
-    .from("sites")
+    .from("sites_public")
     .select("id, domain, niche, dr, da, price_amount, turnaround_hours, owner_id, accepts_paid")
     .eq("niche", detectedNiche)
     .eq("status", "approved")

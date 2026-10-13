@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 export default async function NichesIndexPage() {
   const supabase = await createClient();
   const { data: sites } = await supabase
-    .from("sites")
+    .from("sites_public")
     .select("niche")
     .eq("status", "approved");
 

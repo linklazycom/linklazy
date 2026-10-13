@@ -40,7 +40,7 @@ export async function GET(request: Request) {
   const words = q.split(/\s+/).filter(Boolean).slice(0, 5);
 
   let query = supabase
-    .from("sites")
+    .from("sites_public")
     .select("id, domain, niche, da, dr, dr_verified, price_amount, link_type")
     .eq("status", "approved")
     .limit(8);

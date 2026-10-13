@@ -41,7 +41,7 @@ async function getSellerSites(id: string, page: number) {
   const to = from + SITES_PER_PAGE - 1;
 
   const { data: sites, count } = await supabase
-    .from("sites")
+    .from("sites_public")
     .select(
       "id, owner_id, domain, niche, da, dr, dr_verified, organic_traffic, price_amount, link_type, accepts_exchange, accepts_paid, pay_per_view_enabled, view_price, is_featured, created_at",
       { count: "exact" }

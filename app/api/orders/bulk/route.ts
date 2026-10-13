@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   const { site_ids, target_url, anchor_text, notes } = parsed.data;
 
   const { data: sites } = await supabase
-    .from("sites")
+    .from("sites_public")
     .select("id, owner_id, status, price_amount, turnaround_hours, accepts_paid, domain")
     .in("id", site_ids);
 

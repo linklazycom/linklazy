@@ -114,12 +114,12 @@ export default function SiteDetailPage({
 
     if (isUnlocked) {
       setUnlocked(true);
-      const { data: s } = await supabase.from("sites").select("*").eq("id", id).single();
+      const { data: s } = await supabase.from("sites_public").select("*").eq("id", id).single();
       siteData = s as SiteDetail;
     } else {
       // Show a metrics-only teaser without the URL/guidelines.
       const { data: s } = await supabase
-        .from("sites")
+        .from("sites_public")
         .select(
           "id, owner_id, niche, da, pa, dr, organic_traffic, price_amount, accepts_exchange, accepts_paid, link_type, pay_per_view_enabled, view_price"
         )

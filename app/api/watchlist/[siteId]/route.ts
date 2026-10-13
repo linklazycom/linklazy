@@ -16,7 +16,7 @@ export async function POST(
   // weekly cron compares the site's current price against this and resets
   // it after notifying, so re-watching after a drop starts a fresh baseline.
   const { data: site } = await supabase
-    .from("sites")
+    .from("sites_public")
     .select("price_amount")
     .eq("id", siteId)
     .single();

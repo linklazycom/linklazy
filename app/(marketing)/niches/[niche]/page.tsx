@@ -33,7 +33,7 @@ export default async function NicheLandingPage({
   const supabase = await createClient();
 
   const { data: sites } = await supabase
-    .from("sites")
+    .from("sites_public")
     .select("id, domain, niche, da, dr, organic_traffic, price_amount, link_type, accepts_exchange")
     .eq("status", "approved")
     .ilike("niche", label)

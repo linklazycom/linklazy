@@ -18,12 +18,12 @@ export async function POST(request: Request) {
   const input = parsed.data;
 
   const { data: siteA } = await supabase
-    .from("sites")
+    .from("sites_public")
     .select("id, owner_id, da, niche, status, accepts_exchange")
     .eq("id", input.site_a_id)
     .single();
   const { data: siteB } = await supabase
-    .from("sites")
+    .from("sites_public")
     .select("id, owner_id, da, niche, status, accepts_exchange")
     .eq("id", input.site_b_id)
     .single();
