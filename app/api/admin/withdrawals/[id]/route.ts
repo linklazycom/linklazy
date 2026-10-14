@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/require-admin";
 import { createServiceClient } from "@/lib/supabase/service";
-import { REFUND_LEDGER_TYPE } from "@/lib/ledger-types";
+import { creditWalletRefund } from "@/lib/wallet-refund";
 import { canTransition } from "@/lib/withdrawal-flow";
 
 const updateSchema = z.object({
@@ -63,11 +63,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (target === "rejected") {
     const reserved = Number(req.wallet_reserved ?? 0);
     if (reserved > 0) {
-      const { error: refundError } = await service.rpc("adjust_wallet_balance", {
-        p_user_id: req.user_id,
-        p_delta: reserved,
-        p_type: REFUND_LEDGER_TYPE,
-        p_notes: "Withdrawal request rejected - reserved amount returned",
+      const { error: refundError } = await creditWalletRefund(service, {
+        userId: req.user_id as string,
+        amount: reserved,
+        notes: "Withdrawal request rejected - reserved amount returned",
       });
       if (refundError) {
         // Nothing was returned, so put the request back and let the admin retry.

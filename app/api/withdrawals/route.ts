@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { REFUND_LEDGER_TYPE } from "@/lib/ledger-types";
+import { creditWalletRefund } from "@/lib/wallet-refund";
 import { planWithdrawal, referralAvailable, type LockedRequest } from "@/lib/withdrawal-flow";
 
 const requestSchema = z.object({
@@ -79,12 +79,7 @@ export async function POST(request: Request) {
 
   const refundWallet = async (why: string) => {
     if (plan.fromWallet > 0) {
-      await service.rpc("adjust_wallet_balance", {
-        p_user_id: user.id,
-        p_delta: plan.fromWallet,
-        p_type: REFUND_LEDGER_TYPE,
-        p_notes: why,
-      });
+      await creditWalletRefund(service, { userId: user.id, amount: plan.fromWallet, notes: why });
     }
   };
 

@@ -25,4 +25,8 @@ old admin "force accept" path before all money moves were centralised (see SQL 0
 ## Known and accepted
 - The bulk-order database function still writes a placeholder 17.5% commission on creation; the insert trigger nulls it,
   the UI never shows it, and the real commission is set on accept. Harmless; cleanup is optional.
-- Refunds use ledger type admin_adjustment until a dedicated refund type exists (Batch 8b).
+- (Batch 8b) Refunds now use ledger type order_refund (wallet_ledger.type is plain text, so no enum change is needed).
+  If a database rejects the new label, lib/wallet-refund.ts retries once with admin_adjustment, so a refund never fails because of its label.
+
+## Verified in production (14 Oct 2026)
+SQL 030 checks: append-only trigger enabled; 7 users checked, 0 reconciliation mismatches; no old rejected withdrawals with a missing wallet refund.

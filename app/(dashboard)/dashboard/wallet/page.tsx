@@ -10,6 +10,8 @@ const TYPE_LABEL: Record<string, string> = {
   seller_earning: "Earning (pay-per-view)",
   platform_fee: "Platform fee",
   withdrawal: "Withdrawal",
+  order_refund: "Refund",
+  admin_adjustment: "Adjustment",
 };
 
 const WITHDRAWAL_STATUS_TONE: Record<string, "verified" | "price" | "default"> = {

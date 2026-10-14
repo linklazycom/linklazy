@@ -76,7 +76,6 @@ export function SiteDetailClient({
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [walletBalance, setWalletBalance] = useState(0);
-  const [quotaViewsLeft, setQuotaViewsLeft] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -92,17 +91,10 @@ export function SiteDetailClient({
     if (user) {
       const { data: profile } = await supabase
         .from("profiles")
-        .select("wallet_balance, buyer_views_quota, buyer_views_used")
+        .select("wallet_balance")
         .eq("id", user.id)
         .single();
       setWalletBalance(profile?.wallet_balance ?? 0);
-      // Most buyers have no admin-granted plan (quota 0) — pay-per-view is
-      // the only unlock path for them. This just detects the rare case
-      // where an admin has granted extra plan views, without ever
-      // advertising a self-serve "upgrade" that doesn't exist.
-      setQuotaViewsLeft(
-        Math.max(0, (profile?.buyer_views_quota ?? 0) - (profile?.buyer_views_used ?? 0))
-      );
 
       const { data: existingQuotaUnlock } = await supabase
         .from("credits_ledger")
@@ -161,7 +153,7 @@ export function SiteDetailClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  async function handleUnlock(method: "quota" | "wallet" = "quota") {
+  async function handleUnlock(method: "wallet" = "wallet") {
     setError(null);
     setBusy(true);
     const res = await fetch(`/api/browse/${id}/unlock`, {
@@ -231,7 +223,7 @@ export function SiteDetailClient({
           <p className="mb-4 text-sm text-muted">
             {!isLoggedIn
               ? "Log in to see the site URL, referring domains, backlink count, and seller guidelines. Not required to place an order below — DA/DR/traffic and price are already shown above."
-              : canPayPerView || quotaViewsLeft > 0
+              : canPayPerView
                 ? "Unlock this listing to see the site URL, referring domains, backlink count, and seller guidelines. Optional — you can place an order below without unlocking."
                 : "This seller hasn't enabled instant unlock for this listing — you can still place an order or exchange request below using the metrics shown above."}
           </p>
@@ -241,14 +233,9 @@ export function SiteDetailClient({
             </Link>
           ) : (
             <div className="flex flex-wrap items-center justify-center gap-2">
-              {quotaViewsLeft > 0 && (
-                <Button onClick={() => handleUnlock("quota")} disabled={busy}>
-                  {busy ? "Unlocking…" : `View Site (${quotaViewsLeft} view${quotaViewsLeft === 1 ? "" : "s"} left)`}
-                </Button>
-              )}
               {canPayPerView && (
                 <Button
-                  variant={quotaViewsLeft > 0 ? "secondary" : "primary"}
+                  variant="primary"
                   onClick={() => handleUnlock("wallet")}
                   disabled={busy || walletBalance < (site.view_price ?? 0)}
                 >

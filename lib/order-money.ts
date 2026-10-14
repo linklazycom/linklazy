@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { commissionRateForCumulativeUsd, startOfCurrentMonthISO } from "@/lib/commission";
 import { getBdtPerUsd } from "@/lib/exchange-rate";
-import { REFUND_LEDGER_TYPE } from "@/lib/ledger-types";
+import { creditWalletRefund } from "@/lib/wallet-refund";
 
 /**
  * The ONLY place that moves escrowed order money. The buyer-accept route, the
@@ -123,12 +123,11 @@ export async function refundOrderToBuyer(
   const walletAmount = walletRows.reduce((sum, p) => sum + Number(p.amount ?? 0), 0);
 
   if (walletAmount > 0) {
-    const { error: creditError } = await service.rpc("adjust_wallet_balance", {
-      p_user_id: order.buyer_id,
-      p_delta: walletAmount,
-      p_type: REFUND_LEDGER_TYPE,
-      p_related_site_id: order.site_id,
-      p_notes: `Refund — ${reason}`,
+    const { error: creditError } = await creditWalletRefund(service, {
+      userId: order.buyer_id,
+      amount: walletAmount,
+      relatedSiteId: order.site_id,
+      notes: `Refund - ${reason}`,
     });
     if (creditError) {
       // Undo the claim so the refund can be retried.

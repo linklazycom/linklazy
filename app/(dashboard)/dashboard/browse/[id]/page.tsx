@@ -72,7 +72,6 @@ export default function SiteDetailPage({
   const [reviews, setReviews] = useState<Review[]>([]);
   const [unlocked, setUnlocked] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [quotaViewsLeft, setQuotaViewsLeft] = useState(0);
   const [walletBalance, setWalletBalance] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -131,11 +130,10 @@ export default function SiteDetailPage({
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("buyer_views_quota, buyer_views_used, wallet_balance")
+      .select("wallet_balance")
       .eq("id", user!.id)
       .single();
     if (profile) {
-      setQuotaViewsLeft(Math.max(0, (profile.buyer_views_quota ?? 0) - (profile.buyer_views_used ?? 0)));
       setWalletBalance(profile.wallet_balance ?? 0);
     }
 
@@ -166,7 +164,7 @@ export default function SiteDetailPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  async function handleUnlock(method: "quota" | "wallet") {
+  async function handleUnlock(method: "wallet") {
     setError(null);
     setUnlocking(true);
     try {
@@ -248,20 +246,15 @@ export default function SiteDetailPage({
       {!unlocked && (
         <div className="mb-6 rounded-chip border border-line bg-white p-4 text-center">
           <p className="mb-3 text-sm text-muted">
-            {canPayPerView || quotaViewsLeft > 0
+            {canPayPerView
               ? "Unlock this listing to see the site URL, referring domains, backlink count, and seller guidelines. Optional — you can place an order below without unlocking."
               : "This seller hasn't enabled instant unlock for this listing — you can still place an order or exchange request below using the metrics shown above."}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-2">
-            {quotaViewsLeft > 0 && (
-              <Button size="sm" variant="secondary" onClick={() => handleUnlock("quota")} disabled={unlocking}>
-                {unlocking ? "Unlocking…" : `Unlock full details (${quotaViewsLeft} view${quotaViewsLeft === 1 ? "" : "s"} left)`}
-              </Button>
-            )}
             {canPayPerView && (
               <Button
                 size="sm"
-                variant={quotaViewsLeft > 0 ? "ghost" : "secondary"}
+                variant="secondary"
                 onClick={() => handleUnlock("wallet")}
                 disabled={unlocking || walletBalance < (site.view_price ?? 0)}
               >

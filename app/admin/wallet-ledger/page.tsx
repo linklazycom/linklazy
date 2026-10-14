@@ -24,9 +24,11 @@ const TYPE_LABEL: Record<string, string> = {
   seller_earning: "Seller earning",
   platform_fee: "Platform fee",
   withdrawal: "Withdrawal reserved",
+  order_refund: "Refund",
+  admin_adjustment: "Admin adjustment",
 };
 
-const TYPES = ["all", "topup", "unlock_spend", "seller_earning", "platform_fee", "withdrawal"];
+const TYPES = ["all", "topup", "unlock_spend", "seller_earning", "platform_fee", "withdrawal", "order_refund", "admin_adjustment"];
 
 export default function AdminWalletLedgerPage() {
   const supabase = createClient();
