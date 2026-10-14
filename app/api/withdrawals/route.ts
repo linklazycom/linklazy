@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { REFUND_LEDGER_TYPE } from "@/lib/ledger-types";
+import { planWithdrawal, referralAvailable, type LockedRequest } from "@/lib/withdrawal-flow";
 
 const requestSchema = z.object({
   amount: z.number().int().positive(),
@@ -33,9 +35,7 @@ export async function POST(request: Request) {
     .eq("referrer_id", user.id);
   const totalReferralEarned = (credits ?? []).reduce((sum, c) => sum + c.amount, 0);
 
-  // Pay-per-view earnings live in profiles.wallet_balance (kept in sync by the
-  // unlock_site_with_wallet RPC). This is spendable cash, not a credit total,
-  // so it's added directly rather than summed from the ledger.
+  // Pay-per-view earnings and order payouts live in profiles.wallet_balance.
   const { data: profile } = await supabase
     .from("profiles")
     .select("wallet_balance")
@@ -43,58 +43,80 @@ export async function POST(request: Request) {
     .single();
   const walletBalance = profile?.wallet_balance ?? 0;
 
-  // Pending/approved/paid requests all lock funds — only a rejected
-  // request frees the balance back up.
-  const { data: existingRequests } = await supabase
-    .from("withdrawal_requests")
-    .select("amount, status")
-    .eq("user_id", user.id)
-    .in("status", ["pending", "approved", "paid"]);
-  const totalLocked = (existingRequests ?? []).reduce((sum, r) => sum + r.amount, 0);
+  const service = createServiceClient();
+  const loadRequests = async () => {
+    const { data } = await service
+      .from("withdrawal_requests")
+      .select("amount, status, wallet_reserved")
+      .eq("user_id", user.id)
+      .in("status", ["pending", "approved", "paid"]);
+    return (data ?? []) as LockedRequest[];
+  };
 
-  const available = totalReferralEarned + walletBalance - totalLocked;
-
-  if (parsed.data.amount > available) {
-    return NextResponse.json(
-      { error: `You can withdraw at most ৳${available}.` },
-      { status: 400 }
-    );
+  const plan = planWithdrawal(
+    parsed.data.amount,
+    walletBalance,
+    referralAvailable(totalReferralEarned, await loadRequests())
+  );
+  if (!plan.ok) {
+    return NextResponse.json({ error: `You can withdraw at most \u09f3${plan.available}.` }, { status: 400 });
   }
 
-  // Reserve funds from the wallet immediately (up to what's available there)
-  // so the same taka can't be withdrawn twice via two concurrent requests.
-  // Referral credits aren't a live balance, so only the wallet portion needs
-  // debiting here. The debit itself goes through adjust_wallet_balance,
-  // which does a single atomic `UPDATE ... WHERE wallet_balance + delta >= 0`
-  // — Postgres locks the row for that statement, so if two withdrawal
-  // requests are submitted at nearly the same time, the second one to run
-  // sees the already-debited balance and correctly fails/short-reserves
-  // instead of both succeeding against the same starting balance.
-  const fromWallet = Math.min(parsed.data.amount, walletBalance);
-  if (fromWallet > 0) {
-    const serviceClient = createServiceClient();
-    const { error: debitError } = await serviceClient.rpc("adjust_wallet_balance", {
+  // Reserve the wallet part immediately through the atomic RPC (single UPDATE
+  // ... WHERE wallet_balance + delta >= 0), so concurrent requests cannot spend
+  // the same balance twice.
+  if (plan.fromWallet > 0) {
+    const { error: debitError } = await service.rpc("adjust_wallet_balance", {
       p_user_id: user.id,
-      p_delta: -fromWallet,
+      p_delta: -plan.fromWallet,
       p_type: "withdrawal",
       p_notes: "Reserved for withdrawal request",
     });
-
     if (debitError) {
       return NextResponse.json({ error: "Wallet balance changed, please retry." }, { status: 409 });
     }
   }
 
-  // SECURITY (Batch 7): inserted server-side so a user can't create a request
-  // for any amount straight through the database API (SQL 025 drops the
-  // client insert policy). The balance check above is the only gate.
-  const { error } = await createServiceClient().from("withdrawal_requests").insert({
-    user_id: user.id,
-    amount: parsed.data.amount,
-    bkash_number: parsed.data.bkash_number,
-  });
+  const refundWallet = async (why: string) => {
+    if (plan.fromWallet > 0) {
+      await service.rpc("adjust_wallet_balance", {
+        p_user_id: user.id,
+        p_delta: plan.fromWallet,
+        p_type: REFUND_LEDGER_TYPE,
+        p_notes: why,
+      });
+    }
+  };
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  // SECURITY: inserted server-side (no client insert policy). wallet_reserved
+  // remembers how much came out of the wallet so a rejection can give it back.
+  const { data: created, error } = await service
+    .from("withdrawal_requests")
+    .insert({
+      user_id: user.id,
+      amount: parsed.data.amount,
+      bkash_number: parsed.data.bkash_number,
+      wallet_reserved: plan.fromWallet,
+    })
+    .select("id")
+    .single();
+
+  if (error || !created) {
+    await refundWallet("Withdrawal request could not be saved - reserved amount returned");
+    return NextResponse.json({ error: error?.message ?? "Could not save the request" }, { status: 500 });
+  }
+
+  // Race guard for the referral part (it is not a live balance, so two requests
+  // sent at the same moment could both pass the check above): re-check with
+  // this request included and undo it if the referral credits are overdrawn.
+  if (plan.fromReferral > 0) {
+    const after = referralAvailable(totalReferralEarned, await loadRequests());
+    if (after < 0) {
+      await service.from("withdrawal_requests").delete().eq("id", created.id);
+      await refundWallet("Withdrawal request cancelled (balance changed) - reserved amount returned");
+      return NextResponse.json({ error: "Your balance changed, please retry." }, { status: 409 });
+    }
+  }
 
   return NextResponse.json({ ok: true });
 }

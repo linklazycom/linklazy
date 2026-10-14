@@ -19,79 +19,25 @@ export async function POST(
     );
   }
 
-  // method: "quota" (existing subscription-plan unlock) | "wallet" (new pay-per-view)
-  // Defaults to "quota" so any existing client that POSTs with no body keeps working.
-  let method: "quota" | "wallet" = "quota";
+  // Pay-per-view from the wallet is the only way to unlock a site now. The old
+  // subscription "quota" method was retired together with the plans, so it no
+  // longer reads or writes profiles.buyer_* or credits_ledger. Clients that
+  // still send method "quota" get a clear message instead of a silent charge.
+  let method: "quota" | "wallet" = "wallet";
   try {
     const body = await request.json();
-    if (body?.method === "wallet") method = "wallet";
+    if (body?.method === "quota") method = "quota";
   } catch {
-    // no body sent — fall back to default
+    // no body sent - wallet is the default
   }
 
-  if (method === "wallet") {
-    return handleWalletUnlock(supabase, user.id, siteId);
-  }
-  return handleQuotaUnlock(supabase, user.id, siteId);
-}
-
-async function handleQuotaUnlock(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string,
-  siteId: string
-) {
-  // Already unlocked? No charge.
-  const { data: existing } = await supabase
-    .from("credits_ledger")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("type", "unlock_spend")
-    .eq("related_site_id", siteId)
-    .maybeSingle();
-
-  if (existing) return NextResponse.json({ ok: true, alreadyUnlocked: true });
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("buyer_plan, buyer_views_quota, buyer_views_used")
-    .eq("id", userId)
-    .single();
-
-  if (!profile || profile.buyer_plan === "free" || !profile.buyer_views_quota) {
+  if (method === "quota") {
     return NextResponse.json(
-      { error: "No plan views available on this account. Try paying per view instead." },
-      { status: 402 }
+      { error: "Plan views are no longer available. Please unlock with your wallet (pay per view)." },
+      { status: 410 }
     );
   }
-
-  if (profile.buyer_views_used >= profile.buyer_views_quota) {
-    return NextResponse.json(
-      { error: "You've used all your views for this billing period." },
-      { status: 402 }
-    );
-  }
-
-  const newUsed = profile.buyer_views_used + 1;
-
-  const { error: profileError } = await supabase
-    .from("profiles")
-    .update({ buyer_views_used: newUsed })
-    .eq("id", userId);
-
-  if (profileError) {
-    return NextResponse.json({ error: profileError.message }, { status: 500 });
-  }
-
-  await supabase.from("credits_ledger").insert({
-    user_id: userId,
-    amount: -1,
-    type: "unlock_spend",
-    related_site_id: siteId,
-    balance_after: profile.buyer_views_quota - newUsed,
-    notes: "Site detail unlock",
-  });
-
-  return NextResponse.json({ ok: true, alreadyUnlocked: false });
+  return handleWalletUnlock(supabase, user.id, siteId);
 }
 
 async function handleWalletUnlock(

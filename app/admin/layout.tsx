@@ -44,6 +44,7 @@ const NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin/withdrawals", label: "Withdrawals" },
       { href: "/admin/ppv-unlocks", label: "Pay-per-view unlocks" },
       { href: "/admin/wallet-ledger", label: "Wallet ledger" },
+      { href: "/admin/reconciliation", label: "Wallet reconciliation" },
     ],
   },
   {

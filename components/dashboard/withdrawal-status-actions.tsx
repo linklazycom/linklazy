@@ -14,15 +14,23 @@ export function WithdrawalStatusActions({
   const router = useRouter();
   const [note, setNote] = useState("");
   const [sending, setSending] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
 
   async function updateStatus(status: "approved" | "rejected" | "paid") {
     setSending(true);
-    await fetch(`/api/admin/withdrawals/${id}`, {
+    setMessage(null);
+    const res = await fetch(`/api/admin/withdrawals/${id}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status, admin_note: note || undefined }),
     });
+    const body = await res.json().catch(() => ({}));
     setSending(false);
+    if (!res.ok) {
+      setMessage(typeof body.error === "string" ? body.error : "Could not update this request.");
+    } else if (typeof body.warning === "string") {
+      setMessage(body.warning);
+    }
     router.refresh();
   }
 
@@ -42,6 +50,7 @@ export function WithdrawalStatusActions({
         onChange={(e) => setNote(e.target.value)}
         className="mb-3 w-full rounded-chip border border-line px-3 py-2 text-sm outline-none focus:border-signal"
       />
+      {message && <p className="mb-3 text-sm text-red-600">{message}</p>}
       <div className="flex flex-wrap gap-3">
         {currentStatus === "pending" && (
           <>

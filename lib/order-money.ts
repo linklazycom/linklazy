@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { commissionRateForCumulativeUsd, startOfCurrentMonthISO } from "@/lib/commission";
 import { getBdtPerUsd } from "@/lib/exchange-rate";
+import { REFUND_LEDGER_TYPE } from "@/lib/ledger-types";
 
 /**
  * The ONLY place that moves escrowed order money. The buyer-accept route, the
@@ -22,6 +23,18 @@ export interface MoneyOrder {
 }
 
 export type MoneyResult = { ok: true; manualProviderRefund?: boolean } | { ok: false; error: string };
+
+/**
+ * Pure commission maths (no database): the tier is picked from the seller's
+ * month-to-date total in USD INCLUDING this order. All stored amounts are BDT,
+ * so they are converted with the live rate before the USD thresholds apply.
+ */
+export function computeCommission(priorMonthTotalBdt: number, orderAmountBdt: number, bdtPerUsd: number) {
+  const cumulativeBdt = priorMonthTotalBdt + orderAmountBdt;
+  const rate = commissionRateForCumulativeUsd(cumulativeBdt / bdtPerUsd);
+  const commissionAmount = Math.round((orderAmountBdt * rate) / 100);
+  return { rate, commissionAmount, sellerEarning: orderAmountBdt - commissionAmount };
+}
 
 /** Pays the seller (price minus tiered commission) out of the held escrow. */
 export async function releaseOrderToSeller(
@@ -52,11 +65,12 @@ export async function releaseOrderToSeller(
     .neq("id", order.id);
 
   const priorMonthTotal = (priorOrders ?? []).reduce((sum, o) => sum + (o.price_amount ?? 0), 0);
-  const cumulativeAfterThisOrder = priorMonthTotal + order.price_amount;
   const bdtPerUsd = await getBdtPerUsd(service);
-  const commissionRate = commissionRateForCumulativeUsd(cumulativeAfterThisOrder / bdtPerUsd);
-  const commissionAmount = Math.round((order.price_amount * commissionRate) / 100);
-  const sellerEarning = order.price_amount - commissionAmount;
+  const {
+    rate: commissionRate,
+    commissionAmount,
+    sellerEarning,
+  } = computeCommission(priorMonthTotal, order.price_amount, bdtPerUsd);
 
   // Pay first: if this fails nothing has changed and the caller can undo its claim.
   const { error: creditError } = await service.rpc("adjust_wallet_balance", {
@@ -112,7 +126,7 @@ export async function refundOrderToBuyer(
     const { error: creditError } = await service.rpc("adjust_wallet_balance", {
       p_user_id: order.buyer_id,
       p_delta: walletAmount,
-      p_type: "admin_adjustment",
+      p_type: REFUND_LEDGER_TYPE,
       p_related_site_id: order.site_id,
       p_notes: `Refund — ${reason}`,
     });
