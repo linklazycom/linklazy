@@ -1,9 +1,17 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { timingSafeEqual } from "node:crypto";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email";
 import { getSiteSettings } from "@/lib/site-settings";
 import { checkRateLimit, getRequestIp } from "@/lib/rate-limit";
+
+function tokensMatch(expected: string | null, given: string): boolean {
+  if (!expected) return false;
+  const a = Buffer.from(expected);
+  const b = Buffer.from(given);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
 
 async function getTicketByToken(id: string, token: string) {
   const supabase = createServiceClient();
@@ -13,7 +21,7 @@ async function getTicketByToken(id: string, token: string) {
     .eq("id", id)
     .single();
 
-  if (!ticket || ticket.access_token !== token) return null;
+  if (!ticket || !tokensMatch(ticket.access_token as string | null, token)) return null;
   return { supabase, ticket };
 }
 
@@ -22,6 +30,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const { searchParams } = new URL(request.url);
   const token = searchParams.get("token");
   if (!token) return NextResponse.json({ error: "Missing token" }, { status: 401 });
+
+  const { allowed } = await checkRateLimit("support_view", getRequestIp(request), { max: 60, windowMinutes: 10 });
+  if (!allowed) return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
 
   const result = await getTicketByToken(id, token);
   if (!result) return NextResponse.json({ error: "Ticket not found" }, { status: 404 });

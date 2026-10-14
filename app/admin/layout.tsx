@@ -6,6 +6,7 @@ import { AdminSidebarNav, type AdminNavGroup } from "@/components/layout/admin-s
 import { LogoutButton } from "@/components/layout/logout-button";
 import { MobileSidebarShell } from "@/components/layout/mobile-sidebar-shell";
 import { NotificationBell } from "@/components/layout/notification-bell";
+import { ToastProvider } from "@/components/ui/toast-provider";
 
 const NAV_GROUPS: AdminNavGroup[] = [
   {
@@ -111,17 +112,22 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     </>
   );
 
+  // ToastProvider must wrap the admin pages: /admin/api-providers calls
+  // useToast(), which throws when no provider is mounted (that crash is what
+  // showed "Couldn't load the admin panel").
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
-      <MobileSidebarShell>{sidebarContent}</MobileSidebarShell>
-      <main className="flex-1 bg-paper p-4 md:p-8">
-        {user && (
-          <div className="mb-4 flex justify-end">
-            <NotificationBell userId={user.id} />
-          </div>
-        )}
-        {children}
-      </main>
-    </div>
+    <ToastProvider>
+      <div className="flex min-h-screen flex-col md:flex-row">
+        <MobileSidebarShell>{sidebarContent}</MobileSidebarShell>
+        <main className="flex-1 bg-paper p-4 md:p-8">
+          {user && (
+            <div className="mb-4 flex justify-end">
+              <NotificationBell userId={user.id} />
+            </div>
+          )}
+          {children}
+        </main>
+      </div>
+    </ToastProvider>
   );
 }

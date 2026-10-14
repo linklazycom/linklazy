@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { maskDomain } from "@/lib/mask-domain";
 import { scanBuyerSite } from "@/lib/site-scanner";
 import { classifyNicheWithAi, type AiProvider } from "@/lib/ai-niche-detect";
 import { NICHES } from "@/lib/niches";
@@ -240,9 +241,22 @@ export async function POST(request: Request) {
   const rerankPool = (candidateSites ?? []).slice(0, 15);
   const rest = (candidateSites ?? []).slice(15);
 
+  // The sites_public view masks domains for buyers (7B-1), so the masked text
+  // can't be scanned. Look the real domains up server-side for the scan only;
+  // they are never put in the response.
+  const realDomainById = new Map<string, string>();
+  if (rerankPool.length > 0) {
+    const { data: realRows } = await createServiceClient()
+      .from("sites")
+      .select("id, domain")
+      .in("id", rerankPool.map((s) => s.id));
+    (realRows ?? []).forEach((r) => realDomainById.set(r.id as string, r.domain as string));
+  }
+
   const overlapScores = await Promise.allSettled(
     rerankPool.map(async (site) => {
-      const domainUrl = site.domain.startsWith("http") ? site.domain : `https://${site.domain}`;
+      const realDomain = realDomainById.get(site.id) ?? site.domain;
+      const domainUrl = realDomain.startsWith("http") ? realDomain : `https://${realDomain}`;
       const sellerScan = await scanBuyerSite(domainUrl);
       const overlap = matchedKeywords.filter((kw) => sellerScan.matchedKeywords.includes(kw)).length;
       return { id: site.id, overlap };
@@ -393,7 +407,8 @@ async function runAutoOrder({
   return {
     placed: result.ok && result.created_order_ids.length > 0,
     createdOrderIds: result.created_order_ids ?? [],
-    skipped: result.skipped ?? [],
+    // The database function reports real domains; the buyer hasn't unlocked them.
+    skipped: (result.skipped ?? []).map((k) => ({ ...k, domain: maskDomain(k.domain) })),
     newBalance: result.new_balance,
     error: result.ok ? undefined : (result.error ?? undefined),
   };

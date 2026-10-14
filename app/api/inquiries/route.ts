@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 
 const startSchema = z.object({ site_id: z.string().uuid() });
 
@@ -25,11 +26,12 @@ export async function POST(request: Request) {
 
   const { data: site } = await supabase
     .from("sites_public")
-    .select("id, owner_id")
+    .select("id, owner_id, status")
     .eq("id", parsed.data.site_id)
     .single();
 
   if (!site) return NextResponse.json({ error: "Site not found" }, { status: 404 });
+  if (site.status !== "approved") return NextResponse.json({ error: "Site not found" }, { status: 404 });
   if (site.owner_id === user.id) {
     return NextResponse.json({ error: "You can't message yourself about your own site" }, { status: 400 });
   }
@@ -43,7 +45,10 @@ export async function POST(request: Request) {
 
   if (existing) return NextResponse.json({ id: existing.id });
 
-  const { data: created, error } = await supabase
+  // SECURITY (Batch 7C): seller_id comes from the site row we just read, never
+  // from the browser, and the insert is server-side (SQL 029 removes the
+  // browser-level insert policy so nobody can start a thread with a fake seller).
+  const { data: created, error } = await createServiceClient()
     .from("inquiries")
     .insert({ site_id: site.id, buyer_id: user.id, seller_id: site.owner_id })
     .select("id")

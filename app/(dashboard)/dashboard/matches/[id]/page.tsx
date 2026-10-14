@@ -2,7 +2,6 @@
 
 import { useEffect, useState, use as usePromise } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { MetricChip } from "@/components/ui/metric-chip";
@@ -31,7 +30,6 @@ export default function MatchDetailPage({
 }) {
   const { id } = usePromise(params);
   const router = useRouter();
-  const supabase = createClient();
   const [match, setMatch] = useState<MatchDetail | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [showCounter, setShowCounter] = useState(false);
@@ -39,17 +37,16 @@ export default function MatchDetailPage({
   const [error, setError] = useState<string | null>(null);
 
   async function load() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    setUserId(user!.id);
-
-    const { data } = await supabase
-      .from("exchange_matches")
-      .select("id, status, match_score, initiated_by, proposed_terms, counter_terms, site_a:site_a_id(id, owner_id, domain), site_b:site_b_id(id, owner_id, domain)")
-      .eq("id", id)
-      .single();
-    setMatch(data as unknown as MatchDetail);
+    // Served by /api/matches/[id]: checks you own one of the two sites and
+    // masks the other party's domain until the exchange is accepted.
+    const res = await fetch(`/api/matches/${id}`, { cache: "no-store" });
+    if (!res.ok) {
+      setError("Could not load this proposal.");
+      return;
+    }
+    const data = await res.json();
+    setUserId(data.userId);
+    setMatch(data.match as MatchDetail);
   }
 
   useEffect(() => {
@@ -115,6 +112,7 @@ export default function MatchDetailPage({
     load();
   }
 
+  if (error && (!match || !userId)) return <p className="text-sm text-red-600">{error}</p>;
   if (!match || !userId) return <p className="text-muted">Loading…</p>;
 
   const terms = match.counter_terms ?? match.proposed_terms;
