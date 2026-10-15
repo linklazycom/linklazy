@@ -30,6 +30,14 @@ const NAV_GROUPS: AdminNavGroup[] = [
     ],
   },
   {
+    label: "Links",
+    items: [
+      { href: "/admin/links", label: "Short links" },
+      { href: "/admin/links/reports", label: "Abuse reports" },
+      { href: "/admin/links/blocklist", label: "Blocklist" },
+    ],
+  },
+  {
     label: "Users",
     items: [
       { href: "/admin/users", label: "All users" },

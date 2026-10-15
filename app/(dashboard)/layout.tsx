@@ -62,6 +62,10 @@ export default async function DashboardLayout({
       ],
     },
     {
+      label: "Link tools",
+      items: [{ href: "/dashboard/links", label: "Short links & QR" }],
+    },
+    {
       label: "Orders",
       items: [
         { href: "/dashboard/orders", label: "Orders" },

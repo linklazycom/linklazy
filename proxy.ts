@@ -7,6 +7,8 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // "l/" = short-link redirects (/l/<slug>): they are public and must stay fast, so they skip the
+    // Supabase session refresh (one network round-trip) that every other page pays.
+    "/((?!_next/static|_next/image|favicon.ico|l/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
