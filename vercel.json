@@ -27,6 +27,10 @@
     {
       "path": "/api/cron/seller-metrics",
       "schedule": "0 3 * * 1"
+    },
+    {
+      "path": "/api/cron/rollup-link-clicks",
+      "schedule": "0 5 * * *"
     }
   ]
 }

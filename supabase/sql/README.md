@@ -41,3 +41,7 @@
 1. [ ] `032_batch9_link_management.sql` — প্রি-চেক (ফাইলের মাথায়) → Run → **তারপর** কোড ডিপ্লয়
 2. [ ] `033_batch9_verify_read_only.sql` — V1–V4 একটি একটি করে Run, ফল আমাকে পাঠান
 3. রোলব্যাক: `032`-এর মাথার কমেন্টে
+
+## Batch 10 (Analytics + Bio pages)
+1. [ ] `034_batch10_analytics_bio.sql` — Run → **তারপর** কোড ডিপ্লয় (রোলব্যাক ফাইলের মাথায়)
+2. [ ] `035_batch10_verify_and_selftest.sql` — V1, V2, V3, S1 একটি একটি করে Run (S1 ইচ্ছাকৃত লাল এরর `SELFTEST PASSED` দিলে ঠিক)

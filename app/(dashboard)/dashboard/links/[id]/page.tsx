@@ -45,6 +45,9 @@ export default async function EditLinkPage({ params }: { params: Promise<{ id: s
             {short}
           </a>
           <CopyButton text={short} />
+          <Link href={`/dashboard/links/${link.id}/analytics`} className="text-sm text-brand-violet underline">
+            View analytics →
+          </Link>
         </div>
         <p className="mt-2 text-xs text-muted">
           {link.click_count} clicks · status: {st.replace("_", " ")} · the slug cannot be changed (it would break printed QR codes and shared links)

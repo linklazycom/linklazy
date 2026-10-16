@@ -6,7 +6,9 @@ import { evaluateRedirect } from "@/lib/links/rules";
 import { isSafeRedirectTarget, hostMatchesDomain } from "@/lib/links/url";
 import { verifyLinkPassword } from "@/lib/links/password";
 import { isLikelyBot } from "@/lib/links/bot";
-import { getLinkBlocklist, isLinkFeatureOn } from "@/lib/links/server";
+import { getLinkBlocklist, isLinkFeatureOn, ownHosts } from "@/lib/links/server";
+import { buildClickRecord } from "@/lib/analytics/click";
+import { getHashSecret } from "@/lib/analytics/visitor";
 import { renderPasswordPage, renderStatePage, stateHttpStatus, type StatePage } from "@/lib/links/pages";
 
 // Never cached: every visit must be counted and every limit/expiry/takedown enforced.
@@ -55,16 +57,37 @@ async function handle(request: Request, rawSlug: string, password: string | null
     }
   }
 
-  // Count the visit. Bots / link-preview fetchers / HEAD requests never use up a click.
-  const counts = request.method !== "HEAD" && !isLikelyBot(request.headers.get("user-agent"));
+  // Count + log the visit. Bots / link-preview fetchers / HEAD requests never use up a click.
+  const userAgent = request.headers.get("user-agent");
+  const counts = request.method !== "HEAD" && !isLikelyBot(userAgent);
   if (counts) {
+    const click = buildClickRecord({
+      url: request.url,
+      ip: getRequestIp(request),
+      userAgent,
+      referer: request.headers.get("referer"),
+      country: request.headers.get("x-vercel-ip-country"),
+      secret: getHashSecret(),
+      ownHosts: ownHosts(),
+    });
+    const args = {
+      p_link_id: link.id,
+      p_source: click.source,
+      p_country: click.country,
+      p_device: click.device,
+      p_browser: click.browser,
+      p_referrer: click.referrer_host,
+      p_visitor: click.visitor_hash,
+    };
     if (link.max_clicks !== null) {
       // Click-limited links must be counted atomically BEFORE redirecting.
-      const { data: ok } = await svc.rpc("consume_link_click", { p_link_id: link.id });
-      if (ok === false) return stateResponse("limit_reached", slug);
+      const { data: ok, error: rpcError } = await svc.rpc("record_link_click", args);
+      if (rpcError) console.error("record_link_click failed:", rpcError.message); // fail open: still redirect
+      else if (ok === false) return stateResponse("limit_reached", slug);
     } else {
       after(async () => {
-        await createServiceClient().rpc("consume_link_click", { p_link_id: link.id });
+        const { error: rpcError } = await createServiceClient().rpc("record_link_click", args);
+        if (rpcError) console.error("record_link_click failed:", rpcError.message);
       });
     }
   }

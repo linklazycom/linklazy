@@ -6,6 +6,9 @@ export const LINK_LIMIT_DEFS = [
   { key: "link_new_account_max", label: "Max links for a new account", def: 10, min: 1, max: 100000 },
   { key: "link_new_account_per_hour", label: "Links per hour for a new account", def: 5, min: 1, max: 10000 },
   { key: "link_bulk_max_rows", label: "Max rows per CSV import", def: 100, min: 1, max: 1000 },
+  { key: "link_click_retention_days", label: "Keep detailed click logs for (days; older days are summarised)", def: 90, min: 7, max: 3650 },
+  { key: "bio_max_pages", label: "Bio pages per user", def: 1, min: 1, max: 100 },
+  { key: "bio_max_links", label: "Links per bio page", def: 20, min: 1, max: 200 },
 ] as const;
 
 export type LinkLimitKey = (typeof LINK_LIMIT_DEFS)[number]["key"];

@@ -33,6 +33,9 @@ export default async function AdminLinksPage({ searchParams }: { searchParams: P
     getLinkLimits(),
   ]);
 
+  const { data: usage } = await supabase.rpc("link_usage_stats");
+  const u = (usage ?? null) as null | { clicks_total: number; clicks_24h: number; clicks_7d: number; bio_pages: number; bio_published: number; bio_views: number; bio_link_clicks: number };
+
   const ownerIds = Array.from(new Set((links ?? []).map((l) => l.user_id)));
   const { data: owners } = ownerIds.length
     ? await supabase.from("profiles").select("id, full_name, email").in("id", ownerIds)
@@ -54,6 +57,17 @@ export default async function AdminLinksPage({ searchParams }: { searchParams: P
           Blocklist →
         </Link>
       </div>
+
+      {u && (
+        <div className="flex flex-wrap gap-3 text-sm">
+          <span className="rounded-chip border border-line bg-white px-3 py-2">Clicks (all time): <b>{u.clicks_total}</b></span>
+          <span className="rounded-chip border border-line bg-white px-3 py-2">Last 24h: <b>{u.clicks_24h}</b></span>
+          <span className="rounded-chip border border-line bg-white px-3 py-2">Last 7 days: <b>{u.clicks_7d}</b></span>
+          <Link href="/admin/bio" className="rounded-chip border border-line bg-white px-3 py-2 hover:bg-paper">
+            Bio pages: <b>{u.bio_published}</b> published / {u.bio_pages} · {u.bio_views} views · {u.bio_link_clicks} link clicks
+          </Link>
+        </div>
+      )}
 
       <AdminLinkSettingsForm fields={LINK_LIMIT_DEFS.map((d) => ({ key: d.key, label: d.label, value: limits[d.key], min: d.min, max: d.max }))} />
 

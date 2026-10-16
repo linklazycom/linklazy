@@ -37,6 +37,11 @@ export function LinkRowActions({ id, isActive, locked }: { id: string; isActive:
           Edit / QR
         </Button>
       </Link>
+      <Link href={`/dashboard/links/${id}/analytics`}>
+        <Button size="sm" variant="secondary" type="button">
+          Analytics
+        </Button>
+      </Link>
       {!locked && (
         <Button size="sm" variant="ghost" type="button" onClick={toggle} disabled={busy}>
           {isActive ? "Turn off" : "Turn on"}
