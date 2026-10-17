@@ -66,6 +66,8 @@ export default async function DashboardLayout({
       items: [
         { href: "/dashboard/links", label: "Short links & QR" },
         { href: "/dashboard/bio", label: "Bio pages" },
+        { href: "/dashboard/domains", label: "Custom domains" },
+        { href: "/dashboard/api-keys", label: "API keys" },
       ],
     },
     {
