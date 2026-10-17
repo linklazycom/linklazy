@@ -34,6 +34,11 @@
 - ডোমেইন ভেরিফাই (SPF, DKIM), তারপর `RESEND_API_KEY` ও `EMAIL_FROM` সেট করুন।
 - সেট না থাকলে ইমেইল কোনো এরর ছাড়াই বাদ যায় — ব্যবহারকারী নোটিফিকেশন পাবে না।
 
+## ৫খ. কাস্টম ডোমেইন (Batch 11, ঐচ্ছিক)
+- `VERCEL_API_TOKEN`, `VERCEL_PROJECT_ID` (ও টিম থাকলে `VERCEL_TEAM_ID`) সেট করলে ব্যবহারকারীর ডোমেইন স্বয়ংক্রিয়ভাবে Vercel প্রজেক্টে যুক্ত হয় ("automatic mode")।
+- সেট না থাকলে "manual mode": অ্যাডমিন Vercel > Project > Settings > Domains-এ ডোমেইনটি যোগ করে অ্যাডমিন > Custom domains-এ "Mark active" চাপে।
+- টোকেন শুধু Vercel Environment Variables-এ রাখুন; চ্যাটে, GitHub-এ বা কোডে কখনো নয়।
+
 ## ৬. GitHub-এ আপলোডের নিয়ম
 - `.env.local`, `.env`, `node_modules`, `.next` কখনো আপলোড করবেন না।
 - Drag-and-drop ফাইল ডিলিট করে না। যা বাদ দেওয়ার, ব্যাচের "ডিলিট লিস্ট" দেখে GitHub-এ গিয়ে হাতে ডিলিট করুন।

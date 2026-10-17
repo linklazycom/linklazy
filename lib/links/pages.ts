@@ -34,13 +34,17 @@ const STATE_COPY: Record<StatePage, { title: string; message: string }> = {
   unavailable: { title: "Temporarily unavailable", message: "Short links are paused right now. Please try again later." },
 };
 
-export function renderStatePage(state: StatePage, slug?: string): string {
+/**
+ * `base` is the absolute site URL (no trailing slash). It is empty on linklazy.com itself and set
+ * on custom domains, where relative "/report-link" would point at the customer's domain instead.
+ */
+export function renderStatePage(state: StatePage, slug?: string, base = ""): string {
   const c = STATE_COPY[state];
   const report =
     slug && state !== "not_found" && state !== "unavailable"
-      ? `<p class="small"><a href="/report-link?slug=${encodeURIComponent(slug)}">Report this link</a></p>`
+      ? `<p class="small"><a href="${escapeHtml(base)}/report-link?slug=${encodeURIComponent(slug)}">Report this link</a></p>`
       : "";
-  return shell(c.title, `<h1>${escapeHtml(c.title)}</h1><p>${escapeHtml(c.message)}</p><p><a href="/">Go to LinkLazy</a></p>${report}`);
+  return shell(c.title, `<h1>${escapeHtml(c.title)}</h1><p>${escapeHtml(c.message)}</p><p><a href="${escapeHtml(base)}/">Go to LinkLazy</a></p>${report}`);
 }
 
 export function stateHttpStatus(state: StatePage): number {
@@ -49,12 +53,15 @@ export function stateHttpStatus(state: StatePage): number {
   return 410;
 }
 
-export function renderPasswordPage(slug: string, error?: string): string {
+/** `action` is where the form posts to ("/l/<slug>" by default; "/<slug>" on a custom domain); `base` as in renderStatePage. */
+export function renderPasswordPage(slug: string, error?: string, opts: { action?: string; base?: string } = {}): string {
+  const action = opts.action ?? `/l/${encodeURIComponent(slug)}`;
+  const base = opts.base ?? "";
   return shell(
     "Password required",
     `<h1>This link is password-protected</h1><p>Enter the password to continue.</p>` +
       (error ? `<p class="err">${escapeHtml(error)}</p>` : "") +
-      `<form method="post" action="/l/${encodeURIComponent(slug)}"><input type="password" name="password" autocomplete="off" autofocus required maxlength="100" placeholder="Password"><button type="submit">Continue</button></form>` +
-      `<p class="small"><a href="/report-link?slug=${encodeURIComponent(slug)}">Report this link</a></p>`
+      `<form method="post" action="${escapeHtml(action)}"><input type="password" name="password" autocomplete="off" autofocus required maxlength="100" placeholder="Password"><button type="submit">Continue</button></form>` +
+      `<p class="small"><a href="${escapeHtml(base)}/report-link?slug=${encodeURIComponent(slug)}">Report this link</a></p>`
   );
 }

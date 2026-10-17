@@ -9,6 +9,9 @@ export const LINK_LIMIT_DEFS = [
   { key: "link_click_retention_days", label: "Keep detailed click logs for (days; older days are summarised)", def: 90, min: 7, max: 3650 },
   { key: "bio_max_pages", label: "Bio pages per user", def: 1, min: 1, max: 100 },
   { key: "bio_max_links", label: "Links per bio page", def: 20, min: 1, max: 200 },
+  { key: "domain_max_per_user", label: "Custom domains per user (0 = turned off)", def: 2, min: 0, max: 100 },
+  { key: "api_max_keys_per_user", label: "API keys per user (0 = turned off)", def: 5, min: 0, max: 100 },
+  { key: "api_rate_per_minute", label: "API requests per key per minute", def: 60, min: 1, max: 6000 },
 ] as const;
 
 export type LinkLimitKey = (typeof LINK_LIMIT_DEFS)[number]["key"];
