@@ -6,6 +6,7 @@ import { Field } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { UtmBuilder } from "@/components/links/utm-builder";
 import { apiRequest, fromLocalInput, toLocalInput } from "@/components/links/api";
+import type { ProjectOption } from "@/components/links/link-create-form";
 
 export interface EditableLink {
   id: string;
@@ -17,10 +18,11 @@ export interface EditableLink {
   max_clicks: number | null;
   is_active: boolean;
   has_password: boolean;
+  project_id: string | null;
   locked: boolean; // taken down by admin / owner banned
 }
 
-export function LinkEditForm({ link }: { link: EditableLink }) {
+export function LinkEditForm({ link, projects = [] }: { link: EditableLink; projects?: ProjectOption[] }) {
   const router = useRouter();
   const [url, setUrl] = useState(link.destination_url);
   const [title, setTitle] = useState(link.title ?? "");
@@ -31,6 +33,7 @@ export function LinkEditForm({ link }: { link: EditableLink }) {
   const [active, setActive] = useState(link.is_active);
   const [password, setPassword] = useState("");
   const [clearPassword, setClearPassword] = useState(false);
+  const [projectId, setProjectId] = useState(link.project_id ?? "");
   const [showUtm, setShowUtm] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +57,8 @@ export function LinkEditForm({ link }: { link: EditableLink }) {
       is_active: active,
       password: password || undefined,
       clear_password: clearPassword || undefined,
+      // Only send when changed; an empty choice clears the project.
+      project_id: projectId === (link.project_id ?? "") ? undefined : projectId || null,
     });
     setBusy(false);
     if (!res.ok) {
@@ -92,6 +97,22 @@ export function LinkEditForm({ link }: { link: EditableLink }) {
         <Field id="title" label="Title (for you)" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} />
         <Field id="folder" label="Folder" value={folder} onChange={(e) => setFolder(e.target.value)} maxLength={40} />
         <Field id="tags" label="Tags (comma separated)" value={tags} onChange={(e) => setTags(e.target.value)} />
+        {projects.length > 0 && (
+          <div>
+            <label htmlFor="project_id" className="mb-1 block text-sm text-muted">
+              Project
+            </label>
+            <select id="project_id" value={projectId} onChange={(e) => setProjectId(e.target.value)} className="w-full rounded-chip border border-line bg-white px-3 py-2 text-sm outline-none focus:border-signal">
+              <option value="">No project</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+            {fieldErr("project_id")}
+          </div>
+        )}
         <div>
           <Field id="expires" type="datetime-local" label="Expires at" value={expires} onChange={(e) => setExpires(e.target.value)} hint="Clear the field to remove the expiry." />
           {fieldErr("expires_at")}

@@ -62,6 +62,10 @@ export default async function DashboardLayout({
       ],
     },
     {
+      label: "SEO workspace",
+      items: [{ href: "/dashboard/projects", label: "Projects" }],
+    },
+    {
       label: "Link tools",
       items: [
         { href: "/dashboard/links", label: "Short links & QR" },

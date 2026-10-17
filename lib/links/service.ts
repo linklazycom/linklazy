@@ -7,6 +7,7 @@ import { effectiveCaps } from "@/lib/links/limits";
 import { hashLinkPassword, PASSWORD_MIN, PASSWORD_MAX } from "@/lib/links/password";
 import { getLinkBlocklist, getLinkLimits, ownHosts } from "@/lib/links/server";
 import type { ImportRow } from "@/lib/links/csv";
+import { resolveOwnedProjectId } from "@/lib/projects/service";
 
 /** Create / update / import logic for short links (Batch 9). Always uses the service client AFTER the caller proved who the user is. */
 export const LINK_COLUMNS =
@@ -23,6 +24,8 @@ export interface LinkInput {
   password?: string | null;
   is_active?: boolean;
   clear_password?: boolean;
+  /** Batch 12: optional link to one of the owner's projects (null clears it; undefined leaves it alone). */
+  project_id?: string | null;
 }
 
 export interface UserCtx {
@@ -92,6 +95,12 @@ export async function createShortLink(
   if (!cleaned.ok) return cleaned;
   const pwErr = checkPassword(input.password);
   if (pwErr) return pwErr;
+  let projectPatch: { project_id?: string | null } = {};
+  if (input.project_id !== undefined) {
+    const p = await resolveOwnedProjectId(ctx.userId, input.project_id);
+    if (!p.ok) return fail(p.status, p.error, p.field);
+    projectPatch = { project_id: p.value };
+  }
 
   const blocklist = await getLinkBlocklist();
   let customSlug: string | null = null;
@@ -126,6 +135,7 @@ export async function createShortLink(
   const base = {
     user_id: ctx.userId,
     ...cleaned.patch,
+    ...projectPatch,
     has_password: !!password,
     is_active: input.is_active ?? true,
   };
@@ -169,6 +179,11 @@ export async function updateShortLink(
   if (pwErr) return pwErr;
 
   const patch: Record<string, unknown> = { ...cleaned.patch, updated_at: new Date().toISOString() };
+  if (input.project_id !== undefined) {
+    const p = await resolveOwnedProjectId(ctx.userId, input.project_id);
+    if (!p.ok) return fail(p.status, p.error, p.field);
+    patch.project_id = p.value;
+  }
   if (typeof input.is_active === "boolean") patch.is_active = input.is_active;
 
   const newPassword = input.password ? input.password : null;

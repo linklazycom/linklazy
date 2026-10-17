@@ -14,6 +14,7 @@ const createSchema = z.object({
   expires_at: z.string().max(40).nullish(),
   max_clicks: z.number().int().nullish(),
   password: z.string().max(200).nullish(),
+  project_id: z.string().uuid().nullish(),
 });
 
 export async function POST(request: Request) {

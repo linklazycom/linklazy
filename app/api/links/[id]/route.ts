@@ -16,6 +16,7 @@ const updateSchema = z.object({
   password: z.string().max(200).nullish(),
   clear_password: z.boolean().optional(),
   is_active: z.boolean().optional(),
+  project_id: z.string().uuid().nullish(),
 });
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {

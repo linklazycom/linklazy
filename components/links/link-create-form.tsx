@@ -8,7 +8,12 @@ import { CopyButton } from "@/components/links/copy-button";
 import { UtmBuilder } from "@/components/links/utm-builder";
 import { apiRequest, fromLocalInput } from "@/components/links/api";
 
-export function LinkCreateForm({ siteUrl }: { siteUrl: string }) {
+export interface ProjectOption {
+  id: string;
+  name: string;
+}
+
+export function LinkCreateForm({ siteUrl, projects = [], defaultProjectId = null }: { siteUrl: string; projects?: ProjectOption[]; defaultProjectId?: string | null }) {
   const router = useRouter();
   const [url, setUrl] = useState("");
   const [slug, setSlug] = useState("");
@@ -18,6 +23,7 @@ export function LinkCreateForm({ siteUrl }: { siteUrl: string }) {
   const [expires, setExpires] = useState("");
   const [maxClicks, setMaxClicks] = useState("");
   const [password, setPassword] = useState("");
+  const [projectId, setProjectId] = useState(defaultProjectId ?? "");
   const [showUtm, setShowUtm] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +46,7 @@ export function LinkCreateForm({ siteUrl }: { siteUrl: string }) {
       expires_at: fromLocalInput(expires),
       max_clicks: mc,
       password: password || null,
+      project_id: projectId || undefined,
     });
     setBusy(false);
     if (!res.ok) {
@@ -56,6 +63,7 @@ export function LinkCreateForm({ siteUrl }: { siteUrl: string }) {
     setExpires("");
     setMaxClicks("");
     setPassword("");
+    setProjectId(defaultProjectId ?? "");
     setShowUtm(false);
     router.refresh();
   }
@@ -83,7 +91,7 @@ export function LinkCreateForm({ siteUrl }: { siteUrl: string }) {
         />
       )}
 
-      <details className="rounded-chip border border-line p-4">
+      <details className="rounded-chip border border-line p-4" open={!!defaultProjectId}>
         <summary className="cursor-pointer text-sm font-medium">More options</summary>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div>
@@ -101,6 +109,22 @@ export function LinkCreateForm({ siteUrl }: { siteUrl: string }) {
             <Field id="max_clicks" type="number" min={1} label="Click limit (optional)" value={maxClicks} onChange={(e) => setMaxClicks(e.target.value)} />
             {fieldErr("max_clicks")}
           </div>
+          {projects.length > 0 && (
+            <div>
+              <label htmlFor="project_id" className="mb-1 block text-sm text-muted">
+                Project (optional)
+              </label>
+              <select id="project_id" value={projectId} onChange={(e) => setProjectId(e.target.value)} className="w-full rounded-chip border border-line bg-white px-3 py-2 text-sm outline-none focus:border-signal">
+                <option value="">No project</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+              {fieldErr("project_id")}
+            </div>
+          )}
           <div>
             <Field id="password" type="text" autoComplete="off" label="Password (optional)" value={password} onChange={(e) => setPassword(e.target.value)} hint="Visitors must enter it before being redirected." />
             {fieldErr("password")}

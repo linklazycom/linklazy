@@ -12,6 +12,8 @@ export const LINK_LIMIT_DEFS = [
   { key: "domain_max_per_user", label: "Custom domains per user (0 = turned off)", def: 2, min: 0, max: 100 },
   { key: "api_max_keys_per_user", label: "API keys per user (0 = turned off)", def: 5, min: 0, max: 100 },
   { key: "api_rate_per_minute", label: "API requests per key per minute", def: 60, min: 1, max: 6000 },
+  { key: "project_max_per_user", label: "Projects per user (0 = turned off)", def: 5, min: 0, max: 1000 },
+  { key: "project_max_keywords", label: "Keywords per project", def: 50, min: 1, max: 500 },
 ] as const;
 
 export type LinkLimitKey = (typeof LINK_LIMIT_DEFS)[number]["key"];

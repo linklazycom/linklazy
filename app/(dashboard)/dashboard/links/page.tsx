@@ -32,7 +32,8 @@ const STATUS_LABEL: Record<string, string> = {
   taken_down: "Disabled",
 };
 
-type SP = { q?: string; status?: string; folder?: string; tag?: string; page?: string };
+type SP = { q?: string; status?: string; folder?: string; tag?: string; project?: string; page?: string };
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function LinksPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
@@ -55,17 +56,19 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
   const status = STATUSES.includes(sp.status as (typeof STATUSES)[number]) ? (sp.status as (typeof STATUSES)[number]) : "all";
   const folder = (sp.folder ?? "").slice(0, 40);
   const tag = (sp.tag ?? "").toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 30);
+  const projectFilter = UUID_RE.test(sp.project ?? "") ? (sp.project as string) : "";
   const page = Math.max(1, Number.parseInt(sp.page ?? "1", 10) || 1);
   const nowIso = new Date().toISOString();
 
   let query = supabase
     .from("short_links")
-    .select("id, slug, destination_url, title, folder, tags, is_active, has_password, expires_at, max_clicks, click_count, disabled_reason, created_at", { count: "exact" })
+    .select("id, slug, destination_url, title, folder, project_id, tags, is_active, has_password, expires_at, max_clicks, click_count, disabled_reason, created_at", { count: "exact" })
     .eq("user_id", user.id);
 
   if (q) query = query.or(`slug.ilike.%${q}%,title.ilike.%${q}%,destination_url.ilike.%${q}%`);
   if (folder) query = query.eq("folder", folder);
   if (tag) query = query.contains("tags", [tag]);
+  if (projectFilter) query = query.eq("project_id", projectFilter);
   if (status === "active") query = query.eq("is_active", true).is("disabled_reason", null).or(`expires_at.is.null,expires_at.gt.${nowIso}`);
   if (status === "inactive") query = query.eq("is_active", false).is("disabled_reason", null);
   if (status === "expired") query = query.lte("expires_at", nowIso);
@@ -77,18 +80,20 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   // Filter dropdown options + quota meter.
-  const [{ data: meta }, limits, { count: allCount }, { data: profile }] = await Promise.all([
+  const [{ data: meta }, limits, { count: allCount }, { data: profile }, { data: projects }] = await Promise.all([
     supabase.from("short_links").select("folder, tags").eq("user_id", user.id).limit(1000),
     getLinkLimits(),
     supabase.from("short_links").select("id", { count: "exact", head: true }).eq("user_id", user.id),
     supabase.from("profiles").select("role").eq("id", user.id).single(),
+    supabase.from("projects").select("id, name").eq("user_id", user.id).order("name", { ascending: true }).limit(200),
   ]);
+  const projectNames = new Map((projects ?? []).map((p) => [p.id, p.name]));
   const folders = Array.from(new Set((meta ?? []).map((m) => m.folder).filter((f): f is string => !!f))).sort();
   const tagsAll = Array.from(new Set((meta ?? []).flatMap((m) => m.tags ?? []))).sort();
   const caps = effectiveCaps(limits, user.created_at);
   const isAdmin = profile?.role === "admin";
 
-  const params = { q: q || undefined, status: status === "all" ? undefined : status, folder: folder || undefined, tag: tag || undefined };
+  const params = { q: q || undefined, status: status === "all" ? undefined : status, folder: folder || undefined, tag: tag || undefined, project: projectFilter || undefined };
 
   return (
     <div className="space-y-6">
@@ -114,7 +119,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
         </div>
       </div>
 
-      <LinkCreateForm siteUrl={siteUrl()} />
+      <LinkCreateForm siteUrl={siteUrl()} projects={projects ?? []} defaultProjectId={projectFilter && projectNames.has(projectFilter) ? projectFilter : null} />
 
       <form method="get" className="flex flex-wrap items-end gap-3 rounded-chip border border-line bg-white p-4">
         <div>
@@ -165,10 +170,25 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
             </select>
           </div>
         )}
+        {(projects?.length ?? 0) > 0 && (
+          <div>
+            <label htmlFor="project" className="mb-1 block text-xs text-muted">
+              Project
+            </label>
+            <select id="project" name="project" defaultValue={projectFilter} className="rounded-chip border border-line bg-white px-3 py-1.5 text-sm">
+              <option value="">All</option>
+              {(projects ?? []).map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <Button size="sm" type="submit">
           Filter
         </Button>
-        {(q || folder || tag || status !== "all") && (
+        {(q || folder || tag || projectFilter || status !== "all") && (
           <Link href="/dashboard/links" className="pb-1.5 text-sm text-muted underline">
             Clear
           </Link>
@@ -176,7 +196,7 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
       </form>
 
       {!links?.length ? (
-        <EmptyState title={q || folder || tag || status !== "all" ? "No links match these filters" : "No short links yet"} description="Create your first short link above." />
+        <EmptyState title={q || folder || tag || projectFilter || status !== "all" ? "No links match these filters" : "No short links yet"} description="Create your first short link above." />
       ) : (
         <div className="space-y-3">
           {links.map((l) => {
@@ -191,6 +211,11 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
                       <span className={cn("rounded-full px-2 py-0.5 text-xs", STATUS_STYLE[st])}>{STATUS_LABEL[st]}</span>
                       {l.has_password && <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs text-brand-violet">Password</span>}
                       {l.folder && <span className="rounded-full bg-line/60 px-2 py-0.5 text-xs text-muted">📁 {l.folder}</span>}
+                      {l.project_id && projectNames.has(l.project_id) && (
+                        <Link href={`/dashboard/projects/${l.project_id}`} className="rounded-full bg-brand-soft px-2 py-0.5 text-xs text-brand-violet">
+                          🗂 {projectNames.get(l.project_id)}
+                        </Link>
+                      )}
                     </div>
                     <a href={short} target="_blank" rel="noopener noreferrer" className="mt-1 block break-all font-mono text-sm text-brand-violet underline">
                       {short}

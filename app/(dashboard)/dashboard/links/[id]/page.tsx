@@ -21,7 +21,7 @@ export default async function EditLinkPage({ params }: { params: Promise<{ id: s
 
   const { data: link } = await supabase
     .from("short_links")
-    .select("id, user_id, slug, destination_url, title, folder, tags, is_active, has_password, expires_at, max_clicks, click_count, disabled_reason, disabled_note, created_at")
+    .select("id, user_id, slug, destination_url, title, folder, tags, is_active, has_password, project_id, expires_at, max_clicks, click_count, disabled_reason, disabled_note, created_at")
     .eq("id", id)
     .maybeSingle();
   if (!link || link.user_id !== user.id) notFound();
@@ -30,6 +30,7 @@ export default async function EditLinkPage({ params }: { params: Promise<{ id: s
     return <p className="text-muted">Link management is temporarily turned off.</p>;
   }
 
+  const { data: projects } = await supabase.from("projects").select("id, name").eq("user_id", user.id).order("name", { ascending: true }).limit(200);
   const short = shortUrlFor(link.slug);
   const st = linkStatus(link);
 
@@ -72,8 +73,10 @@ export default async function EditLinkPage({ params }: { params: Promise<{ id: s
           max_clicks: link.max_clicks,
           is_active: link.is_active,
           has_password: link.has_password,
+          project_id: link.project_id ?? null,
           locked: !!link.disabled_reason,
         }}
+        projects={projects ?? []}
       />
 
       <QrPanel id={link.id} slug={link.slug} />
