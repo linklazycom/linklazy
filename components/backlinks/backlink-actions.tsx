@@ -13,7 +13,16 @@ export function CheckNowButton({ id, label = "Check now" }: { id: string; label?
   async function run() {
     setBusy(true);
     setError(null);
-    const res = await apiRequest(`/api/backlinks/${id}/check`, "POST");
+    let res = await apiRequest(`/api/backlinks/${id}/check`, "POST");
+    // Past the free hourly allowance an admin may have switched on paid extra checks: show the price, ask, then pay.
+    if (!res.ok && res.status === 402 && res.data?.needs_payment && typeof res.data.price === "number") {
+      const price = res.data.price;
+      if (!window.confirm(`${res.error}\n\nCheck now and pay ৳${price}?`)) {
+        setBusy(false);
+        return;
+      }
+      res = await apiRequest(`/api/backlinks/${id}/check`, "POST", { confirm_price: price, request_id: crypto.randomUUID() });
+    }
     setBusy(false);
     if (!res.ok) {
       setError(res.error);

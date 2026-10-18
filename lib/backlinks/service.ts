@@ -1,5 +1,8 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { chargeUsage, refundUsage } from "@/lib/usage/charge";
+import { decideCharge } from "@/lib/usage/pricing";
+import { getUsagePricing } from "@/lib/usage/server";
 import { getLinkLimits, ownHosts } from "@/lib/links/server";
 import type { ServiceResult, UserCtx } from "@/lib/links/service";
 import { cleanLine } from "@/lib/projects/rules";
@@ -239,18 +242,51 @@ export async function runAndStoreCheck(row: BacklinkRow, trigger: "manual" | "sc
   return { outcome, ...stored };
 }
 
-/** Manual "Check now": ownership, per-user hourly limit and a short per-backlink cool-down. */
-export async function checkNow(ctx: UserCtx, id: string): Promise<ServiceResult<{ backlink: Record<string, unknown> | null; check: Record<string, unknown> | null }>> {
+export type CheckNowResult =
+  | { ok: true; data: { backlink: Record<string, unknown> | null; check: Record<string, unknown> | null; charged: number } }
+  | { ok: false; status: number; error: string; price?: number; needsPayment?: boolean };
+
+export interface CheckNowOptions {
+  /** Price the user agreed to pay for a check beyond the free hourly allowance (Batch 14). */
+  confirmPrice?: number | null;
+  requestId?: string | null;
+}
+
+/**
+ * Manual "Check now": ownership, per-backlink cool-down and the per-user hourly allowance.
+ * Past the free allowance: refused (429) unless an admin enabled charging for extra checks, in which case the
+ * user must confirm the price shown and the check is paid from the wallet (refunded if the check fails on OUR side).
+ */
+export async function checkNow(ctx: UserCtx, id: string, opts: CheckNowOptions = {}): Promise<CheckNowResult> {
   const row = await loadOwnedBacklink(ctx.userId, id);
   if (!row) return fail(404, "Backlink not found.");
   if (row.last_checked_at && Date.now() - Date.parse(row.last_checked_at) < MIN_RECHECK_SECONDS * 1000) {
     return fail(429, "This link was just checked. Please wait a moment.");
   }
+
+  let chargeId: string | null = null;
+  let charged = 0;
   if (!ctx.isAdmin) {
     const limits = await getLinkLimits();
     const { allowed } = await checkRateLimit("backlink_check", ctx.userId, { max: limits.backlink_checks_per_hour, windowMinutes: 60 });
-    if (!allowed) return fail(429, "You've checked a lot of links this hour. Please try again later.");
+    if (!allowed) {
+      const decision = decideCharge(await getUsagePricing(), "backlink_extra_check");
+      if (!decision.charge) return fail(429, "You've checked a lot of links this hour. Please try again later.");
+      if (opts.confirmPrice === undefined || opts.confirmPrice === null || opts.confirmPrice < decision.price) {
+        return { ok: false, status: 402, needsPayment: true, price: decision.price, error: `You've used your free checks for this hour. An extra check costs ৳${decision.price}, taken from your wallet.` };
+      }
+      const charge = await chargeUsage(ctx, "backlink_extra_check", { requestId: opts.requestId, expectedPrice: opts.confirmPrice });
+      if (!charge.ok) return { ok: false, status: charge.status, error: charge.error, price: charge.price };
+      chargeId = charge.chargeId;
+      charged = charge.amount;
+    }
   }
+
   const r = await runAndStoreCheck(row, "manual");
-  return { ok: true, data: { backlink: r.backlink, check: r.check } };
+  // "Check failed" means the problem is on our side: give the money back. (An unreachable source page still counts as a delivered check.)
+  if (chargeId && r.outcome.status === "check_failed") {
+    await refundUsage(chargeId, "check failed on our side");
+    charged = 0;
+  }
+  return { ok: true, data: { backlink: r.backlink, check: r.check, charged } };
 }

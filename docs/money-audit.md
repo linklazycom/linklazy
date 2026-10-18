@@ -30,3 +30,15 @@ old admin "force accept" path before all money moves were centralised (see SQL 0
 
 ## Verified in production (14 Oct 2026)
 SQL 030 checks: append-only trigger enabled; 7 users checked, 0 reconciliation mismatches; no old rejected withdrawals with a missing wallet refund.
+
+## Batch 14: pay-per-use charges from the wallet
+
+- **Everything is OFF by default.** Nothing is charged until an admin switches charging on (Admin > Usage pricing) AND gives an action a price above 0. Admins are never charged.
+- **Where money moves:** only inside two database functions (SQL 042), `usage_charge_debit` and `usage_charge_refund`. Both call the existing atomic `adjust_wallet_balance`, so `wallet_ledger` rows (type `usage_charge`, or `admin_adjustment` when a database rejects the label; refunds `order_refund` or `admin_adjustment`) and the Wallet reconciliation view stay consistent. Both functions are closed to every browser role (service role only).
+- **One transaction:** the `usage_charges` row and the wallet debit succeed together or neither happens. A refused/failed debit leaves no usage row behind.
+- **Never charged twice:** `(user_id, idempotency_key)` is unique; a retry with the same request id returns "already processed" and takes no money. The free-allowance count and the duplicate check run under a per-user-per-action advisory lock.
+- **Refunds are idempotent:** refunding a charge twice returns the money once; refunding a free use marks it `void` (the free use goes back to the daily allowance).
+- **Prices are server-side:** the browser sends only a request id and the price it displayed. If the real price is higher the request is refused (409); the charged amount always comes from site_settings, never from the browser.
+- **Failure policy:** AI suggestions are refunded automatically when no usable suggestion could be delivered. A paid extra backlink check is refunded only when the check failed on OUR side ("Check failed"); an unreachable source page still counts as a delivered check.
+- **Support:** Admin > Usage pricing lists the 50 newest charges with a Refund button (also logged in `admin_logs`). If the server crashes between the debit and the AI call the charge stays `charged`; the admin refunds it from that list.
+- **Not covered yet:** link/short-link over-limit charging (only AI suggestions and extra manual backlink checks are chargeable today).

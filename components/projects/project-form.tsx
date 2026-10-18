@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Field } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,16 @@ interface Suggestion {
   keywords: string[];
 }
 
+/** What the next AI suggestion costs this user (from /api/usage/quote). */
+interface Quote {
+  charging: boolean;
+  price: number;
+  freePerDay: number;
+  freeLeftToday: number;
+  nextUseCosts: boolean;
+  balance: number | null;
+}
+
 const TEXTAREA = "w-full rounded-chip border border-line px-3 py-2 text-sm outline-none focus:border-signal";
 const SELECT = "w-full rounded-chip border border-line bg-white px-3 py-2 text-sm outline-none focus:border-signal";
 
@@ -48,6 +59,22 @@ export function ProjectForm({ mode, projectId, initial, maxKeywords }: { mode: "
   const [suggesting, setSuggesting] = useState(false);
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
   const [suggestError, setSuggestError] = useState<string | null>(null);
+  const [needsTopUp, setNeedsTopUp] = useState(false);
+  const [quote, setQuote] = useState<Quote | null>(null);
+
+  const loadQuote = useCallback(async () => {
+    const res = await apiRequest("/api/usage/quote?action=project_ai_suggest", "GET");
+    if (res.ok) setQuote((res.data?.quote as Quote | undefined) ?? null);
+  }, []);
+  useEffect(() => {
+    let alive = true;
+    void apiRequest("/api/usage/quote?action=project_ai_suggest", "GET").then((res) => {
+      if (alive && res.ok) setQuote((res.data?.quote as Quote | undefined) ?? null);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const set = <K extends keyof ProjectFormValues>(key: K, value: ProjectFormValues[K]) => {
     setV((prev) => ({ ...prev, [key]: value }));
@@ -82,16 +109,28 @@ export function ProjectForm({ mode, projectId, initial, maxKeywords }: { mode: "
   }
 
   async function askForSuggestions() {
+    // The price is shown BEFORE any payment, and the server only ever charges the price it decides itself.
+    if (quote?.nextUseCosts && !window.confirm(`This suggestion costs ৳${quote.price}, taken from your wallet. If we can't deliver suggestions you are refunded automatically. Continue?`)) return;
     setSuggesting(true);
     setSuggestError(null);
+    setNeedsTopUp(false);
     setSuggestion(null);
-    const res = await apiRequest("/api/projects/suggest", "POST", { name: v.name, url: v.url, description: v.description });
+    const res = await apiRequest("/api/projects/suggest", "POST", {
+      name: v.name,
+      url: v.url,
+      description: v.description,
+      request_id: crypto.randomUUID(),
+      expected_price: quote?.price ?? 0,
+    });
     setSuggesting(false);
     if (!res.ok) {
       setSuggestError(res.error);
+      if (res.data?.code === "insufficient") setNeedsTopUp(true);
+      if (res.data?.code === "price_changed") void loadQuote();
       return;
     }
     setSuggestion((res.data?.suggestion as Suggestion | undefined) ?? null);
+    void loadQuote();
   }
 
   return (
@@ -164,10 +203,37 @@ export function ProjectForm({ mode, projectId, initial, maxKeywords }: { mode: "
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-muted">Not sure about the niche or keywords? Get ideas from your description. They are only suggestions: check and edit them before you save.</p>
           <Button type="button" variant="secondary" size="sm" onClick={askForSuggestions} disabled={suggesting}>
-            {suggesting ? "Thinking…" : "Suggest niche & keywords"}
+            {suggesting ? "Thinking…" : quote?.nextUseCosts ? `Suggest niche & keywords (৳${quote.price})` : "Suggest niche & keywords"}
           </Button>
         </div>
-        {suggestError && <p className="mt-3 text-sm text-red-600">{suggestError}</p>}
+        {quote?.charging && (
+          <p className="mt-2 text-xs text-muted">
+            {quote.freeLeftToday > 0
+              ? `Free today: ${quote.freeLeftToday} of ${quote.freePerDay} left. After that each suggestion costs ৳${quote.price} from your wallet.`
+              : `Each suggestion costs ৳${quote.price} from your wallet${quote.balance !== null ? ` (your balance: ৳${quote.balance})` : ""}.`}
+            {quote.nextUseCosts && quote.balance !== null && quote.balance < quote.price && (
+              <>
+                {" "}
+                <Link href="/dashboard/billing" className="text-brand-violet underline">
+                  Top up your wallet
+                </Link>
+              </>
+            )}
+          </p>
+        )}
+        {suggestError && (
+          <p className="mt-3 text-sm text-red-600">
+            {suggestError}
+            {needsTopUp && (
+              <>
+                {" "}
+                <Link href="/dashboard/billing" className="underline">
+                  Top up your wallet
+                </Link>
+              </>
+            )}
+          </p>
+        )}
         {suggestion && (
           <div className="mt-3 space-y-3 text-sm">
             {suggestion.niche && (

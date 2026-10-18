@@ -7,13 +7,22 @@ import { checkNow } from "@/lib/backlinks/service";
 export const maxDuration = 30;
 
 const UUID = z.string().uuid();
+const bodySchema = z.object({ confirm_price: z.number().int().min(0).max(100_000).nullish(), request_id: z.string().max(100).nullish() }).partial();
 
-export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!UUID.safeParse(id).success) return NextResponse.json({ error: "Backlink not found." }, { status: 404 });
   const gate = await requireBacklinkUser();
   if ("error" in gate) return gate.error;
-  const res = await checkNow(gate.ctx, id);
-  if (!res.ok) return NextResponse.json({ error: res.error }, { status: res.status });
+  // The body is optional (only used to confirm a paid extra check).
+  let body: z.infer<typeof bodySchema> = {};
+  try {
+    const parsed = bodySchema.safeParse(await request.json());
+    if (parsed.success) body = parsed.data;
+  } catch {
+    /* no body */
+  }
+  const res = await checkNow(gate.ctx, id, { confirmPrice: body.confirm_price, requestId: body.request_id });
+  if (!res.ok) return NextResponse.json({ error: res.error, price: res.price, needs_payment: res.needsPayment }, { status: res.status });
   return NextResponse.json(res.data);
 }
