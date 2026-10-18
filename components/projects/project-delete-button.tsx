@@ -5,13 +5,17 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/components/links/api";
 
-export function ProjectDeleteButton({ id, name, linkCount }: { id: string; name: string; linkCount: number }) {
+export function ProjectDeleteButton({ id, name, linkCount, backlinkCount = 0 }: { id: string; name: string; linkCount: number; backlinkCount?: number }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function remove() {
-    const extra = linkCount > 0 ? `\n\nYour ${linkCount} short link${linkCount === 1 ? "" : "s"} in this project will NOT be deleted; they just stop belonging to a project.` : "";
+    const parts = [
+      linkCount > 0 ? `${linkCount} short link${linkCount === 1 ? "" : "s"}` : "",
+      backlinkCount > 0 ? `${backlinkCount} tracked backlink${backlinkCount === 1 ? "" : "s"}` : "",
+    ].filter(Boolean);
+    const extra = parts.length ? `\n\nYour ${parts.join(" and ")} in this project will NOT be deleted; they just stop belonging to a project.` : "";
     if (!window.confirm(`Delete the project "${name}" and its saved keywords?${extra}`)) return;
     setBusy(true);
     setError(null);

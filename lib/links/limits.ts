@@ -14,6 +14,8 @@ export const LINK_LIMIT_DEFS = [
   { key: "api_rate_per_minute", label: "API requests per key per minute", def: 60, min: 1, max: 6000 },
   { key: "project_max_per_user", label: "Projects per user (0 = turned off)", def: 5, min: 0, max: 1000 },
   { key: "project_max_keywords", label: "Keywords per project", def: 50, min: 1, max: 500 },
+  { key: "backlink_max_per_user", label: "Tracked backlinks per user (0 = turned off)", def: 100, min: 0, max: 100000 },
+  { key: "backlink_checks_per_hour", label: "Manual backlink checks per user per hour", def: 30, min: 1, max: 1000 },
 ] as const;
 
 export type LinkLimitKey = (typeof LINK_LIMIT_DEFS)[number]["key"];

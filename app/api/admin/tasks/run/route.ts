@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/require-admin";
 import { runDueTasks } from "@/lib/tasks";
+import "@/lib/backlinks/register";
 
-// Manual trigger for the background-task runner (admin only). A scheduled
-// cron route is added once the hosting plan allows more cron slots.
+// Manual trigger for the background-task runner (admin only). The scheduled
+// version is /api/cron/run-tasks (Batch 13).
 export const maxDuration = 60;
 
 export async function POST() {

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ProjectForm } from "@/components/projects/project-form";
 import { ProjectDeleteButton } from "@/components/projects/project-delete-button";
 import { getLinkLimits, shortUrlFor } from "@/lib/links/server";
+import { StatusBadge } from "@/components/backlinks/status-badge";
 
 export const metadata = { title: "Project" };
 
@@ -26,7 +27,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   // Admins can read every project through RLS, but this page is the owner's workspace.
   if (!project || project.user_id !== user.id) notFound();
 
-  const [{ data: keywords }, { data: links, count: linkCount }, limits, { data: profile }] = await Promise.all([
+  const [{ data: keywords }, { data: links, count: linkCount }, limits, { data: profile }, { data: backlinks, count: backlinkCount }] = await Promise.all([
     supabase.from("project_keywords").select("keyword").eq("project_id", id).order("created_at", { ascending: true }),
     supabase
       .from("short_links")
@@ -37,6 +38,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       .limit(10),
     getLinkLimits(),
     supabase.from("profiles").select("role").eq("id", user.id).single(),
+    supabase.from("backlinks").select("id, source_url, status", { count: "exact" }).eq("user_id", user.id).eq("project_id", id).order("created_at", { ascending: false }).limit(5),
   ]);
   const isAdmin = profile?.role === "admin";
 
@@ -97,10 +99,36 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         {(linkCount ?? 0) > 10 && <p className="text-xs text-muted">Showing the 10 newest of {linkCount}.</p>}
       </section>
 
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-display text-lg font-medium">Backlinks in this project</h2>
+          <Link href={`/dashboard/backlinks?project=${project.id}`}>
+            <Button size="sm" variant="secondary" type="button">
+              {backlinkCount ? "View all & add a backlink" : "Track a backlink"}
+            </Button>
+          </Link>
+        </div>
+        {!backlinks?.length ? (
+          <p className="text-sm text-muted">No backlinks are tracked for this project yet.</p>
+        ) : (
+          <ul className="divide-y divide-line rounded-chip border border-line bg-white">
+            {backlinks.map((b) => (
+              <li key={b.id} className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm">
+                <Link href={`/dashboard/backlinks/${b.id}`} className="min-w-0 break-all font-mono text-xs text-brand-violet underline">
+                  {b.source_url}
+                </Link>
+                <StatusBadge status={b.status} />
+              </li>
+            ))}
+          </ul>
+        )}
+        {(backlinkCount ?? 0) > 5 && <p className="text-xs text-muted">Showing the 5 newest of {backlinkCount}.</p>}
+      </section>
+
       <section className="space-y-2 border-t border-line pt-6">
         <h2 className="font-display text-lg font-medium">Delete this project</h2>
-        <p className="text-sm text-muted">Removes the project and its keywords. Your short links are kept.</p>
-        <ProjectDeleteButton id={project.id} name={project.name} linkCount={linkCount ?? 0} />
+        <p className="text-sm text-muted">Removes the project and its keywords. Your short links and tracked backlinks are kept.</p>
+        <ProjectDeleteButton id={project.id} name={project.name} linkCount={linkCount ?? 0} backlinkCount={backlinkCount ?? 0} />
       </section>
     </div>
   );

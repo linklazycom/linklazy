@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email";
 import { requireCron } from "@/lib/cron-auth";
-import { safeFetch, SafeFetchError } from "@/lib/safe-fetch";
+import { checkBacklink, orderVerdict } from "@/lib/backlinks/check";
 
 // This route loops sequentially over many items with external API/email
 // calls per item, which can exceed Vercel's default serverless timeout
@@ -12,11 +12,15 @@ export const maxDuration = 300;
 
 /**
  * Daily job: for every accepted order, re-fetch the seller's proof_url and
- * confirm the buyer's target_url is still linked from it (a crude but
- * effective check — look for the URL string in the page HTML). If a link
+ * confirm the buyer's target_url is still linked from it, using the same
+ * checker as the Backlink Monitor (lib/backlinks/check.ts). If a link
  * that was previously live disappears, we record it and email the buyer
  * so they have evidence for a dispute if they want one; we don't auto-open
  * a dispute since a temporary CMS hiccup shouldn't trigger one automatically.
+ *
+ * Only a page that loaded fine and really lacks the link counts as "down".
+ * Timeouts, 404/5xx, bot-blocking and pages we could not read leave the
+ * order's check state untouched (they used to be reported as a removed link).
  */
 export async function GET(request: Request) {
   const denied = requireCron(request);
@@ -32,33 +36,31 @@ export async function GET(request: Request) {
     .not("proof_url", "is", null)
     .limit(200); // batch size per run; re-runs daily so this catches up over time
 
-  if (!orders?.length) return NextResponse.json({ checked: 0, stillLive: 0, wentDown: 0 });
+  if (!orders?.length) return NextResponse.json({ checked: 0, stillLive: 0, wentDown: 0, skipped: 0, unverified: 0 });
 
   let stillLive = 0;
   let wentDown = 0;
   let skipped = 0;
+  let unverified = 0;
 
   for (const order of orders) {
     const wasOk = order.last_link_check_ok;
-    let isOk = false;
 
-    try {
-      // SECURITY (audit R2): proof_url is supplied by the seller, so it must
-      // never be fetched with a bare fetch(). safeFetch blocks internal /
-      // private / metadata targets and caps time and size.
-      const res = await safeFetch(order.proof_url!, { timeoutMs: 10_000, maxBytes: 3 * 1024 * 1024, truncate: true });
-      if (res.ok) {
-        isOk = res.text.includes(order.target_url);
-      }
-    } catch (err) {
-      if (err instanceof SafeFetchError && (err.code === "blocked" || err.code === "invalid_url")) {
-        // A URL we refuse to fetch is not evidence the link is gone: leave
-        // the order's check state untouched and move on.
-        skipped++;
-        continue;
-      }
-      isOk = false;
+    // SECURITY (audit R2): proof_url is supplied by the seller; the checker
+    // fetches it with safeFetch (blocks internal / private / metadata targets,
+    // caps time and size).
+    const outcome = await checkBacklink({ sourceUrl: order.proof_url!, targetUrl: order.target_url });
+    const verdict = orderVerdict(outcome);
+    if (verdict === "skipped") {
+      // A URL we refuse to fetch is not evidence the link is gone.
+      skipped++;
+      continue;
     }
+    if (verdict === "unverified") {
+      unverified++;
+      continue;
+    }
+    const isOk = verdict === "ok";
 
     await supabase
       .from("orders")
@@ -93,5 +95,5 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json({ checked: orders.length, stillLive, wentDown, skipped });
+  return NextResponse.json({ checked: orders.length, stillLive, wentDown, skipped, unverified });
 }
