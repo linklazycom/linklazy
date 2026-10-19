@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/require-admin";
 import { createServiceClient } from "@/lib/supabase/service";
 import { encryptProviderKey, isEncryptionConfigured, listProvidersPublic } from "@/lib/api-providers";
 import { isAiAdapter } from "@/lib/providers/adapters";
+import { isImageAdapter } from "@/lib/providers/images";
 import { assertPublicHttpUrl } from "@/lib/safe-url";
 
 export async function GET() {
@@ -20,6 +21,7 @@ export async function POST(request: Request) {
 
   const name = String(body.name ?? "").trim().slice(0, 80);
   const adapter = String(body.adapter ?? "");
+  const kind = body.kind === "image" ? "image" : "ai";
   const model = String(body.model ?? "").trim().slice(0, 120);
   const baseUrlRaw = String(body.base_url ?? "").trim();
   const apiKey = String(body.api_key ?? "").trim();
@@ -28,8 +30,8 @@ export async function POST(request: Request) {
   const monthlyLimit = body.monthly_limit === "" || body.monthly_limit == null ? null : Math.max(0, Math.floor(Number(body.monthly_limit)));
 
   if (!name) return NextResponse.json({ error: "Name is required" }, { status: 400 });
-  if (!isAiAdapter(adapter)) return NextResponse.json({ error: "Unsupported adapter" }, { status: 400 });
-  if (!model) return NextResponse.json({ error: "Model is required" }, { status: 400 });
+  if (kind === "ai" ? !isAiAdapter(adapter) : !isImageAdapter(adapter)) return NextResponse.json({ error: "Unsupported adapter" }, { status: 400 });
+  if (kind === "ai" && !model) return NextResponse.json({ error: "Model is required" }, { status: 400 });
   if (!apiKey) return NextResponse.json({ error: "API key is required" }, { status: 400 });
   if (!isEncryptionConfigured()) {
     return NextResponse.json(
@@ -55,10 +57,10 @@ export async function POST(request: Request) {
     .from("api_providers")
     .insert({
       name,
-      kind: "ai",
+      kind,
       adapter,
       base_url: baseUrl,
-      model,
+      model: kind === "ai" ? model : null,
       api_key_encrypted: encryptProviderKey(apiKey),
       priority,
       enabled: false, // new providers start OFF; the admin tests then enables

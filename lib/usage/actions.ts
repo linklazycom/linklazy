@@ -15,6 +15,18 @@ export const USAGE_ACTIONS = [
     unit: "per check",
     defaultFreePerDay: 0,
   },
+  {
+    id: "content_generate",
+    label: "AI Content Studio: outreach, bio, ideas, outline, title/meta, alt text, comment draft",
+    unit: "per generation",
+    defaultFreePerDay: 5,
+  },
+  {
+    id: "content_article_draft",
+    label: "AI Content Studio: full article draft",
+    unit: "per draft",
+    defaultFreePerDay: 1,
+  },
 ] as const;
 
 export type UsageActionId = (typeof USAGE_ACTIONS)[number]["id"];

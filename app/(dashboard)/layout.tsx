@@ -66,6 +66,7 @@ export default async function DashboardLayout({
       items: [
         { href: "/dashboard/projects", label: "Projects" },
         { href: "/dashboard/backlinks", label: "Backlink monitor" },
+        { href: "/dashboard/content", label: "AI Content Studio" },
       ],
     },
     {

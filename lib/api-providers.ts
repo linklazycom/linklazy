@@ -2,6 +2,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { safeFetch, SafeFetchError } from "@/lib/safe-fetch";
 import { decryptSecret, encryptSecret, maskSecret } from "@/lib/provider-crypto";
 import { buildAiRequest, isAiAdapter, parseAiResponse, type AiAdapterId, type AiTurn } from "@/lib/providers/adapters";
+import { buildImageSearchRequest, isImageAdapter, parseImageResponse, type StockImage } from "@/lib/providers/images";
 import { EXTERNAL_APIS_FLAG, getFlags } from "@/lib/feature-flags";
 import { sanitizeError } from "@/lib/task-utils";
 
@@ -294,6 +295,96 @@ export async function callAi(input: CallAiInput): Promise<CallAiResult> {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Stock images (Batch 15)
+// ---------------------------------------------------------------------------
+
+async function attemptImageProvider(provider: ProviderRow, query: string): Promise<StockImage[]> {
+  if (!isImageAdapter(provider.adapter)) throw new Error(`Unsupported adapter "${provider.adapter}"`);
+  if (!provider.api_key_encrypted) throw new Error("No API key saved");
+
+  const req = buildImageSearchRequest({
+    adapter: provider.adapter,
+    apiKey: decryptSecret(provider.api_key_encrypted, masterSecret()),
+    query,
+    baseUrl: provider.base_url,
+  });
+
+  let res;
+  try {
+    res = await safeFetch(req.url, { method: "GET", headers: req.headers, timeoutMs: 15_000, maxBytes: 1024 * 1024, maxRedirects: 0 });
+  } catch (err) {
+    if (err instanceof SafeFetchError) throw new Error(`Request failed (${err.code}): ${err.message}`);
+    throw err;
+  }
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${sanitizeError(res.text, 160)}`);
+
+  let json: unknown;
+  try {
+    json = JSON.parse(res.text);
+  } catch {
+    throw new Error("The provider returned a non-JSON response.");
+  }
+  return parseImageResponse(provider.adapter, json);
+}
+
+// Small per-instance cache: saves free-tier quota and satisfies providers that ask for caching.
+const IMAGE_CACHE_TTL_MS = 10 * 60_000;
+const IMAGE_CACHE_MAX = 100;
+const imageCache = new Map<string, { at: number; images: StockImage[] }>();
+
+/**
+ * Searches stock photos through the admin-managed image providers (kill switches, priority, limits and
+ * fallback like callAi). Throws AiUnavailableError when nothing could answer. Results are only links and
+ * previews: no image is downloaded or stored here.
+ */
+export async function searchStockImages(input: { query: string; userId?: string | null }): Promise<StockImage[]> {
+  const feature = "feature_ai_content";
+  const flags = await getFlags([EXTERNAL_APIS_FLAG, feature]);
+  if (!flags[EXTERNAL_APIS_FLAG] || !flags[feature]) {
+    throw new AiUnavailableError("disabled", "Stock image search is currently switched off.");
+  }
+  if (!isEncryptionConfigured()) throw new AiUnavailableError("not_configured", "Stock image search is not set up yet.");
+
+  const cacheKey = input.query.toLowerCase();
+  const hit = imageCache.get(cacheKey);
+  if (hit && Date.now() - hit.at < IMAGE_CACHE_TTL_MS) return hit.images;
+
+  const supabase = createServiceClient();
+  const { data } = await supabase
+    .from("api_providers")
+    .select("*")
+    .eq("kind", "image")
+    .eq("enabled", true)
+    .order("priority", { ascending: true })
+    .order("created_at", { ascending: true });
+  const providers = (data ?? []) as ProviderRow[];
+  if (providers.length === 0) throw new AiUnavailableError("not_configured", "Stock image search is not set up yet.");
+
+  let attempted = 0;
+  for (const provider of providers) {
+    if (provider.daily_limit !== null && (await countUsage(provider.id, startOfUtcDay())) >= provider.daily_limit) continue;
+    if (provider.monthly_limit !== null && (await countUsage(provider.id, startOfUtcMonth())) >= provider.monthly_limit) continue;
+
+    attempted++;
+    const started = Date.now();
+    try {
+      const images = await attemptImageProvider(provider, input.query);
+      await logUsage({ providerId: provider.id, providerName: provider.name, feature: "stock_images", userId: input.userId, ok: true, durationMs: Date.now() - started });
+      if (imageCache.size >= IMAGE_CACHE_MAX) imageCache.delete(imageCache.keys().next().value as string);
+      imageCache.set(cacheKey, { at: Date.now(), images });
+      return images;
+    } catch (err) {
+      await logUsage({ providerId: provider.id, providerName: provider.name, feature: "stock_images", userId: input.userId, ok: false, error: err instanceof Error ? err.message : "error", durationMs: Date.now() - started });
+    }
+  }
+
+  throw new AiUnavailableError(
+    "all_failed",
+    attempted === 0 ? "Stock image search limit reached for now. Please try again later." : "Stock image search is temporarily unavailable. Please try again."
+  );
+}
+
 /** Admin "Test connection": one tiny call, ignores the enabled flag and the kill switches. */
 export async function testProvider(providerId: string): Promise<{ ok: boolean; ms: number; message: string }> {
   if (!isEncryptionConfigured()) {
@@ -303,7 +394,21 @@ export async function testProvider(providerId: string): Promise<{ ok: boolean; m
   const { data } = await supabase.from("api_providers").select("*").eq("id", providerId).single();
   const provider = data as ProviderRow | null;
   if (!provider) return { ok: false, ms: 0, message: "Provider not found." };
-  if (provider.kind !== "ai") return { ok: false, ms: 0, message: "Test is only available for AI providers for now." };
+  if (provider.kind === "image") {
+    const started = Date.now();
+    try {
+      const images = await attemptImageProvider(provider, "nature");
+      const ms = Date.now() - started;
+      await logUsage({ providerId: provider.id, providerName: provider.name, feature: "provider_test", ok: true, durationMs: ms });
+      return { ok: true, ms, message: images.length > 0 ? "Connected successfully." : "Connected, but the test search returned no photos." };
+    } catch (err) {
+      const ms = Date.now() - started;
+      const message = sanitizeError(err);
+      await logUsage({ providerId: provider.id, providerName: provider.name, feature: "provider_test", ok: false, error: message, durationMs: ms });
+      return { ok: false, ms, message };
+    }
+  }
+  if (provider.kind !== "ai") return { ok: false, ms: 0, message: "Test is only available for AI and image providers for now." };
 
   const started = Date.now();
   try {

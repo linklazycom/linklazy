@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/toast-provider";
 export interface ProviderView {
   id: string;
   name: string;
+  kind?: string;
   adapter: string;
   base_url: string | null;
   model: string | null;
@@ -32,6 +33,11 @@ export interface FlagView {
 const ADAPTERS = [
   { value: "openai_compatible", label: "OpenAI-compatible (OpenAI, Groq, OpenRouter, Together, Mistral, DeepSeek, Gemini OpenAI-mode, self-hosted…)" },
   { value: "anthropic", label: "Anthropic (Claude)" },
+];
+
+const IMAGE_ADAPTERS = [
+  { value: "pexels", label: "Pexels (free API key; credit the photographer)" },
+  { value: "pixabay", label: "Pixabay (free API key; images are linked, not stored)" },
 ];
 
 async function api(path: string, method: string, body?: unknown) {
@@ -59,6 +65,7 @@ export function ApiProvidersManager({
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     name: "",
+    kind: "ai",
     adapter: "openai_compatible",
     base_url: "",
     model: "",
@@ -183,7 +190,7 @@ export function ApiProvidersManager({
 
       <section>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-display text-lg font-medium">AI providers</h2>
+          <h2 className="font-display text-lg font-medium">API providers (AI text and stock images)</h2>
           <Button type="button" size="sm" onClick={() => setShowForm((v) => !v)} disabled={!encryptionConfigured}>
             {showForm ? "Close" : "Add provider"}
           </Button>
@@ -193,6 +200,18 @@ export function ApiProvidersManager({
           <form onSubmit={addProvider} className="mb-5 space-y-3 rounded-chip border border-line bg-white p-5">
             <Field id="p-name" label="Name (your label)" value={form.name} onChange={(e) => setField("name", e.target.value)} required maxLength={80} />
             <div>
+              <label htmlFor="p-kind" className="mb-1 block text-sm text-muted">Kind</label>
+              <select
+                id="p-kind"
+                value={form.kind}
+                onChange={(e) => setForm((f) => ({ ...f, kind: e.target.value, adapter: e.target.value === "image" ? "pexels" : "openai_compatible", model: "" }))}
+                className="w-full rounded-chip border border-line bg-white px-3 py-2 text-sm outline-none focus:border-signal"
+              >
+                <option value="ai">AI text model</option>
+                <option value="image">Stock images</option>
+              </select>
+            </div>
+            <div>
               <label htmlFor="p-adapter" className="mb-1 block text-sm text-muted">Type</label>
               <select
                 id="p-adapter"
@@ -200,7 +219,7 @@ export function ApiProvidersManager({
                 onChange={(e) => setField("adapter", e.target.value)}
                 className="w-full rounded-chip border border-line bg-white px-3 py-2 text-sm outline-none focus:border-signal"
               >
-                {ADAPTERS.map((a) => (
+                {(form.kind === "image" ? IMAGE_ADAPTERS : ADAPTERS).map((a) => (
                   <option key={a.value} value={a.value}>{a.label}</option>
                 ))}
               </select>
@@ -208,18 +227,20 @@ export function ApiProvidersManager({
             <Field
               id="p-base"
               label="Base URL (optional)"
-              hint="Leave empty for OpenAI / Anthropic. For others, e.g. https://api.groq.com/openai/v1 — must be a public https address."
+              hint="Leave empty for OpenAI / Anthropic / Pexels / Pixabay. For others, e.g. https://api.groq.com/openai/v1 — must be a public https address."
               value={form.base_url}
               onChange={(e) => setField("base_url", e.target.value)}
             />
-            <Field
-              id="p-model"
-              label="Model name"
-              hint="Exactly as shown in the provider's dashboard/docs (model names change over time)."
-              value={form.model}
-              onChange={(e) => setField("model", e.target.value)}
-              required
-            />
+            {form.kind === "ai" && (
+              <Field
+                id="p-model"
+                label="Model name"
+                hint="Exactly as shown in the provider's dashboard/docs (model names change over time)."
+                value={form.model}
+                onChange={(e) => setField("model", e.target.value)}
+                required
+              />
+            )}
             <Field
               id="p-key"
               label="API key"
@@ -253,7 +274,7 @@ export function ApiProvidersManager({
                   <div>
                     <span className="font-medium">{p.name}</span>
                     <span className="ml-2 text-xs text-muted">
-                      {p.adapter} · {p.model ?? "no model"} · priority {p.priority}
+                      {p.kind === "image" ? "image" : "ai"} · {p.adapter} · {p.kind === "image" ? "no model needed" : p.model ?? "no model"} · priority {p.priority}
                     </span>
                   </div>
                   <span className={`text-xs font-medium ${p.enabled ? "text-green-700" : "text-muted"}`}>
@@ -290,7 +311,7 @@ export function ApiProvidersManager({
       </section>
 
       <p className="text-xs text-muted">
-        Search and image providers are added in later batches. Free-tier terms change often — check each provider's
+        Search providers are added in a later batch. Free-tier terms change often — check each provider&apos;s
         current limits and data-use terms before enabling it.
       </p>
     </div>
