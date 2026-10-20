@@ -32,23 +32,3 @@ export async function getSenderIdentity(service: Service = createServiceClient()
   const str = (v: unknown) => (typeof v === "string" ? v : "");
   return { name: str(map.get(OUTREACH_SENDER_NAME_KEY)), address: str(map.get(OUTREACH_SENDER_ADDRESS_KEY)) };
 }
-
-// ---------------------------------------------------------------------------
-// Sending switch (Batch 16B-2). Unlike the other feature flags, a MISSING value means OFF.
-// ---------------------------------------------------------------------------
-export const OUTREACH_PUSH_KEY = "outreach_push_enabled";
-
-export async function isPushEnabled(service: Service = createServiceClient()): Promise<boolean> {
-  const { data } = await service.from("site_settings").select("value").eq("key", OUTREACH_PUSH_KEY).maybeSingle();
-  return data?.value === true || data?.value === "true";
-}
-
-export async function setPushEnabled(enabled: boolean, adminId: string, service: Service = createServiceClient()): Promise<boolean> {
-  const { error } = await service.from("site_settings").upsert({ key: OUTREACH_PUSH_KEY, value: enabled, updated_by: adminId, updated_at: new Date().toISOString() });
-  return !error;
-}
-
-export const startOfUtcDay = (d = new Date()) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())).toISOString();
-
-/** ISO timestamp for "n days ago" (kept out of page components, which must stay pure). */
-export const daysAgoIso = (n: number): string => new Date(Date.now() - n * 86_400_000).toISOString();
