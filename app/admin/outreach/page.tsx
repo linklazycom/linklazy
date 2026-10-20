@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { OutreachSenderForm } from "@/components/admin/outreach/settings-form";
+import { PushSwitch } from "@/components/admin/outreach/push-switch";
 import { SuppressionManager } from "@/components/admin/outreach/suppression-manager";
-import { getSenderIdentity } from "@/lib/outreach/server";
-import { getUnsubscribeSecret } from "@/lib/outreach/token";
+import { daysAgoIso, getSenderIdentity, isPushEnabled } from "@/lib/outreach/server";
+import { loadConnection } from "@/lib/outreach/saleshandy-server";
 import { senderIsComplete } from "@/lib/outreach/sender";
 import { CONTACT_SOURCES, CONTACT_STATUSES, HOLD_REASONS, HOLD_REASON_LABELS } from "@/lib/outreach/rules";
 
@@ -20,36 +21,47 @@ export default async function AdminOutreachPage() {
     return supabase.from("outreach_contacts").select("id", { count: "exact", head: true });
   }
 
-  const [statusCounts, heldCounts, imports, suppressions, suppressionTotal, sender] = await Promise.all([
+  const since7 = daysAgoIso(7);
+  const [statusCounts, heldCounts, imports, suppressions, suppressionTotal, sender, conn, enabled, activeCampaigns, eventsWeek] = await Promise.all([
     Promise.all(CONTACT_STATUSES.map((s) => count((q) => q.eq("status", s)))),
     Promise.all(HOLD_REASONS.map((r) => count((q) => q.eq("status", "held").eq("hold_reason", r)))),
     supabase.from("outreach_imports").select("id, file_name, source, total_rows, added, held, invalid, duplicates, suppressed, created_at").order("created_at", { ascending: false }).limit(5),
     supabase.from("outreach_suppressions").select("id, email, reason, created_at").order("created_at", { ascending: false }).limit(30),
     supabase.from("outreach_suppressions").select("id", { count: "exact", head: true }),
     getSenderIdentity(),
+    loadConnection(),
+    isPushEnabled(),
+    supabase.from("outreach_campaigns").select("id", { count: "exact", head: true }).eq("status", "active"),
+    supabase.from("outreach_events").select("id", { count: "exact", head: true }).gte("created_at", since7),
   ]);
 
   const total = statusCounts.reduce((a, b) => a + b, 0);
-  const unsubReady = getUnsubscribeSecret() !== null;
   const senderReady = senderIsComplete(sender);
+  const keySaved = !!conn?.api_key_encrypted;
+  const fieldsSaved = !!conn?.field_map?.email;
   const sourceLabel = (id: string) => CONTACT_SOURCES.find((s) => s.id === id)?.label ?? id;
 
   return (
     <div className="max-w-4xl space-y-8">
       <div>
         <h1 className="font-display text-2xl font-medium">Outreach</h1>
-        <p className="text-sm text-muted">Your contact list, the safety rules around it and the do-not-email list. Sending campaigns is built in the next step: nothing here sends any email.</p>
+        <p className="text-sm text-muted">Your contact list, the safety rules around it, the do-not-email list and the Saleshandy campaigns. LinkLazy hands each day&apos;s batch to Saleshandy; Saleshandy sends the emails.</p>
       </div>
 
       <section className="space-y-2 rounded-chip border border-line bg-white p-5">
         <h2 className="font-display text-lg font-medium">Ready to send?</h2>
         <ul className="space-y-1 text-sm">
-          <li>{unsubReady ? "✅" : "❌"} Unsubscribe links can be signed {unsubReady ? "" : "— set PROVIDER_KEY_ENCRYPTION_SECRET (already used for API keys) or OUTREACH_UNSUBSCRIBE_SECRET in Vercel"}</li>
           <li>{senderReady ? "✅" : "❌"} Sender name and postal address saved {senderReady ? "" : "— fill in the form below"}</li>
-          <li>{total > 0 ? "✅" : "⬜"} Contacts imported ({total})</li>
-          <li>⬜ Separate sending domain and mail provider (chosen when campaigns are built)</li>
+          <li>{total > 0 ? "✅" : "⬜"} Contacts imported ({total}) — <Link href="/admin/outreach/import" className="underline">import</Link></li>
+          <li>{keySaved ? "✅" : "❌"} Saleshandy API key saved — <Link href="/admin/outreach/saleshandy" className="underline">connection</Link></li>
+          <li>{fieldsSaved ? "✅" : "❌"} Saleshandy field ids saved</li>
+          <li>{(eventsWeek.count ?? 0) > 0 ? "✅" : "⬜"} Webhook events received in the last 7 days ({eventsWeek.count ?? 0}) — proves the webhook works</li>
+          <li>{(activeCampaigns.count ?? 0) > 0 ? "✅" : "⬜"} An active campaign — <Link href="/admin/outreach/campaigns" className="underline">campaigns</Link></li>
+          <li>⬜ Email template pasted into your Saleshandy sequence and tested on yourself — <Link href="/admin/outreach/template" className="underline">template</Link></li>
         </ul>
       </section>
+
+      <PushSwitch enabled={enabled} ready={keySaved && fieldsSaved && senderReady} />
 
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">

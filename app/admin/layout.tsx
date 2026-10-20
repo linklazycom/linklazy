@@ -74,6 +74,9 @@ const NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin/outreach", label: "Overview & safety" },
       { href: "/admin/outreach/contacts", label: "Contacts" },
       { href: "/admin/outreach/import", label: "Import contacts" },
+      { href: "/admin/outreach/saleshandy", label: "Saleshandy connection" },
+      { href: "/admin/outreach/campaigns", label: "Campaigns" },
+      { href: "/admin/outreach/template", label: "Email template" },
     ],
   },
   {
