@@ -22,7 +22,7 @@ export default async function AdminOutreachPage() {
   }
 
   const since7 = daysAgoIso(7);
-  const [statusCounts, heldCounts, imports, suppressions, suppressionTotal, sender, conn, enabled, activeCampaigns, eventsWeek] = await Promise.all([
+  const [statusCounts, heldCounts, imports, suppressions, suppressionTotal, sender, conn, enabled, activeCampaigns, eventsWeek, newTickets] = await Promise.all([
     Promise.all(CONTACT_STATUSES.map((s) => count((q) => q.eq("status", s)))),
     Promise.all(HOLD_REASONS.map((r) => count((q) => q.eq("status", "held").eq("hold_reason", r)))),
     supabase.from("outreach_imports").select("id, file_name, source, total_rows, added, held, invalid, duplicates, suppressed, created_at").order("created_at", { ascending: false }).limit(5),
@@ -33,6 +33,7 @@ export default async function AdminOutreachPage() {
     isPushEnabled(),
     supabase.from("outreach_campaigns").select("id", { count: "exact", head: true }).eq("status", "active"),
     supabase.from("outreach_events").select("id", { count: "exact", head: true }).gte("created_at", since7),
+    supabase.from("outreach_tickets").select("id", { count: "exact", head: true }).eq("status", "new"),
   ]);
 
   const total = statusCounts.reduce((a, b) => a + b, 0);
@@ -47,6 +48,11 @@ export default async function AdminOutreachPage() {
         <h1 className="font-display text-2xl font-medium">Outreach</h1>
         <p className="text-sm text-muted">Your contact list, the safety rules around it, the do-not-email list and the Saleshandy campaigns. LinkLazy hands each day&apos;s batch to Saleshandy; Saleshandy sends the emails.</p>
       </div>
+
+      <nav aria-label="Reports" className="flex flex-wrap gap-4 text-sm">
+        <Link href="/admin/outreach/delivery" className="underline">Delivery report (sent, opened, bounced, failed)</Link>
+        <Link href="/admin/outreach/tickets" className="underline">Replies{newTickets.count ? ` (${newTickets.count} new)` : ""}</Link>
+      </nav>
 
       <section className="space-y-2 rounded-chip border border-line bg-white p-5">
         <h2 className="font-display text-lg font-medium">Ready to send?</h2>
