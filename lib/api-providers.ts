@@ -3,6 +3,8 @@ import { safeFetch, SafeFetchError } from "@/lib/safe-fetch";
 import { decryptSecret, encryptSecret, maskSecret } from "@/lib/provider-crypto";
 import { buildAiRequest, isAiAdapter, parseAiResponse, type AiAdapterId, type AiTurn } from "@/lib/providers/adapters";
 import { buildImageSearchRequest, isImageAdapter, parseImageResponse, type StockImage } from "@/lib/providers/images";
+import { buildSearchRequest, isSearchAdapter, parseSearchResponse, type SearchHit } from "@/lib/providers/search";
+import { createHash } from "node:crypto";
 import { EXTERNAL_APIS_FLAG, getFlags } from "@/lib/feature-flags";
 import { sanitizeError } from "@/lib/task-utils";
 
@@ -385,6 +387,110 @@ export async function searchStockImages(input: { query: string; userId?: string 
   );
 }
 
+// ---------------------------------------------------------------------------
+// Web search (Batch 16): official search APIs only, never scraping
+// ---------------------------------------------------------------------------
+
+async function attemptSearchProvider(provider: ProviderRow, query: string, maxResults: number): Promise<SearchHit[]> {
+  if (!isSearchAdapter(provider.adapter)) throw new Error(`Unsupported adapter "${provider.adapter}"`);
+  const apiKey = provider.api_key_encrypted ? decryptSecret(provider.api_key_encrypted, masterSecret()) : null;
+  const req = buildSearchRequest({ adapter: provider.adapter, baseUrl: provider.base_url, apiKey, engineId: provider.model, query, maxResults });
+
+  let res;
+  try {
+    res = await safeFetch(req.url, { method: req.method, headers: req.headers, body: req.body, timeoutMs: 20_000, maxBytes: 1024 * 1024, maxRedirects: 0 });
+  } catch (err) {
+    if (err instanceof SafeFetchError) throw new Error(`Request failed (${err.code}): ${err.message}`);
+    throw err;
+  }
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${sanitizeError(res.text, 160)}`);
+
+  let json: unknown;
+  try {
+    json = JSON.parse(res.text);
+  } catch {
+    throw new Error("The provider returned a non-JSON response.");
+  }
+  return parseSearchResponse(provider.adapter, json, maxResults);
+}
+
+export interface SearchWebInput {
+  query: string;
+  /** Feature flag key for the kill switch and the usage log, e.g. "feature_opportunity_finder". */
+  feature: string;
+  userId?: string | null;
+  maxResults?: number;
+  /** How long a saved answer for the same phrase may be reused. 0 = never reuse. */
+  cacheTtlMs?: number;
+}
+export interface SearchWebResult {
+  hits: SearchHit[];
+  providerName: string;
+  fromCache: boolean;
+}
+
+const searchCacheKey = (query: string, max: number) => createHash("sha256").update(`v1|${max}|${query.replace(/\s+/g, " ").trim().toLowerCase()}`).digest("hex");
+
+/**
+ * The single entry point features use to search the web. Respects the kill switches, provider priority, daily and
+ * monthly limits and fallback (like callAi). A saved answer for the same phrase is reused for `cacheTtlMs` so the free
+ * quota is not spent twice; a reused answer costs no provider call and is not counted. Throws AiUnavailableError when
+ * nothing could answer, so callers can show a clean message and NOT charge the user.
+ */
+export async function searchWeb(input: SearchWebInput): Promise<SearchWebResult> {
+  const flags = await getFlags([EXTERNAL_APIS_FLAG, input.feature]);
+  if (!flags[EXTERNAL_APIS_FLAG] || !flags[input.feature]) {
+    throw new AiUnavailableError("disabled", "This feature is currently switched off.");
+  }
+  if (!isEncryptionConfigured()) throw new AiUnavailableError("not_configured", "Web search is not set up yet.");
+
+  const max = Math.max(1, Math.min(10, Math.floor(input.maxResults ?? 10)));
+  const supabase = createServiceClient();
+  const key = searchCacheKey(input.query, max);
+  const ttl = input.cacheTtlMs ?? 0;
+
+  if (ttl > 0) {
+    const { data: cached } = await supabase.from("search_cache").select("results, provider, created_at").eq("cache_key", key).maybeSingle();
+    if (cached && Date.now() - new Date(cached.created_at as string).getTime() < ttl && Array.isArray(cached.results)) {
+      return { hits: cached.results as SearchHit[], providerName: (cached.provider as string) || "cache", fromCache: true };
+    }
+  }
+
+  const { data } = await supabase
+    .from("api_providers")
+    .select("*")
+    .eq("kind", "search")
+    .eq("enabled", true)
+    .order("priority", { ascending: true })
+    .order("created_at", { ascending: true });
+  const providers = (data ?? []) as ProviderRow[];
+  if (providers.length === 0) throw new AiUnavailableError("not_configured", "Web search is not set up yet.");
+
+  let attempted = 0;
+  for (const provider of providers) {
+    if (provider.daily_limit !== null && (await countUsage(provider.id, startOfUtcDay())) >= provider.daily_limit) continue;
+    if (provider.monthly_limit !== null && (await countUsage(provider.id, startOfUtcMonth())) >= provider.monthly_limit) continue;
+
+    attempted++;
+    const started = Date.now();
+    try {
+      const hits = await attemptSearchProvider(provider, input.query, max);
+      await logUsage({ providerId: provider.id, providerName: provider.name, feature: input.feature, userId: input.userId, ok: true, durationMs: Date.now() - started });
+      if (ttl > 0) {
+        await supabase.from("search_cache").upsert({ cache_key: key, results: hits, provider: provider.name, created_at: new Date().toISOString() }, { onConflict: "cache_key" });
+      }
+      return { hits, providerName: provider.name, fromCache: false };
+    } catch (err) {
+      await logUsage({ providerId: provider.id, providerName: provider.name, feature: input.feature, userId: input.userId, ok: false, error: err instanceof Error ? err.message : "error", durationMs: Date.now() - started });
+    }
+  }
+
+  throw new AiUnavailableError(
+    "all_failed",
+    attempted === 0 ? "Web search limit reached for now. Please try again later." : "Web search is temporarily unavailable. Please try again."
+  );
+}
+
 /** Admin "Test connection": one tiny call, ignores the enabled flag and the kill switches. */
 export async function testProvider(providerId: string): Promise<{ ok: boolean; ms: number; message: string }> {
   if (!isEncryptionConfigured()) {
@@ -408,7 +514,21 @@ export async function testProvider(providerId: string): Promise<{ ok: boolean; m
       return { ok: false, ms, message };
     }
   }
-  if (provider.kind !== "ai") return { ok: false, ms: 0, message: "Test is only available for AI and image providers for now." };
+  if (provider.kind === "search") {
+    const started = Date.now();
+    try {
+      const hits = await attemptSearchProvider(provider, "guest post guidelines", 1);
+      const ms = Date.now() - started;
+      await logUsage({ providerId: provider.id, providerName: provider.name, feature: "provider_test", ok: true, durationMs: ms });
+      return { ok: true, ms, message: hits.length > 0 ? "Connected successfully." : "Connected, but the test search returned no results." };
+    } catch (err) {
+      const ms = Date.now() - started;
+      const message = sanitizeError(err);
+      await logUsage({ providerId: provider.id, providerName: provider.name, feature: "provider_test", ok: false, error: message, durationMs: ms });
+      return { ok: false, ms, message };
+    }
+  }
+  if (provider.kind !== "ai") return { ok: false, ms: 0, message: "Test is only available for AI, image and search providers." };
 
   const started = Date.now();
   try {

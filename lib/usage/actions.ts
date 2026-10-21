@@ -22,6 +22,12 @@ export const USAGE_ACTIONS = [
     defaultFreePerDay: 5,
   },
   {
+    id: "opportunity_search",
+    label: "Opportunity Finder: one search run for a project",
+    unit: "per search run",
+    defaultFreePerDay: 3,
+  },
+  {
     id: "content_article_draft",
     label: "AI Content Studio: full article draft",
     unit: "per draft",

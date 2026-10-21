@@ -65,6 +65,7 @@ export default async function DashboardLayout({
       label: "SEO workspace",
       items: [
         { href: "/dashboard/projects", label: "Projects" },
+        { href: "/dashboard/opportunities", label: "Opportunity Finder" },
         { href: "/dashboard/backlinks", label: "Backlink monitor" },
         { href: "/dashboard/content", label: "AI Content Studio" },
       ],

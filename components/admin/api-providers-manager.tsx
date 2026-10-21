@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast-provider";
+import { SEARCH_ADAPTERS, SEARCH_ADAPTER_INFO } from "@/lib/providers/search";
 
 export interface ProviderView {
   id: string;
@@ -204,11 +205,12 @@ export function ApiProvidersManager({
               <select
                 id="p-kind"
                 value={form.kind}
-                onChange={(e) => setForm((f) => ({ ...f, kind: e.target.value, adapter: e.target.value === "image" ? "pexels" : "openai_compatible", model: "" }))}
+                onChange={(e) => setForm((f) => ({ ...f, kind: e.target.value, adapter: e.target.value === "image" ? "pexels" : e.target.value === "search" ? "tavily" : "openai_compatible", model: "" }))}
                 className="w-full rounded-chip border border-line bg-white px-3 py-2 text-sm outline-none focus:border-signal"
               >
                 <option value="ai">AI text model</option>
                 <option value="image">Stock images</option>
+                <option value="search">Web search (Opportunity Finder)</option>
               </select>
             </div>
             <div>
@@ -219,7 +221,7 @@ export function ApiProvidersManager({
                 onChange={(e) => setField("adapter", e.target.value)}
                 className="w-full rounded-chip border border-line bg-white px-3 py-2 text-sm outline-none focus:border-signal"
               >
-                {(form.kind === "image" ? IMAGE_ADAPTERS : ADAPTERS).map((a) => (
+                {(form.kind === "image" ? IMAGE_ADAPTERS : form.kind === "search" ? SEARCH_ADAPTERS.map((v) => ({ value: v, label: SEARCH_ADAPTER_INFO[v].label })) : ADAPTERS).map((a) => (
                   <option key={a.value} value={a.value}>{a.label}</option>
                 ))}
               </select>
@@ -227,10 +229,13 @@ export function ApiProvidersManager({
             <Field
               id="p-base"
               label="Base URL (optional)"
-              hint="Leave empty for OpenAI / Anthropic / Pexels / Pixabay. For others, e.g. https://api.groq.com/openai/v1 — must be a public https address."
+              hint="Leave empty for OpenAI / Anthropic / Pexels / Pixabay / Tavily / Google search. Required for SearXNG (your server). For others, e.g. https://api.groq.com/openai/v1 — must be a public https address."
               value={form.base_url}
               onChange={(e) => setField("base_url", e.target.value)}
             />
+            {form.kind === "search" && form.adapter === "google_cse" && (
+              <Field id="p-model" label="Search engine id (cx)" hint="From your Programmable Search Engine settings." value={form.model} onChange={(e) => setField("model", e.target.value)} required />
+            )}
             {form.kind === "ai" && (
               <Field
                 id="p-model"
@@ -249,7 +254,7 @@ export function ApiProvidersManager({
               hint="Stored encrypted. It is never shown again — only a masked hint."
               value={form.api_key}
               onChange={(e) => setField("api_key", e.target.value)}
-              required
+              required={!(form.kind === "search" && form.adapter === "searxng")}
             />
             <div className="grid grid-cols-3 gap-3">
               <Field id="p-prio" label="Priority (low = first)" type="number" min={0} value={form.priority} onChange={(e) => setField("priority", e.target.value)} />
@@ -274,7 +279,7 @@ export function ApiProvidersManager({
                   <div>
                     <span className="font-medium">{p.name}</span>
                     <span className="ml-2 text-xs text-muted">
-                      {p.kind === "image" ? "image" : "ai"} · {p.adapter} · {p.kind === "image" ? "no model needed" : p.model ?? "no model"} · priority {p.priority}
+                      {p.kind === "image" ? "image" : p.kind === "search" ? "search" : "ai"} · {p.adapter} · {p.kind === "image" ? "no model needed" : p.kind === "search" ? (p.model ? `engine ${p.model}` : "no model needed") : p.model ?? "no model"} · priority {p.priority}
                     </span>
                   </div>
                   <span className={`text-xs font-medium ${p.enabled ? "text-green-700" : "text-muted"}`}>
@@ -311,7 +316,7 @@ export function ApiProvidersManager({
       </section>
 
       <p className="text-xs text-muted">
-        Search providers are added in a later batch. Free-tier terms change often — check each provider&apos;s
+        Web search providers (Tavily, Google, SearXNG) power the Opportunity Finder. Free-tier terms change often — check each provider&apos;s
         current limits and data-use terms before enabling it.
       </p>
     </div>

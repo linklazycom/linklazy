@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { encryptProviderKey, isEncryptionConfigured, listProvidersPublic } from "@/lib/api-providers";
 import { isAiAdapter } from "@/lib/providers/adapters";
 import { isImageAdapter } from "@/lib/providers/images";
+import { isSearchAdapter, SEARCH_ADAPTER_INFO } from "@/lib/providers/search";
 import { assertPublicHttpUrl } from "@/lib/safe-url";
 
 export async function GET() {
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
 
   const name = String(body.name ?? "").trim().slice(0, 80);
   const adapter = String(body.adapter ?? "");
-  const kind = body.kind === "image" ? "image" : "ai";
+  const kind = body.kind === "image" ? "image" : body.kind === "search" ? "search" : "ai";
   const model = String(body.model ?? "").trim().slice(0, 120);
   const baseUrlRaw = String(body.base_url ?? "").trim();
   const apiKey = String(body.api_key ?? "").trim();
@@ -30,9 +31,13 @@ export async function POST(request: Request) {
   const monthlyLimit = body.monthly_limit === "" || body.monthly_limit == null ? null : Math.max(0, Math.floor(Number(body.monthly_limit)));
 
   if (!name) return NextResponse.json({ error: "Name is required" }, { status: 400 });
-  if (kind === "ai" ? !isAiAdapter(adapter) : !isImageAdapter(adapter)) return NextResponse.json({ error: "Unsupported adapter" }, { status: 400 });
+  const adapterOk = kind === "ai" ? isAiAdapter(adapter) : kind === "image" ? isImageAdapter(adapter) : isSearchAdapter(adapter);
+  if (!adapterOk) return NextResponse.json({ error: "Unsupported adapter" }, { status: 400 });
   if (kind === "ai" && !model) return NextResponse.json({ error: "Model is required" }, { status: 400 });
-  if (!apiKey) return NextResponse.json({ error: "API key is required" }, { status: 400 });
+  const searchInfo = kind === "search" && isSearchAdapter(adapter) ? SEARCH_ADAPTER_INFO[adapter] : null;
+  if (searchInfo?.needsEngineId && !model) return NextResponse.json({ error: "The search engine id is required (put it in the Model field)" }, { status: 400 });
+  if (searchInfo?.needsBaseUrl && !baseUrlRaw) return NextResponse.json({ error: "A base URL is required for this search type" }, { status: 400 });
+  if (!apiKey && !(searchInfo && !searchInfo.needsKey)) return NextResponse.json({ error: "API key is required" }, { status: 400 });
   if (!isEncryptionConfigured()) {
     return NextResponse.json(
       { error: "PROVIDER_KEY_ENCRYPTION_SECRET is not set on the server (add it in Vercel → Environment Variables, then redeploy)." },
@@ -60,8 +65,8 @@ export async function POST(request: Request) {
       kind,
       adapter,
       base_url: baseUrl,
-      model: kind === "ai" ? model : null,
-      api_key_encrypted: encryptProviderKey(apiKey),
+      model: kind === "ai" || searchInfo?.needsEngineId ? model : null,
+      api_key_encrypted: apiKey ? encryptProviderKey(apiKey) : null,
       priority,
       enabled: false, // new providers start OFF; the admin tests then enables
       daily_limit: dailyLimit,
@@ -83,7 +88,7 @@ export async function POST(request: Request) {
     action: "api_provider_created",
     target_table: "api_providers",
     target_id: data.id,
-    metadata: { name, adapter, model },
+    metadata: { name, adapter, kind },
   });
 
   return NextResponse.json({ ok: true, id: data.id });
