@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -61,7 +62,13 @@ export function FinderPanel({ projects, initialProject, ready }: { projects: { i
   }
 
   if (projects.length === 0) {
-    return <p className="rounded-chip border border-line bg-white p-4 text-sm text-muted">Create a project first (with a niche and a few keywords). The finder searches for places that fit it.</p>;
+    return (
+      <div className="space-y-3 rounded-chip border border-line bg-white p-5 text-sm">
+        <p className="font-medium">Step 1: create a project</p>
+        <p className="text-muted">The finder searches for places that fit one of your websites. Create a project first (your site address, its niche and 2–3 keywords). The “Find opportunities” button appears here as soon as you have one.</p>
+        <Link href="/dashboard/projects" className="inline-block rounded-chip border border-line px-4 py-2 underline">Go to Projects</Link>
+      </div>
+    );
   }
 
   return (

@@ -7,6 +7,8 @@ import { LogoutButton } from "@/components/layout/logout-button";
 import { MobileSidebarShell } from "@/components/layout/mobile-sidebar-shell";
 import { NotificationBell } from "@/components/layout/notification-bell";
 import { ToastProvider } from "@/components/ui/toast-provider";
+import { AdminHelpButton } from "@/components/admin/help-button";
+import { ADMIN_HELP } from "@/lib/help/admin-help";
 
 const NAV_GROUPS: AdminNavGroup[] = [
   {
@@ -93,6 +95,7 @@ const NAV_GROUPS: AdminNavGroup[] = [
     href: "/admin/settings",
     items: [
       { href: "/admin/settings", label: "General settings" },
+      { href: "/admin/features", label: "Tools & features (on/off)" },
       { href: "/admin/api-providers", label: "API Providers" },
       { href: "/admin/coupons", label: "Coupons" },
       { href: "/admin/ads", label: "Ads" },
@@ -146,11 +149,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <div className="flex min-h-screen flex-col md:flex-row">
         <MobileSidebarShell>{sidebarContent}</MobileSidebarShell>
         <main className="flex-1 bg-paper p-4 md:p-8">
-          {user && (
-            <div className="mb-4 flex justify-end">
-              <NotificationBell userId={user.id} />
-            </div>
-          )}
+          <div className="mb-4 flex items-center justify-end gap-2">
+            <AdminHelpButton entries={ADMIN_HELP} />
+            {user && <NotificationBell userId={user.id} />}
+          </div>
           {children}
         </main>
       </div>

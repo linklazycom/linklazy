@@ -1,5 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { decideGate, toolForPath } from "@/lib/features/registry";
+import { getToolFlags } from "@/lib/features/gate";
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
@@ -59,6 +61,7 @@ export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const isDashboard = path.startsWith("/dashboard");
   const isAdmin = path.startsWith("/admin");
+  let knownRole: string | undefined;
 
   if ((isDashboard || isAdmin) && !user) {
     const url = request.nextUrl.clone();
@@ -96,6 +99,7 @@ export async function updateSession(request: NextRequest) {
       isSuspended = profile?.is_suspended === true;
     }
 
+    knownRole = role;
     if (isDashboard && (isBanned || isSuspended)) {
       const url = request.nextUrl.clone();
       url.pathname = "/suspended";
@@ -110,5 +114,40 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
+  // Tool switches (Batch 16C): a tool an admin switched off is closed to ordinary users, in the page and in its API.
+  // Only requests that belong to a switchable tool cost a settings lookup; any failure leaves the tool open.
+  if (user && toolForPath(path)) {
+    const flags = await getToolFlags();
+    const hit = toolForPath(path)!;
+    if (flags[hit.tool.flagKey] === false) {
+      if (knownRole === undefined) knownRole = await resolveRole(supabase, user.id);
+      const gate = decideGate(path, knownRole, flags);
+      if (gate.action === "redirect") {
+        const url = request.nextUrl.clone();
+        url.pathname = "/dashboard/unavailable";
+        url.search = "";
+        url.searchParams.set("tool", hit.tool.id);
+        return NextResponse.redirect(url);
+      }
+      if (gate.action === "block") {
+        return NextResponse.json({ error: "This tool is currently switched off.", unavailable: true }, { status: 503 });
+      }
+    }
+  }
+
   return response;
+}
+
+async function resolveRole(supabase: ReturnType<typeof createServerClient>, userId: string): Promise<string | undefined> {
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const claims = session ? decodeJwtPayload(session.access_token) : null;
+    if (claims && "user_role" in claims) return claims.user_role as string;
+    const { data: profile } = await supabase.from("profiles").select("role").eq("id", userId).single();
+    return profile?.role;
+  } catch {
+    return undefined;
+  }
 }

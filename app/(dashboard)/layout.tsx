@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Logo } from "@/components/ui/logo";
 import { AdminSidebarNav, type AdminNavGroup } from "@/components/layout/admin-sidebar-nav";
+import { getFlags } from "@/lib/feature-flags";
+import { TOOL_FLAG_KEYS, toolForPath } from "@/lib/features/registry";
 import { LogoutButton } from "@/components/layout/logout-button";
 import { MobileSidebarShell } from "@/components/layout/mobile-sidebar-shell";
 import { NotificationBell } from "@/components/layout/notification-bell";
@@ -32,7 +34,7 @@ export default async function DashboardLayout({
   const canSell = role === "seller" || role === "both" || role === "admin";
   const canBuy = role === "buyer" || role === "both" || role === "admin";
 
-  const NAV: AdminNavGroup[] = [
+  const FULL_NAV: AdminNavGroup[] = [
     {
       label: "Overview",
       href: "/dashboard",
@@ -98,6 +100,19 @@ export default async function DashboardLayout({
       ],
     },
   ];
+
+  // Tools an admin switched off disappear for ordinary users (admins still see them, marked "(off)", so they can test).
+  const toolFlags = await getFlags(TOOL_FLAG_KEYS);
+  const isOff = (href: string) => {
+    const hit = toolForPath(href);
+    return !!hit && toolFlags[hit.tool.flagKey] === false;
+  };
+  const NAV: AdminNavGroup[] = FULL_NAV.map((g) => ({
+    ...g,
+    items: g.items
+      .filter((it) => role === "admin" || !isOff(it.href))
+      .map((it) => (role === "admin" && isOff(it.href) ? { ...it, label: `${it.label} (off)` } : it)),
+  })).filter((g) => g.items.length > 0);
 
   const sidebarContent = (
     <>
