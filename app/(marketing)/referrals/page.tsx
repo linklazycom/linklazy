@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PageHero } from "@/components/marketing/page-hero";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/referrals" },
   title: "Referral Program",
   description: "Earn 50% of LinkLazy's commission by referring new members.",
 };

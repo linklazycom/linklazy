@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { PressReleaseOrderForm, type PressReleaseProduct } from "@/components/press-releases/press-release-order-form";
 
-export const metadata = { title: "Press Release Distribution", description: "Distribute your announcement through curated news media packages." };
+export const metadata = {
+  alternates: { canonical: "/press-releases" }, title: "Press Release Distribution", description: "Distribute your announcement through curated news media packages." };
 
 export default async function PressReleasesPage() {
   const supabase = await createClient();

@@ -8,6 +8,7 @@ import { TicketForm } from "@/components/support/ticket-form";
 import { PageHero } from "@/components/marketing/page-hero";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/support" },
   title: "Get Support",
   description: "Open a support ticket and get a reply from the LinkLazy team.",
 };

@@ -4,6 +4,7 @@ import { siteUrl } from "@/lib/links/server";
 import { PageHero } from "@/components/marketing/page-hero";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/api-docs" },
   title: "API documentation",
   description: "Create and manage LinkLazy short links and read click statistics from your own tools.",
 };

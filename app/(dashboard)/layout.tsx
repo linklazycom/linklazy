@@ -12,6 +12,8 @@ import { VerifyEmailBanner } from "@/components/layout/verify-email-banner";
 import { GlobalSearch } from "@/components/search/global-search";
 import { AdSlot } from "@/components/ads/ad-slot";
 
+export const metadata = { robots: { index: false, follow: false } };
+
 export default async function DashboardLayout({
   children,
 }: {

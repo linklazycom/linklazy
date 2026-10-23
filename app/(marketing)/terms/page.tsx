@@ -4,6 +4,7 @@ import { getSiteSettings } from "@/lib/site-settings";
 import { PageHero } from "@/components/marketing/page-hero";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/terms" },
   title: "Terms & Conditions",
   description: "The terms governing use of the LinkLazy marketplace.",
 };

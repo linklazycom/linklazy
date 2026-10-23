@@ -15,6 +15,7 @@ import { getUnlockedSiteIds } from "@/lib/unlocked-sites";
 const PAGE_SIZE = 12;
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/browse" },
   title: "Browse Sites",
   description: "Browse verified sites available for backlink exchange or paid placement, with transparent metrics.",
 };

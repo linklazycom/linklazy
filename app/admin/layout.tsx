@@ -10,6 +10,8 @@ import { ToastProvider } from "@/components/ui/toast-provider";
 import { AdminHelpButton } from "@/components/admin/help-button";
 import { ADMIN_HELP } from "@/lib/help/admin-help";
 
+export const metadata = { robots: { index: false, follow: false } };
+
 const NAV_GROUPS: AdminNavGroup[] = [
   {
     label: "Overview",
@@ -29,6 +31,15 @@ const NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin/disputes", label: "Disputes" },
       { href: "/admin/press-releases", label: "Press releases" },
       { href: "/admin/case-studies", label: "Case studies" },
+    ],
+  },
+  {
+    label: "SEO tools",
+    items: [
+      { href: "/admin/opportunities", label: "Opportunity Finder" },
+      { href: "/admin/projects", label: "Projects" },
+      { href: "/admin/backlinks", label: "Backlink monitor" },
+      { href: "/admin/content-studio", label: "AI Content Studio" },
     ],
   },
   {

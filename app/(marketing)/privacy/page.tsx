@@ -4,6 +4,7 @@ import { getSiteSettings } from "@/lib/site-settings";
 import { PageHero } from "@/components/marketing/page-hero";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/privacy" },
   title: "Privacy Policy",
   description: "How LinkLazy collects, uses, and protects your data.",
 };

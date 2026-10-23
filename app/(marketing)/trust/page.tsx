@@ -5,6 +5,7 @@ import { getSiteSettings } from "@/lib/site-settings";
 import { PageHero } from "@/components/marketing/page-hero";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/trust" },
   title: "Trust & Payment Protection",
   description:
     "How LinkLazy protects paid orders with escrow, and our public dispute resolution track record.",

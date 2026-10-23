@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ReportLinkForm } from "@/components/links/report-link-form";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/report-link" },
   title: "Report a short link",
   description: "Report a LinkLazy short link that is a scam, phishing, malware, spam or illegal.",
   robots: { index: false, follow: true },

@@ -1,3 +1,4 @@
+import { JsonLd } from "@/components/seo/json-ld";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -23,6 +24,8 @@ import { ArticleCardGrid } from "@/components/blog/article-card-grid";
 import { searchPexelsPhoto } from "@/lib/pexels";
 import { maskDomain } from "@/lib/mask-domain";
 import { createClient } from "@/lib/supabase/server";
+
+export const metadata = { alternates: { canonical: "/" } };
 
 const FEATURES = [
   {
@@ -181,10 +184,7 @@ export default async function HomePage() {
 
   return (
     <main>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
-      />
+      <JsonLd data={faqSchema} />
 
       {/* Hero */}
       <section className="relative overflow-hidden">

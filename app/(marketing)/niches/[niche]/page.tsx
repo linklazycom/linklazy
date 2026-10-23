@@ -1,3 +1,4 @@
+import { escapeLike, safeDecode } from "@/lib/seo";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -12,10 +13,12 @@ export async function generateMetadata({
   params: Promise<{ niche: string }>;
 }): Promise<Metadata> {
   const { niche } = await params;
-  const label = decodeURIComponent(niche);
+  const label = safeDecode(niche)?.trim() ?? "";
+  if (!label) return { robots: { index: false, follow: false } };
   return {
     title: `${capitalize(label)} Backlink Exchange Sites`,
     description: `Browse verified ${label} niche sites available for backlink exchange or paid placement. Real metrics, ownership-checked listings.`,
+    alternates: { canonical: `/niches/${encodeURIComponent(label.toLowerCase())}` },
   };
 }
 
@@ -29,14 +32,16 @@ export default async function NicheLandingPage({
   params: Promise<{ niche: string }>;
 }) {
   const { niche } = await params;
-  const label = decodeURIComponent(niche);
+  // Broken % sequences are a 404, not a crash; % and _ in the text must not act as wildcards (else /niches/% would list everything).
+  const label = safeDecode(niche)?.trim() ?? "";
+  if (!label) notFound();
   const supabase = await createClient();
 
   const { data: sites } = await supabase
     .from("sites_public")
     .select("id, domain, niche, da, dr, organic_traffic, price_amount, link_type, accepts_exchange")
     .eq("status", "approved")
-    .ilike("niche", label)
+    .ilike("niche", escapeLike(label))
     .order("da", { ascending: false, nullsFirst: false });
 
   if (!sites?.length) notFound();

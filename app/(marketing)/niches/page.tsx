@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PageHero } from "@/components/marketing/page-hero";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/niches" },
   title: "Backlink Sites by Niche",
   description: "Browse verified backlink exchange sites organized by niche — find relevant, topically-matched sites for your link building.",
 };

@@ -1,3 +1,4 @@
+import { safeDecode } from "@/lib/seo";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -8,7 +9,7 @@ import { Pagination } from "@/components/blog/pagination";
 const PAGE_SIZE = 10;
 
 function slugToLabel(slug: string) {
-  return decodeURIComponent(slug)
+  return (safeDecode(slug) ?? slug)
     .split("-")
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");

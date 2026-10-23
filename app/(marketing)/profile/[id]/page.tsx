@@ -107,6 +107,7 @@ export async function generateMetadata({
   return {
     title: `${name} — LinkLazy`,
     description: data.profile.bio?.slice(0, 160) || `${name}'s profile on LinkLazy.`,
+    alternates: { canonical: `/profile/${id}` },
   };
 }
 

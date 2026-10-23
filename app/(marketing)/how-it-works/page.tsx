@@ -3,6 +3,7 @@ import { Route } from "lucide-react";
 import { PageHero } from "@/components/marketing/page-hero";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/how-it-works" },
   title: "How It Works",
   description: "How buying and selling backlinks works on LinkLazy.",
 };

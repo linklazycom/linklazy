@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PageHero } from "@/components/marketing/page-hero";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/case-studies" },
   title: "Case Studies",
   description: "Real results from buyers and sellers using LinkLazy.",
 };

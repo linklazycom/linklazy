@@ -1,3 +1,4 @@
+import { JsonLd } from "@/components/seo/json-ld";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Image from "next/image";
@@ -29,6 +30,8 @@ export async function generateMetadata({
   return {
     title: article.title,
     description: article.meta_description ?? undefined,
+    alternates: { canonical: `/blog/${slug}` },
+    openGraph: { type: "article", title: article.title, description: article.meta_description ?? undefined, url: `/blog/${slug}` },
   };
 }
 
@@ -88,10 +91,7 @@ export default async function ArticlePage({
 
   return (
     <main>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
-      />
+      <JsonLd data={articleSchema} />
 
       {photo ? (
         <div className="relative h-64 w-full md:h-80">

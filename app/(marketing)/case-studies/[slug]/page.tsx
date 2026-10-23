@@ -1,3 +1,4 @@
+import { JsonLd } from "@/components/seo/json-ld";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { marked } from "marked";
@@ -19,7 +20,12 @@ export async function generateMetadata({
     .single();
 
   if (!study) return {};
-  return { title: study.title, description: study.summary };
+  return {
+    title: study.title,
+    description: study.summary,
+    alternates: { canonical: `/case-studies/${slug}` },
+    openGraph: { type: "article", title: study.title, description: study.summary, url: `/case-studies/${slug}` },
+  };
 }
 
 export default async function CaseStudyPage({
@@ -56,7 +62,7 @@ export default async function CaseStudyPage({
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-16">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
+      <JsonLd data={schema} />
       <p className="mb-2 font-mono text-xs uppercase tracking-widest text-brand-violet">Case study</p>
       <h1 className="mb-4 font-display text-3xl font-medium">{study.title}</h1>
       {study.metric_before && study.metric_after && (

@@ -1,3 +1,4 @@
+import { JsonLd } from "@/components/seo/json-ld";
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
@@ -20,6 +21,7 @@ import { PageHero } from "@/components/marketing/page-hero";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/about" },
   title: "About LinkLazy — Verified Backlink Marketplace",
   description:
     "LinkLazy is a vetted marketplace for buying and exchanging backlinks: ownership-verified listings, Ahrefs-checked Domain Rating, escrow-protected payments, and transparent pricing.",
@@ -117,10 +119,7 @@ export default async function AboutPage() {
 
   return (
     <main>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
-      />
+      <JsonLd data={breadcrumbSchema} />
 
       <PageHero
         eyebrow="Our story"

@@ -1,3 +1,4 @@
+import { safeDecode } from "@/lib/seo";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -17,7 +18,7 @@ export async function generateMetadata({
   const { tag } = await params;
   const { page } = await searchParams;
   const pageNum = Math.max(1, Number(page) || 1);
-  const label = decodeURIComponent(tag);
+  const label = safeDecode(tag) ?? tag;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://linklazy.com";
   const basePath = `/blog/tag/${tag}`;
   const canonical = pageNum > 1 ? `${siteUrl}${basePath}?page=${pageNum}` : `${siteUrl}${basePath}`;
@@ -41,7 +42,7 @@ export default async function BlogTagPage({
   const currentPage = Math.max(1, Number(page) || 1);
   const from = (currentPage - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
-  const label = decodeURIComponent(tag);
+  const label = safeDecode(tag) ?? tag;
 
   const supabase = await createClient();
   const { data: articles, count } = await supabase
