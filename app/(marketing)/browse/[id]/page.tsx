@@ -1,4 +1,5 @@
 import { JsonLd } from "@/components/seo/json-ld";
+import { breadcrumbSchema } from "@/lib/seo";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -131,6 +132,7 @@ export default async function PublicSiteDetailPage({
   return (
     <>
       <JsonLd data={structuredData} />
+      <JsonLd data={breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Browse", path: "/browse" }, { name: `${site.niche} backlink placement`, path: `/browse/${site.id}` }])} />
       <SiteDetailClient id={id} />
     </>
   );

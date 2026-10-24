@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/ui/logo";
 import type { NavLink } from "@/lib/site-settings";
+import { copyrightLine } from "@/lib/business";
 
 export function SiteFooter({
   footerLinks,
@@ -38,7 +39,7 @@ export function SiteFooter({
         ))}
       </div>
       <div className="border-t border-line px-6 py-4 text-center text-xs text-muted">
-        © {new Date().getFullYear()} LinkLazy. All rights reserved.
+        {copyrightLine(new Date().getFullYear())}
       </div>
     </footer>
   );

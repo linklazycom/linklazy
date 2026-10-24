@@ -1,3 +1,6 @@
+import { safeJsonLd, siteUrl } from "@/lib/seo";
+import { JsonLd } from "@/components/seo/json-ld";
+import { organizationSchema } from "@/lib/business";
 import type { Metadata } from "next";
 import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 import Script from "next/script";
@@ -37,8 +40,13 @@ export const metadata: Metadata = {
   },
   description:
     "LinkLazy is a vetted marketplace for exchanging and buying backlinks between verified sites, with transparent metrics and escrow-protected orders.",
+  metadataBase: new URL(siteUrl()),
   openGraph: {
-    images: ["/logo.png"],
+    type: "website",
+    siteName: "LinkLazy",
+  },
+  twitter: {
+    card: "summary_large_image",
   },
 };
 
@@ -95,17 +103,15 @@ export default async function RootLayout({
         {(settings.yandex_verification_code as string) && (
           <meta name="yandex-verification" content={settings.yandex_verification_code as string} />
         )}
+        <JsonLd data={organizationSchema(siteUrl())} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
+            __html: safeJsonLd({
               "@context": "https://schema.org",
-              "@type": "Organization",
+              "@type": "WebSite",
               name: "LinkLazy",
               url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://linklazy.com",
-              logo: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://linklazy.com"}/logo.png`,
-              description:
-                "A vetted marketplace for exchanging and buying backlinks between verified sites.",
             }),
           }}
         />

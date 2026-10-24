@@ -1,4 +1,5 @@
 import { JsonLd } from "@/components/seo/json-ld";
+import { breadcrumbSchema } from "@/lib/seo";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Image from "next/image";
@@ -92,6 +93,7 @@ export default async function ArticlePage({
   return (
     <main>
       <JsonLd data={articleSchema} />
+      <JsonLd data={breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Blog", path: "/blog" }, { name: article.title, path: `/blog/${slug}` }])} />
 
       {photo ? (
         <div className="relative h-64 w-full md:h-80">

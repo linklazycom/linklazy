@@ -84,3 +84,13 @@ export const STATIC_SITEMAP: { path: string; changeFrequency: "daily" | "weekly"
   { path: "/privacy", changeFrequency: "yearly", priority: 0.2 },
   { path: "/terms", changeFrequency: "yearly", priority: 0.2 },
 ];
+
+/** Shortens text for a picture or title: cut at a word boundary and add "…" only when something was cut. */
+export function clampText(value: string, max: number): string {
+  const s = value.replace(/\s+/g, " ").trim();
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max - 1);
+  const endsOnWord = s[max - 1] === " ";
+  const lastSpace = cut.lastIndexOf(" ");
+  return `${(!endsOnWord && lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`;
+}

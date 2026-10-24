@@ -1,7 +1,6 @@
 import { JsonLd } from "@/components/seo/json-ld";
 import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
 import {
   Users,
   ShieldCheck,
@@ -16,7 +15,10 @@ import {
   Newspaper,
   Megaphone,
 } from "lucide-react";
-import { searchPexelsPhoto } from "@/lib/pexels";
+import { BUSINESS, formatAddress } from "@/lib/business";
+import { getFlags } from "@/lib/feature-flags";
+import { TOOLS, TOOL_FLAG_KEYS } from "@/lib/features/registry";
+import { absoluteUrl, breadcrumbSchema as buildBreadcrumb, siteUrl } from "@/lib/seo";
 import { PageHero } from "@/components/marketing/page-hero";
 import { createClient } from "@/lib/supabase/server";
 
@@ -94,32 +96,30 @@ const EXPLORE_LINKS = [
 export default async function AboutPage() {
   const supabase = await createClient();
 
-  const [heroPhoto, secondPhoto, { count: siteCount }, { data: nicheRows }] = await Promise.all([
-    searchPexelsPhoto("team working office collaboration"),
-    searchPexelsPhoto("handshake business deal agreement"),
+  const [toolFlags, { count: siteCount }, { data: nicheRows }] = await Promise.all([
+    getFlags(TOOL_FLAG_KEYS),
     supabase.from("sites_public").select("id", { count: "exact", head: true }).eq("status", "approved"),
     supabase.from("sites_public").select("niche").eq("status", "approved"),
   ]);
 
   const nicheCount = new Set((nicheRows ?? []).map((r) => r.niche.trim())).size;
 
-  const breadcrumbSchema = {
+  const base = siteUrl();
+  const breadcrumbSchema = buildBreadcrumb([{ name: "Home", path: "/" }, { name: "About", path: "/about" }], base);
+  const aboutSchema = {
     "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Home", item: process.env.NEXT_PUBLIC_SITE_URL ?? "https://linklazy.com" },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: "About",
-        item: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://linklazy.com"}/about`,
-      },
-    ],
+    "@type": "AboutPage",
+    name: "About LinkLazy",
+    url: absoluteUrl("/about", base),
+    about: { "@type": "Organization", name: BUSINESS.brandName, legalName: BUSINESS.legalName, url: base },
   };
+  // Only tools that are switched ON are advertised: the page never promises a tool the admin has turned off.
+  const liveTools = TOOLS.filter((tool) => toolFlags[tool.flagKey] !== false);
 
   return (
     <main>
       <JsonLd data={breadcrumbSchema} />
+      <JsonLd data={aboutSchema} />
 
       <PageHero
         eyebrow="Our story"
@@ -129,12 +129,6 @@ export default async function AboutPage() {
       />
 
       <div className="mx-auto max-w-3xl px-6 py-16">
-        {heroPhoto && (
-          <div className="relative mb-10 aspect-[16/9] overflow-hidden rounded-chip shadow-sm">
-            <Image src={heroPhoto.url} alt={heroPhoto.alt} fill className="object-cover" unoptimized />
-          </div>
-        )}
-
         <div className="space-y-4 text-[15px] leading-7 text-ink">
           <p>
             Link building is one of the most time-consuming parts of SEO —
@@ -150,9 +144,9 @@ export default async function AboutPage() {
             and confirmation flow before money or links change hands.
           </p>
           <p>
-            We&apos;re built for site owners and marketers who want link
-            building to be straightforward: clear metrics, verified
-            sellers, and a paper trail for every transaction.
+            LinkLazy is for site owners and marketers who want link
+            building to be straightforward: clear metrics, ownership-checked
+            listings, and a paper trail for every transaction.
           </p>
         </div>
 
@@ -160,7 +154,7 @@ export default async function AboutPage() {
         <div className="my-12 grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div className="rounded-chip border border-line bg-paper p-4 text-center">
             <p className="font-display text-2xl font-semibold text-brand-violet">
-              {siteCount ?? 0}+
+              {siteCount ?? 0}
             </p>
             <p className="mt-1 text-xs text-muted">Verified listings</p>
           </div>
@@ -180,17 +174,55 @@ export default async function AboutPage() {
 
         <div className="space-y-4 text-[15px] leading-7 text-ink">
           <p>
-            Since launch, we&apos;ve added ways to make that easier at
-            scale — Domain Rating verified directly against Ahrefs&apos;
-            own data, a Pay-Per-View option for buyers who&apos;d rather pay
-            for delivered traffic than a flat fee, and bulk ordering for
-            running a full campaign across multiple sites in one checkout.
-            The core promise hasn&apos;t changed: what you see on a listing
-            is what you get.
+            Beyond the basics, the marketplace offers Domain Rating that can
+            be checked against Ahrefs&apos; own data, a Pay-Per-View option
+            for buyers who&apos;d rather pay for delivered traffic than a flat
+            fee, and bulk ordering for running a full campaign across multiple
+            sites in one checkout. The core promise is simple: what you see
+            on a listing is what you get.
           </p>
         </div>
 
+        {/* Who is behind the site: only facts the owner has confirmed (lib/business.ts) */}
+        <section id="company" className="mt-14">
+          <h2 className="mb-4 font-display text-2xl font-medium tracking-tight">Who runs LinkLazy</h2>
+          <p className="mb-5 text-[15px] leading-7 text-ink">
+            LinkLazy is operated by {BUSINESS.legalName}, a company established in {BUSINESS.companyEstablished} and
+            based in New York, USA. This marketplace website started operating in {BUSINESS.websiteStarted}.
+          </p>
+          <dl className="grid gap-4 rounded-chip border border-line bg-white p-5 text-sm sm:grid-cols-2">
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-muted">Company</dt>
+              <dd className="mt-1 font-medium">{BUSINESS.legalName}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-muted">Company established</dt>
+              <dd className="mt-1 font-medium">{BUSINESS.companyEstablished}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-muted">This marketplace started</dt>
+              <dd className="mt-1 font-medium">{BUSINESS.websiteStarted}</dd>
+            </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-muted">Address</dt>
+              <dd className="mt-1 font-medium">{formatAddress()}</dd>
+            </div>
+            <div className="sm:col-span-2">
+              <dt className="text-xs uppercase tracking-wide text-muted">Contact</dt>
+              <dd className="mt-1 font-medium">
+                <a href={`mailto:${BUSINESS.email}`} className="text-brand-violet underline">{BUSINESS.email}</a>
+                {" · "}
+                <Link href="/support" className="text-brand-violet underline">Open a support ticket</Link>
+              </dd>
+            </div>
+          </dl>
+          <p className="mt-4 text-sm text-muted">
+            Disputes that buyers and sellers cannot resolve between themselves are reviewed by LinkLazy staff.
+          </p>
+        </section>
+
         {/* What makes LinkLazy different */}
+
         <section className="mt-14">
           <h2 className="mb-6 font-display text-2xl font-medium tracking-tight">
             What makes LinkLazy different
@@ -210,6 +242,22 @@ export default async function AboutPage() {
             })}
           </div>
         </section>
+
+        {/* The SEO and link tools that are switched on right now */}
+        {liveTools.length > 0 && (
+          <section className="mt-14">
+            <h2 className="mb-2 font-display text-2xl font-medium tracking-tight">SEO and link tools in your dashboard</h2>
+            <p className="mb-5 text-sm text-muted">Everything you need around a link, in one account.</p>
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {liveTools.map((tool) => (
+                <li key={tool.id} className="flex gap-2 rounded-chip border border-line bg-white p-4 text-sm leading-relaxed">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-signal" />
+                  <span>{tool.publicSummary}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {/* Pricing summary table */}
         <section className="mt-14">
@@ -239,12 +287,6 @@ export default async function AboutPage() {
             </table>
           </div>
         </section>
-
-        {secondPhoto && (
-          <div className="relative my-14 aspect-[16/9] overflow-hidden rounded-chip shadow-sm">
-            <Image src={secondPhoto.url} alt={secondPhoto.alt} fill className="object-cover" unoptimized />
-          </div>
-        )}
 
         {/* Condensed flow + link out to the full page */}
         <section className="mt-14">

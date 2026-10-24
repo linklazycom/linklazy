@@ -1,4 +1,5 @@
 import { JsonLd } from "@/components/seo/json-ld";
+import { breadcrumbSchema } from "@/lib/seo";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { marked } from "marked";
@@ -63,6 +64,7 @@ export default async function CaseStudyPage({
   return (
     <main className="mx-auto max-w-2xl px-6 py-16">
       <JsonLd data={schema} />
+      <JsonLd data={breadcrumbSchema([{ name: "Home", path: "/" }, { name: "Case studies", path: "/case-studies" }, { name: study.title, path: `/case-studies/${slug}` }])} />
       <p className="mb-2 font-mono text-xs uppercase tracking-widest text-brand-violet">Case study</p>
       <h1 className="mb-4 font-display text-3xl font-medium">{study.title}</h1>
       {study.metric_before && study.metric_after && (

@@ -15,6 +15,8 @@ export interface ToolInfo {
   flagKey: string;
   label: string;
   group: ToolGroup;
+  /** One plain English sentence shown to the public on the About page (only while the tool is switched on). */
+  publicSummary: string;
   /** One sentence: what it is. Shown to the admin (Bengali, the admin's working language). */
   what: string;
   /** Why a user would want it. */
@@ -36,6 +38,7 @@ export interface ToolInfo {
 export const TOOLS: ToolInfo[] = [
   {
     id: "projects",
+    publicSummary: "Projects: save your websites with their niche, keywords and competitors once, and use them across every SEO tool.",
     flagKey: "feature_tool_projects",
     label: "Projects",
     group: "SEO workspace",
@@ -48,39 +51,45 @@ export const TOOLS: ToolInfo[] = [
     ],
     adminNotes: [
       "AI সাজেশন কাজ করতে Admin > API Providers-এ একটি AI প্রোভাইডার চালু থাকতে হয় (না থাকলে বোতামটি \"unavailable\" দেখায়, বাকি সবই চলে)।",
-      "প্রজেক্ট ও কিওয়ার্ডের সংখ্যার সীমা Admin > Settings-এ বদলানো যায়।",
+      "প্রজেক্ট ও কিওয়ার্ডের সংখ্যার সীমা Admin > Links-এর সীমা-সেটিংসে বদলানো যায় (সীমা `0` = ব্যবহারকারীদের জন্য ফিচার বন্ধ)।",
+      "Admin > SEO tools > Projects-এ মোট প্রজেক্ট, জনপ্রিয় niche ও সর্বশেষ প্রজেক্ট দেখা যায় (শুধু দেখা, বদলানো নয়)।",
     ],
     whenOff: "বন্ধ করলে ব্যবহারকারী প্রজেক্ট বানাতে/দেখতে পারবে না, ফলে Opportunity Finder, Backlink monitor ও AI Content Studio-তে প্রজেক্ট বাছাই করা যাবে না। এগুলোও একসাথে বন্ধ করার কথা ভাবুন।",
     userHref: "/dashboard/projects",
-    adminHref: null,
+    adminHref: "/admin/projects",
     pagePrefixes: ["/dashboard/projects"],
     apiPrefixes: ["/api/projects"],
   },
   {
     id: "opportunities",
+    publicSummary: "Opportunity Finder: search the web for places that may link to you (guest-post pages, directories, resource pages), each with a transparent score and reasons.",
     flagKey: "feature_opportunity_finder",
     label: "Opportunity Finder",
     group: "SEO workspace",
-    what: "প্রজেক্টের niche ও কিওয়ার্ড ধরে ওয়েবে খুঁজে দেখায় কোথায় লিংক পাওয়ার সুযোগ থাকতে পারে: গেস্ট-পোস্ট পেজ, ডিরেক্টরি, রিসোর্স পেজ, কমিউনিটি, ব্লগ কমেন্ট।",
-    why: "ব্যাকলিংক বানানোর সবচেয়ে সময়সাপেক্ষ কাজ হলো \"কাকে বলব?\" খোঁজা। এই টুল সেই তালিকা বানিয়ে প্রতিটির পাশে স্কোর ও কারণ দেয়, ব্যবহারকারী নিজে বেছে যোগাযোগ করে।",
+    what: "ব্যবহারকারীর প্রজেক্টের niche ও কিওয়ার্ড ধরে ওয়েবে খুঁজে দেখায় কোথায় লিংক পাওয়ার সুযোগ থাকতে পারে: গেস্ট-পোস্ট পেজ, ডিরেক্টরি, রিসোর্স পেজ, কমিউনিটি/প্রোফাইল, ব্লগ কমেন্ট। এটি কাউকে ইমেইল করে না, কোনো সাইট স্ক্র্যাপ করে না; শুধু আপনার যোগ করা অফিসিয়াল সার্চ-সার্ভিস (Tavily/Google/SearXNG) থেকে ফল আনে।",
+    why: "ব্যাকলিংক বানানোর সবচেয়ে সময়সাপেক্ষ কাজ \"কাকে বলব?\" খোঁজা। এই টুল সেই তালিকা বানিয়ে প্রতিটির পাশে ০–১০০ স্কোর ও কারণ দেয়, আর \"Likely / Possible / Not confirmed\" লেবেল দেয়। ব্যবহারকারী নিজে বেছে যোগাযোগ করে। ফলে নতুন ব্যবহারকারী প্ল্যাটফর্মে এসেই কাজের তালিকা পায়।",
     steps: [
-      "প্রথমে একটি প্রজেক্ট বানান (niche ও কিওয়ার্ডসহ)",
+      "প্রথমে Dashboard > Projects-এ একটি প্রজেক্ট বানান (niche ও ২–৩টি কিওয়ার্ডসহ); প্রজেক্ট না থাকলে ফর্মই দেখা যায় না",
       "Dashboard > Opportunity Finder খুলে প্রজেক্ট ও কী ধরনের সুযোগ চান তা টিক দিন",
-      "\"Find opportunities\" চাপুন; ফলাফলে স্কোর, কারণ ও স্ট্যাটাস দেখা যায়, নোট রাখা ও CSV নামানো যায়",
+      "\"Find opportunities\" চাপুন; কয়েক সেকেন্ডে ফল আসে (প্রতি রানে সর্বোচ্চ ৬টি সার্চ)",
+      "ফলাফলে \"Why this score?\" খুলে কারণ দেখুন; স্ট্যাটাস (Saved/Contacted/Done/Ignored) ও নোট রাখুন; CSV নামান",
     ],
     adminNotes: [
-      "চালানোর জন্য Admin > API Providers-এ একটি **Web search** প্রোভাইডার (Tavily/Google/SearXNG) যোগ ও Enable করতে হবে; না থাকলে পেজে \"not set up\" দেখায়।",
-      "প্রতি সার্চ রানে সার্চ-সার্ভিসের কোটা খরচ হয়; একই সার্চ ৭ দিন ক্যাশ থাকে। দাম/ফ্রি-সংখ্যা Admin > Usage pricing-এ।",
-      "এটি গ্লোবাল \"external APIs\" সুইচেরও অধীন।",
+      "চালানোর জন্য Admin > API Providers-এ একটি Web search প্রোভাইডার (Tavily/Google/SearXNG) যোগ ও Enable করতে হবে; না থাকলে ব্যবহারকারী পেজে \"not set up\" দেখে।",
+      "Admin > SEO tools > Opportunity Finder পেজে দেখা যায়: টুল চালু কিনা, প্রোভাইডারের আজ/এই মাসের ব্যবহার, কে কত রান করল, ব্যর্থ রানের কারণ; সেখান থেকে আপনি নিজেও চালিয়ে পরীক্ষা করতে পারেন।",
+      "প্রতি নতুন সার্চ-বাক্য সার্চ-সার্ভিসের ১টি কোটা খরচ করে; একই বাক্য ৭ দিন ক্যাশ থাকে। দাম/ফ্রি-সংখ্যা (ডিফল্ট দিনে ৩টি ফ্রি রান) Admin > Usage pricing-এ; চার্জ বন্ধ থাকলে সব ফ্রি।",
+      "ব্যবহারকারী প্রতি ঘণ্টায় ১০ রান, প্রতি প্রজেক্টে ১,০০০ সুযোগ পর্যন্ত। এটি গ্লোবাল \"external APIs\" সুইচেরও অধীন।",
+      "স্কোর শুধু সার্চ-ফলাফলের লেখা থেকে (DA/ট্রাফিক নেই), তাই \"Likely\" মানে প্রমাণ নয়; ব্যবহারকারীকে পেজ নিজে দেখে নিতে বলা হয়।",
     ],
-    whenOff: "বন্ধ করলে নতুন সার্চ চলে না এবং ব্যবহারকারী পেজটি খুলতে পারে না (সংরক্ষিত ফলাফল মোছা হয় না)।",
+    whenOff: "বন্ধ করলে নতুন সার্চ চলে না এবং ব্যবহারকারী পেজটি খুলতে পারে না (সংরক্ষিত ফলাফল মোছা হয় না, ON করলে ফিরে আসে)।",
     userHref: "/dashboard/opportunities",
-    adminHref: "/admin/api-providers",
+    adminHref: "/admin/opportunities",
     pagePrefixes: ["/dashboard/opportunities"],
     apiPrefixes: ["/api/opportunities"],
   },
   {
     id: "backlinks",
+    publicSummary: "Backlink monitor: track the links you have earned and get automatic checks that they are still live and followed.",
     flagKey: "feature_backlink_monitor",
     label: "Backlink monitor",
     group: "SEO workspace",
@@ -94,16 +103,18 @@ export const TOOLS: ToolInfo[] = [
     adminNotes: [
       "দৈনিক চেক Vercel cron-এ চলে (Settings > Cron Jobs-এ ফল দেখা যায়)।",
       "ব্যাকলিংক-সংখ্যার সীমা ও ঘণ্টায় ম্যানুয়াল চেকের সীমা Admin > Links-এ বদলানো যায় (সীমা `0` = ফিচার বন্ধ)।",
+      "Admin > SEO tools > Backlink monitor-এ অবস্থা অনুযায়ী সংখ্যা, শেষ চেকের সময় (২ দিনের বেশি পুরোনো হলে লাল সতর্কতা) ও সমস্যাযুক্ত লিংকের তালিকা দেখা যায়।",
       "এটি গ্লোবাল \"external APIs\" সুইচেরও অধীন।",
     ],
     whenOff: "বন্ধ করলে ব্যবহারকারীরা পেজটি খুলতে পারে না এবং স্বয়ংক্রিয় চেকও থামে; সংরক্ষিত তালিকা থাকে।",
     userHref: "/dashboard/backlinks",
-    adminHref: "/admin/links",
+    adminHref: "/admin/backlinks",
     pagePrefixes: ["/dashboard/backlinks"],
     apiPrefixes: ["/api/backlinks"],
   },
   {
     id: "content",
+    publicSummary: "AI Content Studio: draft outreach emails, bios, article outlines and more, and find stock images.",
     flagKey: "feature_ai_content",
     label: "AI Content Studio",
     group: "SEO workspace",
@@ -115,18 +126,20 @@ export const TOOLS: ToolInfo[] = [
       "ফল কপি বা ডকুমেন্ট হিসেবে সংরক্ষণ করুন; ছবি লাগলে ছবি-খোঁজা ট্যাব ব্যবহার করুন",
     ],
     adminNotes: [
-      "Admin > API Providers-এ অন্তত একটি **AI** প্রোভাইডার (OpenAI/Anthropic/অন্য) Enable করতে হয়। ছবির জন্য Pexels/Pixabay-র মতো **image** প্রোভাইডার ঐচ্ছিক।",
+      "Admin > API Providers-এ অন্তত একটি AI প্রোভাইডার (OpenAI/Anthropic/অন্য) Enable করতে হয়। ছবির জন্য Pexels/Pixabay-র মতো image প্রোভাইডার ঐচ্ছিক।",
+      "Admin > SEO tools > AI Content Studio-তে AI কলের সংখ্যা (আজ/৭/৩০ দিন), ব্যর্থতা ও প্রোভাইডার-ভিত্তিক হিসাব দেখা যায় (ব্যবহারকারীর লেখা দেখানো হয় না)।",
       "প্রতিটি জেনারেশনে প্রোভাইডারের খরচ হয়; Admin > Usage pricing-এ ফ্রি-সংখ্যা/দাম ঠিক করে ওয়ালেট থেকে চার্জ নেওয়া যায় (এখন চার্জ বন্ধ থাকতে পারে)।",
       "এটি গ্লোবাল \"external APIs\" সুইচেরও অধীন; একই সুইচ প্রজেক্টের AI সাজেশনেও কাজ করে।",
     ],
     whenOff: "বন্ধ করলে ব্যবহারকারী Content Studio খুলতে পারে না; সংরক্ষিত ডকুমেন্ট মোছা হয় না।",
     userHref: "/dashboard/content",
-    adminHref: "/admin/api-providers",
+    adminHref: "/admin/content-studio",
     pagePrefixes: ["/dashboard/content"],
     apiPrefixes: ["/api/content"],
   },
   {
     id: "links",
+    publicSummary: "Short links & QR codes: shorten links, count clicks, add UTM tags and download QR codes.",
     flagKey: "feature_link_management",
     label: "Short links & QR",
     group: "Link tools",
@@ -141,7 +154,7 @@ export const TOOLS: ToolInfo[] = [
       "অপব্যবহারের রিপোর্ট ও ব্লকলিস্ট Admin > Links-এর নিচের পাতায় সামলানো হয়।",
       "সীমা (ইউজার-প্রতি লিংক সংখ্যা ইত্যাদি) Admin > Links-এ।",
     ],
-    whenOff: "⚠️ গুরুত্বপূর্ণ: এটি বন্ধ করলে জনসাধারণের জন্য **সব ছোট লিংক (/l/…) কাজ করা বন্ধ** হয়ে যায় (৫০৩), শুধু ড্যাশবোর্ডই নয়। জরুরি অবস্থা (অপব্যবহার) ছাড়া বন্ধ করবেন না।",
+    whenOff: "⚠️ গুরুত্বপূর্ণ: এটি বন্ধ করলে জনসাধারণের জন্য সব ছোট লিংক (/l/…) কাজ করা বন্ধ হয়ে যায় (৫০৩), শুধু ড্যাশবোর্ডই নয়। জরুরি অবস্থা (অপব্যবহার) ছাড়া বন্ধ করবেন না।",
     userHref: "/dashboard/links",
     adminHref: "/admin/links",
     pagePrefixes: ["/dashboard/links"],
@@ -149,6 +162,7 @@ export const TOOLS: ToolInfo[] = [
   },
   {
     id: "bio",
+    publicSummary: "Bio pages: one shareable page with all your important links.",
     flagKey: "feature_tool_bio",
     label: "Bio pages",
     group: "Link tools",
@@ -160,7 +174,7 @@ export const TOOLS: ToolInfo[] = [
       "পাবলিক ঠিকানা (/bio/…) সোশ্যাল প্রোফাইলে বসান",
     ],
     adminNotes: ["অপব্যবহার হলে Admin > Bio pages থেকে \"Take down\" করা যায়।"],
-    whenOff: "বন্ধ করলে ব্যবহারকারীর এডিটর (ড্যাশবোর্ড) বন্ধ হয়। **যে পাবলিক বায়ো পেজ আগেই চালু আছে সেগুলো দেখা যেতে থাকে** — একটি নির্দিষ্ট পেজ নামাতে Admin > Bio pages-এর \"Take down\" ব্যবহার করুন।",
+    whenOff: "বন্ধ করলে ব্যবহারকারীর এডিটর (ড্যাশবোর্ড) বন্ধ হয়। যে পাবলিক বায়ো পেজ আগেই চালু আছে সেগুলো দেখা যেতে থাকে — একটি নির্দিষ্ট পেজ নামাতে Admin > Bio pages-এর \"Take down\" ব্যবহার করুন।",
     userHref: "/dashboard/bio",
     adminHref: "/admin/bio",
     pagePrefixes: ["/dashboard/bio"],
@@ -168,6 +182,7 @@ export const TOOLS: ToolInfo[] = [
   },
   {
     id: "domains",
+    publicSummary: "Custom domains: run your short links on your own domain.",
     flagKey: "feature_tool_domains",
     label: "Custom domains",
     group: "Link tools",
@@ -181,7 +196,7 @@ export const TOOLS: ToolInfo[] = [
     adminNotes: [
       "Vercel টোকেন (env) দিলে স্বয়ংক্রিয়, না দিলে ম্যানুয়াল মোড: আপনি Vercel-এ ডোমেইন যোগ করে Admin > Custom domains-এ \"Mark active\" চাপবেন।",
     ],
-    whenOff: "বন্ধ করলে ব্যবহারকারী নতুন ডোমেইন যোগ বা যাচাই করতে পারে না। **আগে থেকে সক্রিয় ডোমেইনের রিডাইরেক্ট চলতেই থাকে।**",
+    whenOff: "বন্ধ করলে ব্যবহারকারী নতুন ডোমেইন যোগ বা যাচাই করতে পারে না। আগে থেকে সক্রিয় ডোমেইনের রিডাইরেক্ট চলতেই থাকে।",
     userHref: "/dashboard/domains",
     adminHref: "/admin/domains",
     pagePrefixes: ["/dashboard/domains"],
@@ -189,6 +204,7 @@ export const TOOLS: ToolInfo[] = [
   },
   {
     id: "api_keys",
+    publicSummary: "API keys: create short links from your own software.",
     flagKey: "feature_tool_api_keys",
     label: "API keys",
     group: "Link tools",
@@ -200,7 +216,7 @@ export const TOOLS: ToolInfo[] = [
       "অনুরোধে Authorization: Bearer <কী> হেডার দিন; নির্দেশিকা /api-docs পেজে",
     ],
     adminNotes: ["কী ব্যবহারকারী নিজে বাতিল করতে পারে।"],
-    whenOff: "বন্ধ করলে ব্যবহারকারী নতুন কী বানাতে বা পরিচালনা করতে পারে না। **আগের কীগুলো দিয়ে /api/v1 চলতেই থাকে** (সেটি এই সুইচের বাইরে)।",
+    whenOff: "বন্ধ করলে ব্যবহারকারী নতুন কী বানাতে বা পরিচালনা করতে পারে না। আগের কীগুলো দিয়ে /api/v1 চলতেই থাকে (সেটি এই সুইচের বাইরে)।",
     userHref: "/dashboard/api-keys",
     adminHref: null,
     pagePrefixes: ["/dashboard/api-keys"],

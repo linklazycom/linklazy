@@ -1,3 +1,4 @@
+import { BUSINESS } from "@/lib/business";
 import { createClient } from "@/lib/supabase/server";
 
 export interface NavLink {
@@ -35,7 +36,7 @@ const DEFAULTS: Record<string, unknown> = {
     ],
   },
   social_links: { facebook: "", twitter: "", linkedin: "" },
-  contact_email: "support@linklazy.com",
+  contact_email: BUSINESS.email,
   ga_measurement_id: "",
   gsc_verification_code: "",
   bing_verification_code: "",
