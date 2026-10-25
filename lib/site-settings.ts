@@ -30,6 +30,8 @@ const DEFAULTS: Record<string, unknown> = {
       { label: "Trust & payment protection", href: "/trust" },
     ],
     Resources: [
+      { label: "Getting started", href: "/getting-started" },
+      { label: "Free tools", href: "/tools" },
       { label: "Niches", href: "/niches" },
       { label: "How it works", href: "/how-it-works" },
       { label: "Blog", href: "/blog" },

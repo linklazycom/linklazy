@@ -45,7 +45,8 @@ test("every switchable tool has a short public sentence for the About page", () 
   for (const t of TOOLS) {
     assert.ok(t.publicSummary.length >= 20 && t.publicSummary.length <= 200, `${t.id}: ${t.publicSummary.length}`);
     assert.ok(t.publicSummary.startsWith(t.label), `${t.id} summary starts with the tool name`);
-    assert.ok(!/\b(best|leading|#1|guarantee|free)\b/i.test(t.publicSummary), `${t.id}: no unprovable claims`);
+    const claim = t.publicSummary.slice(t.label.length);
+    assert.ok(!/\b(best|leading|#1|guarantee|free)\b/i.test(claim), `${t.id}: no unprovable claims (the tool's own name may contain "Free")`);
   }
 });
 

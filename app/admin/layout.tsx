@@ -31,6 +31,7 @@ const NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin/disputes", label: "Disputes" },
       { href: "/admin/press-releases", label: "Press releases" },
       { href: "/admin/case-studies", label: "Case studies" },
+      { href: "/admin/testimonials", label: "Testimonials" },
     ],
   },
   {

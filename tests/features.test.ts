@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { decideGate, TOOLS, TOOL_FLAG_KEYS, toolByFlagKey, toolById, toolForPath } from "@/lib/features/registry";
 import { ADMIN_HELP, helpForPath } from "@/lib/help/admin-help";
 import { FEATURE_FLAGS } from "@/lib/feature-flags";
@@ -12,7 +12,9 @@ test("registry: ids and switch keys are unique, texts are filled", () => {
     assert.ok(t.label && t.what && t.why && t.whenOff, t.id);
     assert.ok(t.steps.length >= 2 && t.adminNotes.length >= 1, t.id);
     assert.ok(t.pagePrefixes.length >= 1 && t.apiPrefixes.length >= 1, t.id);
-    assert.ok(t.pagePrefixes.every((p) => p.startsWith("/dashboard/")) && t.apiPrefixes.every((p) => p.startsWith("/api/")), t.id);
+    const pageRoot = t.surface === "public" ? "/" : "/dashboard/";
+    assert.ok(t.pagePrefixes.every((p) => p.startsWith(pageRoot)) && t.apiPrefixes.every((p) => p.startsWith("/api/")), t.id);
+    if (t.surface === "public") assert.ok(t.pagePrefixes.every((p) => !p.startsWith("/dashboard") && !p.startsWith("/admin")), `${t.id}: public tools live outside the dashboard`);
     assert.ok(toolForPath(t.userHref)?.tool.id === t.id, `${t.id}: userHref belongs to its own tool`);
   }
 });
@@ -60,16 +62,45 @@ test("decideGate: off blocks users but never admins; unknown stays open", () => 
   assert.deepEqual(decideGate("/dashboard/bio", undefined, off), { action: "redirect", to: "/dashboard/unavailable?tool=bio" });
 });
 
-test("admin help: longest prefix wins; every entry is filled and points at a real admin page", () => {
+test("admin help: the most specific entry wins; [id] keys and the Overview behave", () => {
   assert.equal(helpForPath("/admin/outreach/tickets/abc")?.key, "/admin/outreach/tickets");
   assert.equal(helpForPath("/admin/outreach")?.key, "/admin/outreach");
   assert.equal(helpForPath("/admin/links/blocklist")?.key, "/admin/links/blocklist");
   assert.equal(helpForPath("/admin/links")?.key, "/admin/links");
-  assert.equal(helpForPath("/admin/orders"), null);
-  assert.equal(helpForPath("/admin/featuresx"), null);
+  assert.equal(helpForPath("/admin/disputes/7d1c0f12-1111-4111-8111-111111111111")?.key, "/admin/disputes/[id]");
+  assert.equal(helpForPath("/admin/disputes")?.key, "/admin/disputes");
+  assert.equal(helpForPath("/admin/withdrawals/abc")?.key, "/admin/withdrawals/[id]");
+  assert.equal(helpForPath("/admin/sites/new")?.key, "/admin/sites/new");
+  assert.equal(helpForPath("/admin/sites/some-id")?.key, "/admin/sites", "a site detail page falls back to the Sites text");
+  assert.equal(helpForPath("/admin/users/new")?.key, "/admin/users/new");
+  assert.equal(helpForPath("/admin")?.key, "/admin", "Overview has its own text");
+  assert.equal(helpForPath("/admin/featuresx"), null, "look-alike path");
+  assert.equal(helpForPath("/admin/something-new"), null, "an unknown page is NOT given the Overview text");
+  assert.equal(helpForPath("/dashboard/opportunities"), null);
+});
+
+test("admin help: every entry is filled and points at a real admin page", () => {
   for (const [key, e] of Object.entries(ADMIN_HELP)) {
     assert.ok(e.title && e.what && e.why && e.how.length >= 1, key);
-    assert.ok(existsSync(`app${key}/page.tsx`), `${key} has no page`);
+    assert.ok(existsSync(`app${key === "/admin" ? "/admin" : key}/page.tsx`), `${key} has no page`);
+  }
+});
+
+test("admin help: every admin page in the sidebar has a help text", () => {
+  const layout = readFileSync("app/admin/layout.tsx", "utf8");
+  const hrefs = [...layout.matchAll(/href: "(\/admin[^"]*)"/g)].map((m) => m[1]);
+  assert.ok(hrefs.length > 30, "found the sidebar links");
+  const missing = hrefs.filter((h) => !helpForPath(h));
+  assert.deepEqual(missing, [], `no help text for: ${missing.join(", ")}`);
+});
+
+test("admin SEO pages exist and are linked from the tool list and the sidebar", () => {
+  const layout = readFileSync("app/admin/layout.tsx", "utf8");
+  for (const id of ["opportunities", "projects", "backlinks", "content"]) {
+    const href = toolById(id)?.adminHref;
+    assert.ok(href, `${id} has an admin page link`);
+    assert.ok(existsSync(`app${href}/page.tsx`), `${href} exists`);
+    assert.ok(layout.includes(`href: "${href}"`), `${href} is in the sidebar`);
   }
 });
 
@@ -112,4 +143,22 @@ test("getToolFlags: reads the switches, caches them, and fails open", async () =
     globalThis.fetch = realFetch;
     clearToolFlagCache();
   }
+});
+
+test("admin-seo helpers", async () => {
+  const { isOlderThan, pctOf, personLabel, shortDate, uniqueIds, daysAgoIso } = await import("@/lib/admin-seo");
+  const now = Date.parse("2026-10-22T00:00:00Z");
+  assert.equal(isOlderThan("2026-10-19T00:00:00Z", 2, now), true);
+  assert.equal(isOlderThan("2026-10-21T00:00:00Z", 2, now), false);
+  assert.equal(isOlderThan(null, 2, now), false);
+  assert.equal(pctOf(1, 4), "25%");
+  assert.equal(pctOf(1, 0), "—");
+  assert.equal(shortDate("2026-10-22T08:15:30.123Z"), "2026-10-22 08:15");
+  assert.equal(daysAgoIso(1, now), "2026-10-21T00:00:00.000Z");
+  assert.deepEqual(uniqueIds(["a", null, "a", undefined, "b"]), ["a", "b"]);
+  const people = new Map([["u1", { id: "u1", full_name: "Rina", email: "r@x.org" }], ["u2", { id: "u2", full_name: null, email: "m@x.org" }]]);
+  assert.equal(personLabel("u1", people), "Rina (r@x.org)");
+  assert.equal(personLabel("u2", people), "m@x.org");
+  assert.equal(personLabel("12345678-aaaa", people), "12345678");
+  assert.equal(personLabel(null, people), "—");
 });

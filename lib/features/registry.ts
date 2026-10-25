@@ -7,7 +7,7 @@
  * It never deletes anything the users saved. Marketplace essentials (browse, orders, wallet, support, messages) are NOT
  * switchable here on purpose.
  */
-export type ToolGroup = "SEO workspace" | "Link tools";
+export type ToolGroup = "SEO workspace" | "Link tools" | "Public tools";
 
 export interface ToolInfo {
   id: string;
@@ -15,6 +15,8 @@ export interface ToolInfo {
   flagKey: string;
   label: string;
   group: ToolGroup;
+  /** "public" tools live outside the dashboard (anyone can open them); their pages and API also check the switch themselves for visitors who are not logged in. */
+  surface?: "dashboard" | "public";
   /** One plain English sentence shown to the public on the About page (only while the tool is switched on). */
   publicSummary: string;
   /** One sentence: what it is. Shown to the admin (Bengali, the admin's working language). */
@@ -29,7 +31,7 @@ export interface ToolInfo {
   whenOff: string;
   userHref: string;
   adminHref: string | null;
-  /** Dashboard pages that belong to the tool (matched as path prefixes). */
+  /** Pages that belong to the tool (matched as path prefixes): /dashboard/... for dashboard tools, e.g. /tools for public ones. */
   pagePrefixes: string[];
   /** API routes that belong to the tool. */
   apiPrefixes: string[];
@@ -221,6 +223,56 @@ export const TOOLS: ToolInfo[] = [
     adminHref: null,
     pagePrefixes: ["/dashboard/api-keys"],
     apiPrefixes: ["/api/api-keys"],
+  },
+  {
+    id: "public_tools",
+    flagKey: "feature_public_tools",
+    surface: "public",
+    label: "Free tools",
+    group: "Public tools",
+    publicSummary: "Free tools: check a site's Domain Rating, compare backlink prices with live LinkLazy listings, build UTM links and make QR codes.",
+    what: "সবার জন্য খোলা চারটি ফ্রি টুল (/tools): ডোমেইনের DR চেক, লাইভ লিস্টিংয়ের দামের সাথে ব্যাকলিংক-দামের তুলনা, UTM লিংক বানানো ও QR কোড বানানো। লগইন লাগে না।",
+    why: "সার্চ-ইঞ্জিন থেকে নতুন মানুষ টানার সবচেয়ে সহজ উপায়: কাজের ফ্রি টুল দিলে মানুষ নিজে আসে, আর তারপর LinkLazy-র মার্কেটপ্লেসের কথা জানে।",
+    steps: [
+      "ভিজিটর /tools খুলে একটি টুল বাছে",
+      "DR চেকারে ডোমেইন লিখলে সংখ্যা পায় (প্রতি ঘণ্টায় ৬টি, দিনে ২০টি পর্যন্ত)",
+      "প্রাইস-চেকে DR লিখলে LinkLazy-র আসল তালিকার দাম-পরিসীমা দেখে; UTM ও QR ব্রাউজারেই তৈরি হয়",
+    ],
+    adminNotes: [
+      "DR চেকার Vercel env-এর AHREFS_API_KEY ব্যবহার করে; না থাকলে টুলটি \"unavailable\" দেখায়। সাইট-জুড়ে দিনে সর্বোচ্চ ৩০০টি DR চেক (কোটা বাঁচাতে)। আপনি Ahrefs-এর API শর্ত (পাবলিক টুলে ব্যবহার) নিজে যাচাই করে নেবেন।",
+      "প্রাইস-চেক শুধু আপনার আসল অনুমোদিত লিস্টিং থেকে হিসাব করে এবং ৫টির কম লিস্টিং থাকলে সংখ্যা দেখায় না (\"যথেষ্ট ডেটা নেই\")। কোনো বানানো দাম নেই।",
+      "প্রতিটি ভিজিটরের জন্য IP-ভিত্তিক সীমা আছে (ডাটাবেসে গোনা হয়)।",
+    ],
+    whenOff: "বন্ধ করলে /tools ও তার API ভিজিটরদের জন্য \"switched off\" দেখায়; কোনো ডেটা মোছে না।",
+    userHref: "/tools",
+    adminHref: null,
+    pagePrefixes: ["/tools"],
+    apiPrefixes: ["/api/tools"],
+  },
+  {
+    id: "public_recommendations",
+    flagKey: "feature_public_recommendations",
+    surface: "public",
+    label: "Recommendations",
+    group: "Public tools",
+    publicSummary: "Recommendations: paste your website address and see listed sites in the same niche, with DR and price.",
+    what: "সবার জন্য খোলা ফর্ম (/recommendations): সাইটের ঠিকানা দিলে সিস্টেম পেজটি পড়ে niche ধরে এবং একই niche-এর সেরা ৫টি লিস্টিং দেখায় (DR, দাম, সময়)। লগইন লাগে না।",
+    why: "নতুন ক্রেতাকে প্ল্যাটফর্মে ঢোকার আগেই দেখিয়ে দেয় তার সাইটের জন্য কী কী পাওয়া যাবে; এরপর অ্যাকাউন্ট খুলে পুরো স্ক্যান ও অর্ডার করতে হয়।",
+    steps: [
+      "ভিজিটর /recommendations খুলে নিজের সাইটের ঠিকানা লিখে \"Find sites\" চাপে",
+      "niche ধরা না গেলে নিজে তালিকা থেকে niche বাছে",
+      "ফলাফলে ৫টি লিস্টিংয়ের লিংক পায়; পুরো তালিকা ও অর্ডারের জন্য অ্যাকাউন্ট খুলতে বলা হয়",
+    ],
+    adminNotes: [
+      "পাবলিক সংস্করণে AI ব্যবহার হয় না ও অন্য সাইট স্ক্যান হয় না (শুধু ভিজিটরের দেওয়া পেজটি একবার পড়া হয়); তাই খরচ নেই। লগইন-করা ক্রেতার পূর্ণ স্ক্যান (Dashboard > Scan site) আলাদা।",
+      "প্রতি ভিজিটর ঘণ্টায় ৩টি, দিনে ১০টি; সাইট-জুড়ে দিনে ২০০টি। অন্যের সাইট পড়ার আগে SSRF-নিরাপদ fetch ব্যবহার হয় (ভেতরের/ব্যক্তিগত ঠিকানা আটকানো)।",
+      "ফলাফলে ডোমেইন দেখানো হয় না, কেবল /browse-এ যা আগে থেকে পাবলিক (niche, DR, দাম)।",
+    ],
+    whenOff: "বন্ধ করলে /recommendations ও তার API ভিজিটরদের জন্য \"switched off\" দেখায়।",
+    userHref: "/recommendations",
+    adminHref: null,
+    pagePrefixes: ["/recommendations"],
+    apiPrefixes: ["/api/recommendations"],
   },
 ];
 

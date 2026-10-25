@@ -16,6 +16,7 @@ import {
   Megaphone,
 } from "lucide-react";
 import { BUSINESS, formatAddress } from "@/lib/business";
+import { Testimonials } from "@/components/marketing/testimonials";
 import { getFlags } from "@/lib/feature-flags";
 import { TOOLS, TOOL_FLAG_KEYS } from "@/lib/features/registry";
 import { absoluteUrl, breadcrumbSchema as buildBreadcrumb, siteUrl } from "@/lib/seo";
@@ -258,6 +259,8 @@ export default async function AboutPage() {
             </ul>
           </section>
         )}
+
+        <Testimonials />
 
         {/* Pricing summary table */}
         <section className="mt-14">
