@@ -4,6 +4,7 @@ import { MetricChip } from "@/components/ui/metric-chip";
 import { Money } from "@/components/currency/money";
 import { WithdrawalForm } from "@/components/dashboard/withdrawal-form";
 import { payoutSummary } from "@/lib/payout-methods";
+import { withdrawableWallet } from "@/lib/deposit-bonus";
 
 const TYPE_LABEL: Record<string, string> = {
   topup: "Wallet top-up",
@@ -13,6 +14,7 @@ const TYPE_LABEL: Record<string, string> = {
   withdrawal: "Withdrawal",
   order_refund: "Refund",
   admin_adjustment: "Adjustment",
+  bonus: "Deposit bonus",
 };
 
 const WITHDRAWAL_STATUS_TONE: Record<string, "verified" | "price" | "default"> = {
@@ -73,9 +75,17 @@ export default async function WalletPage() {
     .filter((r) => r.status === "pending" || r.status === "approved" || r.status === "paid")
     .reduce((sum, r) => sum + r.amount, 0);
 
+  // Unspent deposit bonus can be spent on the platform but not withdrawn (Batch 19C).
+  const { data: bonusRows } = await supabase
+    .from("wallet_bonuses")
+    .select("remaining")
+    .eq("user_id", user!.id)
+    .eq("status", "granted");
+  const lockedBonus = (bonusRows ?? []).reduce((sum, b) => sum + Number(b.remaining ?? 0), 0);
+
   const availableToWithdraw = Math.max(
     0,
-    totalReferralEarned + (profile?.wallet_balance ?? 0) - totalLocked
+    totalReferralEarned + withdrawableWallet(profile?.wallet_balance ?? 0, lockedBonus) - totalLocked
   );
 
   return (
@@ -89,6 +99,7 @@ export default async function WalletPage() {
 
       <div className="mb-6 flex flex-wrap gap-2">
         <MetricChip label="Balance" value={profile?.wallet_balance ?? 0} tone="price" />
+        {lockedBonus > 0 && <MetricChip label="Bonus (spend only)" value={lockedBonus} />}
         {pendingTotal > 0 && <MetricChip label="Pending earnings" value={pendingTotal} />}
         {totalReferralEarned > 0 && <MetricChip label="Referral credit" value={totalReferralEarned} />}
       </div>
@@ -121,7 +132,7 @@ export default async function WalletPage() {
         <p className="mb-3 text-xs text-muted">
           Available to withdraw: ৳{availableToWithdraw.toLocaleString()} (wallet balance
           {totalReferralEarned > 0 ? " + referral credit" : ""}, minus any request already in
-          progress). Requests are reviewed manually — you&apos;ll see the status below once submitted.
+          progress{lockedBonus > 0 ? " and your unspent bonus, which can only be spent on LinkLazy" : ""}). Requests are reviewed manually — you&apos;ll see the status below once submitted.
         </p>
         <WithdrawalForm available={availableToWithdraw} />
       </div>

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { capturePaypalOrder, paypalCapturedUsd } from "@/lib/paypal/client";
+import { finishOrderPayment, finishWalletTopup } from "@/lib/paypal/complete";
 
 type Service = ReturnType<typeof createServiceClient>;
 
@@ -64,14 +65,6 @@ async function captureAndVerify(supabase: Service, pay: PaymentRow, paypalOrderI
     .eq("status", "initiated");
 }
 
-async function advanceOrder(supabase: Service, orderId: string) {
-  await supabase
-    .from("orders")
-    .update({ status: "pending_seller_acceptance" })
-    .eq("id", orderId)
-    .eq("status", "pending_payment");
-}
-
 async function handleOrderCallback(
   supabase: Service,
   paypalOrderId: string | null,
@@ -90,7 +83,7 @@ async function handleOrderCallback(
 
   // Already processed (refresh / retry): make sure the order moved on, then stop.
   if (pay.status === "held_escrow" || pay.status === "released") {
-    await advanceOrder(supabase, orderId);
+    await finishOrderPayment(supabase, pay, orderId);
     return NextResponse.redirect(`${siteUrl}/dashboard/orders/${orderId}?payment=success`);
   }
 
@@ -101,14 +94,8 @@ async function handleOrderCallback(
   try {
     await captureAndVerify(supabase, pay, paypalOrderId);
 
-    // One-time gate: only the first callback flips initiated -> held_escrow.
-    await supabase
-      .from("payments")
-      .update({ status: "held_escrow" })
-      .eq("id", pay.id)
-      .eq("status", "initiated");
-
-    await advanceOrder(supabase, orderId);
+    // One-time gate: only the first caller flips initiated -> held_escrow.
+    await finishOrderPayment(supabase, pay, orderId);
     return NextResponse.redirect(`${siteUrl}/dashboard/orders/${orderId}?payment=success`);
   } catch {
     // Left as "initiated" on purpose: an uncertain error must not mark a
@@ -140,40 +127,10 @@ async function handleWalletTopupCallback(
     return NextResponse.redirect(`${siteUrl}/dashboard/billing?wallet=error`);
   }
 
-  const amount = Number(pay.credit_amount_bdt);
-
   try {
     await captureAndVerify(supabase, pay, paypalOrderId);
-
-    // One-time gate against double credit.
-    const { data: claimed } = await supabase
-      .from("payments")
-      .update({ status: "released" })
-      .eq("id", pay.id)
-      .eq("status", "initiated")
-      .select("id");
-
-    if (!claimed || claimed.length === 0) {
-      return NextResponse.redirect(`${siteUrl}/dashboard/billing?wallet=success`);
-    }
-
-    const { error: creditError } = await supabase.rpc("adjust_wallet_balance", {
-      p_user_id: pay.payer_id,
-      p_delta: amount,
-      p_type: "topup",
-      p_notes: "Wallet top-up via PayPal",
-      p_provider: "paypal",
-      p_provider_txn_id: paypalOrderId,
-    });
-
-    if (creditError) {
-      // Money was captured but the wallet was not credited: re-open the payment
-      // so a retry of this same callback URL can credit it (no second capture).
-      await supabase.from("payments").update({ status: "initiated" }).eq("id", pay.id);
-      return NextResponse.redirect(`${siteUrl}/dashboard/billing?wallet=error`);
-    }
-
-    return NextResponse.redirect(`${siteUrl}/dashboard/billing?wallet=success`);
+    const result = await finishWalletTopup(supabase, pay, paypalOrderId);
+    return NextResponse.redirect(`${siteUrl}/dashboard/billing?wallet=${result === "failed" ? "error" : "success"}`);
   } catch {
     return NextResponse.redirect(`${siteUrl}/dashboard/billing?wallet=error`);
   }

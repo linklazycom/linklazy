@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { MetricChip } from "@/components/ui/metric-chip";
+import { computeBonus, type BonusSettings } from "@/lib/deposit-bonus";
 
 interface Profile {
   role: string;
@@ -22,6 +23,7 @@ export default function BillingPage() {
   const [topupBusy, setTopupBusy] = useState(false);
   const [walletMessage, setWalletMessage] = useState<string | null>(null);
   const [bdtPerUsd, setBdtPerUsd] = useState(125);
+  const [offer, setOffer] = useState<BonusSettings | null>(null);
 
   async function load() {
     const {
@@ -41,6 +43,12 @@ export default function BillingPage() {
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (data?.bdt_per_usd) setBdtPerUsd(Number(data.bdt_per_usd));
+      })
+      .catch(() => {});
+    fetch("/api/wallet/bonus-offer")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.enabled) setOffer({ enabled: true, minAmount: Number(data.minAmount), percent: Number(data.percent), maxBonus: Number(data.maxBonus) });
       })
       .catch(() => {});
     const params = new URLSearchParams(window.location.search);
@@ -130,6 +138,15 @@ export default function BillingPage() {
           </button>
         </div>
 
+        {offer && (
+          <p className="mb-3 rounded-chip bg-brand-soft px-3 py-2 text-xs">
+            Top up ৳{offer.minAmount.toLocaleString()} or more and get a {offer.percent}% bonus (up to ৳{offer.maxBonus.toLocaleString()}).
+            The bonus can be spent on LinkLazy but not withdrawn.
+            {typeof topupAmount === "number" && computeBonus(topupAmount, offer) > 0 && (
+              <strong> You will get ৳{computeBonus(topupAmount, offer).toLocaleString()} extra.</strong>
+            )}
+          </p>
+        )}
         <p className="mb-2 text-sm font-medium">Amount</p>
         <div className="mb-1 flex flex-wrap items-center gap-2">
           {TOPUP_AMOUNTS.map((amt) => (

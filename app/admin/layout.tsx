@@ -70,6 +70,7 @@ const NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin/wallet-ledger", label: "Wallet ledger" },
       { href: "/admin/reconciliation", label: "Wallet reconciliation" },
       { href: "/admin/usage-pricing", label: "Usage pricing" },
+      { href: "/admin/deposit-bonus", label: "Deposit bonus" },
     ],
   },
   {

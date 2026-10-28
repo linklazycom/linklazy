@@ -5,6 +5,8 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { creditWalletRefund } from "@/lib/wallet-refund";
 import { planWithdrawal, referralAvailable, type LockedRequest } from "@/lib/withdrawal-flow";
 import { validatePayout } from "@/lib/payout-methods";
+import { lockedBonusOf } from "@/lib/deposit-bonus-server";
+import { withdrawableWallet } from "@/lib/deposit-bonus";
 
 // Payout details are checked by validatePayout (per method). "bkash_number" is
 // still accepted as an alias so an old cached form keeps working.
@@ -61,9 +63,10 @@ export async function POST(request: Request) {
     .select("wallet_balance")
     .eq("id", user.id)
     .single();
-  const walletBalance = profile?.wallet_balance ?? 0;
-
   const service = createServiceClient();
+  // Deposit bonus can be spent on the platform but never withdrawn (Batch 19C).
+  const walletBalance = withdrawableWallet(profile?.wallet_balance ?? 0, await lockedBonusOf(service, user.id));
+
   const loadRequests = async () => {
     const { data } = await service
       .from("withdrawal_requests")

@@ -23,3 +23,37 @@ export function paypalCapturedUsd(capture: PaypalCapture): number {
   }
   return total;
 }
+
+export type PaypalWebhookHeaders = {
+  authAlgo: string;
+  certUrl: string;
+  transmissionId: string;
+  transmissionSig: string;
+  transmissionTime: string;
+};
+
+/** Asks PayPal whether a webhook call is genuine (needs PAYPAL_WEBHOOK_ID). Any error counts as "not verified". */
+export async function verifyPaypalWebhook(headers: PaypalWebhookHeaders, event: unknown): Promise<boolean> {
+  const webhookId = process.env.PAYPAL_WEBHOOK_ID;
+  if (!webhookId) return false;
+  try {
+    const response = await fetch(`${base()}/v1/notifications/verify-webhook-signature`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${await token()}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        auth_algo: headers.authAlgo,
+        cert_url: headers.certUrl,
+        transmission_id: headers.transmissionId,
+        transmission_sig: headers.transmissionSig,
+        transmission_time: headers.transmissionTime,
+        webhook_id: webhookId,
+        webhook_event: event,
+      }),
+    });
+    if (!response.ok) return false;
+    const data = (await response.json()) as { verification_status?: string };
+    return data.verification_status === "SUCCESS";
+  } catch {
+    return false;
+  }
+}

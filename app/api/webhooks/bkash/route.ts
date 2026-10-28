@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { executeBkashPayment } from "@/lib/bkash/client";
+import { grantDepositBonus } from "@/lib/deposit-bonus-server";
 
 type Service = ReturnType<typeof createServiceClient>;
 
@@ -191,6 +192,9 @@ async function handleWalletTopupCallback(
       await supabase.from("payments").update({ status: "initiated" }).eq("id", pay.id);
       return NextResponse.redirect(`${siteUrl}/dashboard/billing?wallet=error`);
     }
+
+    // Best effort: a bonus problem must never undo or hide the top-up.
+    await grantDepositBonus(supabase, { userId: pay.payer_id, paymentId: pay.id, amount, provider: "bkash" });
 
     return NextResponse.redirect(`${siteUrl}/dashboard/billing?wallet=success`);
   } catch {
