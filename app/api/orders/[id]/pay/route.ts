@@ -66,6 +66,8 @@ export async function POST(
         amount: usdAmount,
         currency: "USD",
         status: "initiated",
+        // Audit: the BDT-per-USD rate this USD amount was computed with.
+        raw_response: { rate_bdt_per_usd: rate },
       });
 
       return NextResponse.json({ redirectUrl: payment.approvalUrl });

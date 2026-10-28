@@ -59,7 +59,7 @@ async function captureAndVerify(supabase: Service, pay: PaymentRow, paypalOrderI
 
   await supabase
     .from("payments")
-    .update({ raw_response: { captured: true, status: captured.status } })
+    .update({ raw_response: { ...(pay.raw_response ?? {}), captured: true, status: captured.status } })
     .eq("id", pay.id)
     .eq("status", "initiated");
 }

@@ -4,6 +4,7 @@ import { useEffect, useState, use as usePromise } from "react";
 import Link from "next/link";
 import { MetricChip } from "@/components/ui/metric-chip";
 import { DrBadge } from "@/components/sites/dr-badge";
+import { payoutSummary } from "@/lib/payout-methods";
 
 interface Profile {
   id: string;
@@ -61,7 +62,11 @@ interface WithdrawalRow {
   id: string;
   amount: number;
   status: string;
-  bkash_number: string;
+  bkash_number: string | null;
+  method?: string | null;
+  account_number?: string | null;
+  account_name?: string | null;
+  bank_name?: string | null;
   created_at: string;
 }
 
@@ -286,7 +291,7 @@ export default function AdminUserDetailPage({
                 key={w.id}
                 className="flex flex-wrap items-center justify-between gap-2 rounded-chip border border-line p-2 text-sm"
               >
-                <span>৳{w.amount} → {w.bkash_number}</span>
+                <span>৳{w.amount} → {payoutSummary(w)}</span>
                 <div className="flex items-center gap-2">
                   <MetricChip label="Status" value={w.status} tone={STATUS_TONE[w.status] ?? "default"} />
                   <span className="text-xs text-muted">

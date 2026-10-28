@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { MetricChip } from "@/components/ui/metric-chip";
 import { Money } from "@/components/currency/money";
 import { WithdrawalForm } from "@/components/dashboard/withdrawal-form";
+import { payoutSummary } from "@/lib/payout-methods";
 
 const TYPE_LABEL: Record<string, string> = {
   topup: "Wallet top-up",
@@ -61,7 +62,9 @@ export default async function WalletPage() {
 
   const { data: withdrawalRequests } = await supabase
     .from("withdrawal_requests")
-    .select("id, amount, bkash_number, status, admin_note, requested_at")
+    .select(
+      "id, amount, bkash_number, method, account_number, account_name, bank_name, transaction_id, proof_url, status, admin_note, requested_at"
+    )
     .eq("user_id", user!.id)
     .order("requested_at", { ascending: false })
     .limit(20);
@@ -114,7 +117,7 @@ export default async function WalletPage() {
       )}
 
       <div className="mb-8 rounded-chip border border-line bg-white p-4">
-        <h2 className="mb-1 text-sm font-medium">Withdraw to bKash</h2>
+        <h2 className="mb-1 text-sm font-medium">Withdraw</h2>
         <p className="mb-3 text-xs text-muted">
           Available to withdraw: ৳{availableToWithdraw.toLocaleString()} (wallet balance
           {totalReferralEarned > 0 ? " + referral credit" : ""}, minus any request already in
@@ -138,8 +141,22 @@ export default async function WalletPage() {
                   />
                 </div>
                 <p className="mt-1 text-xs text-muted">
-                  To {r.bkash_number} · {new Date(r.requested_at).toLocaleString()}
+                  To {payoutSummary(r, { mask: true })} · {new Date(r.requested_at).toLocaleString()}
                 </p>
+                {r.transaction_id && (
+                  <p className="mt-1 text-xs text-muted">
+                    <span className="font-medium">Transaction ID: </span>
+                    {r.transaction_id}
+                    {r.proof_url && (
+                      <>
+                        {" · "}
+                        <a href={r.proof_url} target="_blank" rel="noopener noreferrer" className="text-brand-blue underline">
+                          Proof
+                        </a>
+                      </>
+                    )}
+                  </p>
+                )}
                 {r.admin_note && (
                   <p className="mt-1 text-xs text-muted">
                     <span className="font-medium">Note: </span>

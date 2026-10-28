@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { MetricChip } from "@/components/ui/metric-chip";
+import { payoutSummary } from "@/lib/payout-methods";
 
 export default async function AdminWithdrawalsPage() {
   const supabase = await createClient();
   const { data: requests } = await supabase
     .from("withdrawal_requests")
-    .select("id, user_id, amount, bkash_number, status, requested_at, profiles(full_name)")
+    .select("id, user_id, amount, bkash_number, method, account_number, account_name, bank_name, status, requested_at, profiles(full_name)")
     .order("requested_at", { ascending: false });
 
   const statusTone: Record<string, "default" | "verified" | "price"> = {
@@ -35,7 +36,7 @@ export default async function AdminWithdrawalsPage() {
                 <MetricChip label="Status" value={r.status} tone={statusTone[r.status]} />
               </div>
               <p className="text-xs text-muted">
-                bKash: {r.bkash_number} · requested {new Date(r.requested_at).toLocaleString()}
+                {payoutSummary(r)} · requested {new Date(r.requested_at).toLocaleString()}
               </p>
             </Link>
           );

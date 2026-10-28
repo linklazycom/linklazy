@@ -69,7 +69,7 @@ export async function GET(
         .limit(50),
       supabase
         .from("withdrawal_requests")
-        .select("id, amount, status, bkash_number, created_at")
+        .select("id, amount, status, bkash_number, method, account_number, account_name, bank_name, created_at")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(50),

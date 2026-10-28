@@ -4,10 +4,19 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { creditWalletRefund } from "@/lib/wallet-refund";
 import { planWithdrawal, referralAvailable, type LockedRequest } from "@/lib/withdrawal-flow";
+import { validatePayout } from "@/lib/payout-methods";
 
+// Payout details are checked by validatePayout (per method). "bkash_number" is
+// still accepted as an alias so an old cached form keeps working.
 const requestSchema = z.object({
   amount: z.number().int().positive(),
-  bkash_number: z.string().trim().min(11).max(14),
+  method: z.string().max(20).optional(),
+  account_number: z.string().max(60).optional(),
+  account_name: z.string().max(120).optional(),
+  bank_name: z.string().max(120).optional(),
+  bank_branch: z.string().max(120).optional(),
+  routing_number: z.string().max(20).optional(),
+  bkash_number: z.string().max(30).optional(),
 });
 
 export async function POST(request: Request) {
@@ -23,11 +32,22 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = await request.json();
+  const body = await request.json().catch(() => null);
   const parsed = requestSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
+
+  const payout = validatePayout({
+    method: parsed.data.method ?? "bkash",
+    account_number: parsed.data.account_number ?? parsed.data.bkash_number,
+    account_name: parsed.data.account_name,
+    bank_name: parsed.data.bank_name,
+    bank_branch: parsed.data.bank_branch,
+    routing_number: parsed.data.routing_number,
+  });
+  if (!payout.ok) return NextResponse.json({ error: payout.error }, { status: 400 });
+  const details = payout.value;
 
   const { data: credits } = await supabase
     .from("referral_credits")
@@ -90,7 +110,14 @@ export async function POST(request: Request) {
     .insert({
       user_id: user.id,
       amount: parsed.data.amount,
-      bkash_number: parsed.data.bkash_number,
+      // bkash_number stays filled for bKash requests so older screens keep working.
+      bkash_number: details.method === "bkash" ? details.account_number : null,
+      method: details.method,
+      account_number: details.account_number,
+      account_name: details.account_name,
+      bank_name: details.bank_name,
+      bank_branch: details.bank_branch,
+      routing_number: details.routing_number,
       wallet_reserved: plan.fromWallet,
     })
     .select("id")
