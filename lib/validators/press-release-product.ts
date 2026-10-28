@@ -8,6 +8,7 @@ export const pressReleaseProductSchema = z.object({
   outlet_count: z.coerce.number().int().min(0).nullable().optional(),
   domain_authority: z.coerce.number().int().min(0).max(100).nullable().optional(),
   monthly_visitors: z.string().trim().max(50).nullable().optional(),
+  delivery_days: z.coerce.number().int().min(1).max(90).nullable().optional(),
   featured: z.boolean().default(false),
   active: z.boolean().default(true),
   sort_order: z.coerce.number().int().min(0).default(0),
