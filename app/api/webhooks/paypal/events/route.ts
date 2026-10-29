@@ -1,3 +1,4 @@
+import { publicLimit } from "@/lib/public-limit";
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { verifyPaypalWebhook } from "@/lib/paypal/client";
@@ -14,6 +15,9 @@ import { finishOrderPayment, finishWalletTopup } from "@/lib/paypal/complete";
  * Always answers 200 for a genuine event that needs no action, so PayPal does not retry it forever.
  */
 export async function POST(request: Request) {
+  // Every call costs one PayPal verification request, so a flood from one address is cut off first.
+  const limited = publicLimit(request, "paypal_events", 120);
+  if (limited) return limited;
   if (!process.env.PAYPAL_WEBHOOK_ID) {
     return NextResponse.json({ error: "PayPal webhook is not configured" }, { status: 503 });
   }

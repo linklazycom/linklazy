@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/require-admin";
 import { createServiceClient } from "@/lib/supabase/service";
+import { notifyLinkOwner } from "@/lib/link-notices";
 import { readJson } from "@/lib/links/http";
 import { cleanText } from "@/lib/links/fields";
 
@@ -36,13 +37,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   if (report.link_id) {
-    const { data: link } = await svc.from("short_links").select("user_id, disabled_reason").eq("id", report.link_id).maybeSingle();
+    const { data: link } = await svc.from("short_links").select("user_id, slug, disabled_reason").eq("id", report.link_id).maybeSingle();
     if (link) {
       if (!link.disabled_reason) {
         await svc
           .from("short_links")
           .update({ disabled_reason: "admin_takedown", disabled_at: now, disabled_note: note ?? `Abuse report ${id}`, updated_at: now })
           .eq("id", report.link_id);
+        await notifyLinkOwner(svc, link.user_id as string, "takedown", { slug: link.slug as string, note });
       }
       if (parsed.data.flag_owner) {
         await supabase

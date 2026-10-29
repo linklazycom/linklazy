@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/require-admin";
 import { createServiceClient } from "@/lib/supabase/service";
 import { readJson } from "@/lib/links/http";
 import { cleanText } from "@/lib/links/fields";
+import { notifyLinkOwner } from "@/lib/link-notices";
 
 const schema = z.object({
   action: z.enum(["takedown", "restore"]),
@@ -53,5 +54,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     target_id: id,
     metadata: { slug: link.slug, note, flag_owner: !!flag_owner },
   });
-  return NextResponse.json({ ok: true });
+  // Tell the owner (best effort; the takedown itself never depends on the email).
+  const emailSent = await notifyLinkOwner(svc, link.user_id as string, action, { slug: link.slug as string, note });
+  return NextResponse.json({ ok: true, emailSent });
 }

@@ -1,3 +1,4 @@
+import { publicLimit } from "@/lib/public-limit";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getSiteSettings } from "@/lib/site-settings";
@@ -10,6 +11,8 @@ import { getSiteSettings } from "@/lib/site-settings";
  * route instead and render with AdSlotClient.
  */
 export async function GET(request: Request) {
+  const limited = publicLimit(request, "ads", 120);
+  if (limited) return limited;
   const { searchParams } = new URL(request.url);
   const placement = searchParams.get("placement");
   if (!placement) return NextResponse.json({ slot: null });

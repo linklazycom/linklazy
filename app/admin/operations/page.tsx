@@ -1,6 +1,7 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { StatCard } from "@/components/admin/stat-card";
 import { RetryTaskButton } from "@/components/admin/operations/retry-task-button";
+import { EmailHealthCard } from "@/components/admin/operations/email-health-card";
 import { summarizeUsage, taskHealth } from "@/lib/ops-summary";
 
 export const metadata = { title: "Admin · Operations" };
@@ -45,6 +46,12 @@ export default async function AdminOperationsPage() {
           ⚠️ কিছু কাজ আটকে আছে। দৈনিক cron (run-tasks) চলছে কিনা Vercel &gt; Settings &gt; Cron Jobs-এ দেখুন; আটকে-থাকা &quot;running&quot; কাজ পরের রানে নিজে আবার কিউতে যায়।
         </p>
       )}
+
+      <section className="space-y-2">
+        <h2 className="font-display text-lg font-medium">Email</h2>
+        <p className="text-xs text-muted">ইমেইল (অর্ডার/উইথড্রয়াল/ব্যাকলিংক নোটিফিকেশন) ঠিকমতো যাচ্ছে কিনা পরীক্ষা করুন।</p>
+        <EmailHealthCard />
+      </section>
 
       <section className="space-y-2">
         <h2 className="font-display text-lg font-medium">Failed tasks (last 7 days)</h2>

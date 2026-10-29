@@ -1,3 +1,4 @@
+import { publicLimit } from "@/lib/public-limit";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
@@ -28,6 +29,8 @@ function escapeOrFilterValue(value: string): string {
 }
 
 export async function GET(request: Request) {
+  const limited = publicLimit(request, "search", 90);
+  if (limited) return limited;
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q")?.trim() ?? "";
 
