@@ -106,9 +106,9 @@ export default async function SellerAnalyticsPage() {
       </div>
 
       <p className="mt-6 text-xs text-muted">
-        Views are counted from page visits to your listing's detail page.
+        Views are counted from page visits to your listing&apos;s detail page.
         Unlocks count buyers who spent a credit to see your contact info —
-        a low view-to-unlock ratio usually means your listing's metrics or
+        a low view-to-unlock ratio usually means your listing&apos;s metrics or
         price need a second look.
       </p>
     </div>

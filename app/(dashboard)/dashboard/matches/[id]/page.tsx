@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, use as usePromise } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
@@ -189,9 +190,9 @@ export default function MatchDetailPage({
       {match.status === "accepted" && (
         <p className="text-sm text-signal">
           Accepted — two linked orders were created.{" "}
-          <a href="/dashboard/orders" className="underline">
+          <Link href="/dashboard/orders" className="underline">
             View orders
-          </a>
+          </Link>
         </p>
       )}
     </div>

@@ -26,7 +26,6 @@ export function AdHtmlRenderer({ html }: { html: string }) {
       newScript.textContent = oldScript.textContent;
       oldScript.replaceWith(newScript);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [html]);
 
   return <div ref={containerRef} className="ad-slot-html" />;

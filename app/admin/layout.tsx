@@ -110,6 +110,7 @@ const NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin/settings", label: "General settings" },
       { href: "/admin/features", label: "Tools & features (on/off)" },
       { href: "/admin/api-providers", label: "API Providers" },
+      { href: "/admin/operations", label: "Operations" },
       { href: "/admin/coupons", label: "Coupons" },
       { href: "/admin/ads", label: "Ads" },
     ],

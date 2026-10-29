@@ -544,7 +544,7 @@ export default function AdminSiteDetailPage({
       <div className="mb-6 rounded-chip border border-line bg-white p-4">
         <p className="mb-1 text-sm font-medium">Homepage / Browse highlight</p>
         <p className="mb-3 text-xs text-muted">
-          Featured sites show a gradient top-bar and a "★ Featured" badge, and sort first in
+          Featured sites show a gradient top-bar and a &quot;★ Featured&quot; badge, and sort first in
           Browse Sites. Use this to spotlight sites you want buyers to notice.
         </p>
         <Button size="sm" variant={site.is_featured ? "primary" : "secondary"} onClick={toggleFeatured} disabled={featuredBusy}>

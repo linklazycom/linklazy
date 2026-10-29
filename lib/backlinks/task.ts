@@ -2,6 +2,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { enqueueTask, type TaskRow } from "@/lib/tasks";
 import { isBacklinkMonitorOn } from "@/lib/backlinks/feature";
 import { BACKLINK_COLUMNS, runAndStoreCheck, type BacklinkRow } from "@/lib/backlinks/service";
+import { decideBacklinkNotice, sendBacklinkNotice } from "@/lib/backlinks/notify";
 
 /** Scheduled monitoring on top of the background-task queue (Batch 13). */
 export const BACKLINK_TASK = "backlink.check";
@@ -62,6 +63,21 @@ export async function handleBacklinkCheckTask(task: TaskRow): Promise<Record<str
   const { data: profile } = await svc.from("profiles").select("is_banned, is_suspended").eq("id", row.user_id).maybeSingle();
   if (profile?.is_banned || profile?.is_suspended) return { skipped: "owner_restricted" };
 
+  // Read separately so the monitor keeps working even before SQL 065 is applied.
+  const { data: marker, error: markerError } = await svc.from("backlinks").select("lost_notified_at").eq("id", id).maybeSingle();
+  const lostNotifiedAt = markerError ? null : ((marker?.lost_notified_at as string | null) ?? null);
+
   const r = await runAndStoreCheck(row, "scheduled");
-  return { status: r.outcome.status, reason: r.outcome.reason };
+
+  // Tell the owner when a link is lost (2 misses in a row) or comes back. Never affects the check itself.
+  let notice: string | null = null;
+  if (!markerError) {
+    const kind = decideBacklinkNotice({ prevStatus: row.status, newStatus: r.outcome.status, lostNotifiedAt });
+    if (kind) {
+      await sendBacklinkNotice(svc, row, kind);
+      await svc.from("backlinks").update({ lost_notified_at: kind === "lost" ? new Date().toISOString() : null }).eq("id", id);
+      notice = kind;
+    }
+  }
+  return { status: r.outcome.status, reason: r.outcome.reason, ...(notice ? { notice } : {}) };
 }

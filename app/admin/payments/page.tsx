@@ -58,9 +58,14 @@ function Section({
   );
 }
 
+/** ISO time N minutes ago (kept outside the page so the render stays pure). */
+function minutesAgoIso(minutes: number): string {
+  return new Date(Date.now() - minutes * 60_000).toISOString();
+}
+
 export default async function AdminPaymentHealthPage() {
   const supabase = await createClient();
-  const cutoff = new Date(Date.now() - STUCK_AFTER_MINUTES * 60_000).toISOString();
+  const cutoff = minutesAgoIso(STUCK_AFTER_MINUTES);
 
   // 1) Payments that never finished
   const { data: stuckRaw } = await supabase

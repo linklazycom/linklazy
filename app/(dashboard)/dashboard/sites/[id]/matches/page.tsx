@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, use as usePromise } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
@@ -106,9 +107,9 @@ export default function SiteMatchesPage({
       {success && (
         <div className="mb-6 rounded-chip border border-signal/30 bg-signal-soft p-4 text-sm">
           Proposal sent. You can track its status from{" "}
-          <a href="/dashboard/matches" className="underline">
+          <Link href="/dashboard/matches" className="underline">
             your matches list
-          </a>
+          </Link>
           .
         </div>
       )}

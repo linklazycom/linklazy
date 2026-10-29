@@ -73,7 +73,7 @@ export default async function PrivacyPage() {
           <h2 className="mb-2 font-display text-lg font-medium">5. Support tickets</h2>
           <p>
             When you contact support, we store your name, email, and message
-            history to respond to your request. If you're logged in, your
+            history to respond to your request. If you&apos;re logged in, your
             ticket is linked to your account so you can view it under My
             Tickets; if you contact us as a guest, your ticket is accessible
             only via a private link containing a unique access token. Support
@@ -99,7 +99,7 @@ export default async function PrivacyPage() {
             account, and track commission credits earned from their
             completed paid orders. This data is used solely to calculate and
             display your referral earnings and is not shared with the
-            referred user beyond what's necessary to operate the program.
+            referred user beyond what&apos;s necessary to operate the program.
           </p>
         </section>
         <section>

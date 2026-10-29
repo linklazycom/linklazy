@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getBioTheme } from "@/lib/bio/themes";
 
 export interface BioViewLink {
@@ -70,13 +71,13 @@ export function BioView({
         {footer && (
           <p className="mt-10 text-xs" style={{ color: t.muted }}>
             Made with{" "}
-            <a href="/" style={{ color: t.text }} className="underline">
+            <Link href="/" style={{ color: t.text }} className="underline">
               LinkLazy
-            </a>{" "}
+            </Link>{" "}
             ·{" "}
-            <a href="/support" rel="nofollow" style={{ color: t.muted }} className="underline">
+            <Link href="/support" rel="nofollow" style={{ color: t.muted }} className="underline">
               Report this page
-            </a>
+            </Link>
           </p>
         )}
       </div>

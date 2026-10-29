@@ -112,7 +112,7 @@ export default function BillingPage() {
         </div>
         <p className="mb-3 text-sm text-muted">
           Load your wallet to pay per-site for listings owners have enabled for pay-per-view.
-          Also used to pay out your earnings if you're a seller.
+          Also used to pay out your earnings if you&apos;re a seller.
         </p>
         <div className="mb-3">
           <MetricChip label="Balance" value={profile.wallet_balance} tone="price" />

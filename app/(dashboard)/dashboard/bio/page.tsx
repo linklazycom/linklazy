@@ -59,7 +59,7 @@ export default async function BioPagesPage() {
         );
       })}
 
-      {canCreate ? <BioCreateForm siteUrl={siteUrl()} /> : <p className="text-sm text-muted">You've reached your bio-page limit.</p>}
+      {canCreate ? <BioCreateForm siteUrl={siteUrl()} /> : <p className="text-sm text-muted">You&apos;ve reached your bio-page limit.</p>}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertTriangle } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
 interface Props {
@@ -24,6 +25,7 @@ export function RouteError({
   title = "Something went wrong",
   description = "We ran into a problem loading this page. Please try again, or contact support if the issue continues.",
 }: Props) {
+  const router = useRouter();
   return (
     <div className="mx-auto flex min-h-[50vh] max-w-md flex-col items-center justify-center gap-4 px-4 text-center">
       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
@@ -43,7 +45,7 @@ export function RouteError({
         <Button variant="secondary" onClick={reset}>
           Try again
         </Button>
-        <Button variant="ghost" onClick={() => (window.location.href = "/")}>
+        <Button variant="ghost" onClick={() => router.push("/")}>
           Back to home
         </Button>
       </div>

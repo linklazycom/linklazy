@@ -61,7 +61,6 @@ export default function AdminAdsPage() {
       const { data } = await supabase.from("site_settings").select("value").eq("key", "ads_enabled").single();
       if (data?.value) setAudience(data.value as string);
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function saveAudience(next: string) {

@@ -111,6 +111,8 @@ export default async function LinksPage({ searchParams }: { searchParams: Promis
               Import CSV
             </Button>
           </Link>
+          {/* File download, not a page: a plain link is correct here. */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
           <a href="/api/links/export">
             <Button variant="secondary" size="sm" type="button">
               Export CSV
