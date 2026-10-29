@@ -21,13 +21,13 @@ jobs:
         run: npm run typecheck
       - name: Unit tests
         run: npm test
-
-      # Not strict yet: ~45 old lint findings exist, and the build needs real
-      # Supabase env values. Turn these strict (remove continue-on-error) once
-      # they are clean — tracked in LINKLAZY_PLAN.md.
+      # Lint is strict since Batch 20: 0 errors required (27 "set state in effect"
+      # warnings are known and allowed, see eslint.config.mjs).
       - name: Lint
         run: npm run lint
-        continue-on-error: true
+
+      # Build is not strict yet: it has never been seen green in CI. After one
+      # green run shows up in the Actions tab, delete the continue-on-error line.
       - name: Build
         run: npm run build
         continue-on-error: true
