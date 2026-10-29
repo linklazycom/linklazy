@@ -30,7 +30,6 @@ jobs:
       # green run shows up in the Actions tab, delete the continue-on-error line.
       - name: Build
         run: npm run build
-        continue-on-error: true
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
