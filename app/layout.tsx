@@ -2,7 +2,7 @@ import { safeJsonLd, siteUrl } from "@/lib/seo";
 import { JsonLd } from "@/components/seo/json-ld";
 import { organizationSchema } from "@/lib/business";
 import type { Metadata } from "next";
-import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import Script from "next/script";
 import { Suspense } from "react";
 import "./globals.css";
@@ -14,23 +14,35 @@ import { NavigationProgress } from "@/components/layout/navigation-progress";
 import { headers } from "next/headers";
 import { CurrencyProvider } from "@/components/currency/currency-provider";
 
-const display = Fraunces({
-  subsets: ["latin"],
+// Fonts are self-hosted (app/fonts) so the build does not depend on downloading from Google.
+const display = localFont({
+  src: [
+    { path: "./fonts/fraunces-latin-500-normal.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/fraunces-latin-500-italic.woff2", weight: "500", style: "italic" },
+    { path: "./fonts/fraunces-latin-600-normal.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/fraunces-latin-600-italic.woff2", weight: "600", style: "italic" },
+  ],
   variable: "--font-display",
-  weight: ["500", "600"],
-  style: ["normal", "italic"],
+  display: "swap",
 });
 
-const body = Inter({
-  subsets: ["latin"],
+const body = localFont({
+  src: [
+    { path: "./fonts/inter-latin-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/inter-latin-500-normal.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/inter-latin-600-normal.woff2", weight: "600", style: "normal" },
+  ],
   variable: "--font-body",
-  weight: ["400", "500", "600"],
+  display: "swap",
 });
 
-const mono = JetBrains_Mono({
-  subsets: ["latin"],
+const mono = localFont({
+  src: [
+    { path: "./fonts/jetbrains-mono-latin-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/jetbrains-mono-latin-500-normal.woff2", weight: "500", style: "normal" },
+  ],
   variable: "--font-mono",
-  weight: ["400", "500"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
