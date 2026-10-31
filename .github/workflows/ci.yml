@@ -26,8 +26,8 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      # Build is not strict yet: it has never been seen green in CI. After one
-      # green run shows up in the Actions tab, delete the continue-on-error line.
+      # Strict since Batch 22B: fonts are self-hosted (app/fonts), so the build no longer
+      # downloads anything from Google, and it passed a full local production build.
       - name: Build
         run: npm run build
         env:
