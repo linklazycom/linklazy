@@ -1,3 +1,4 @@
+import { trackCron } from "@/lib/cron-track";
 import { NextResponse } from "next/server";
 import { requireCron } from "@/lib/cron-auth";
 import { runOutreachPush } from "@/lib/outreach/push";
@@ -10,7 +11,7 @@ export const maxDuration = 120;
  * so a free external scheduler (for example cron-job.org or a GitHub Action) can call it once a day with the header
  * "Authorization: Bearer <CRON_SECRET>". Does nothing unless the master switch is ON.
  */
-export async function GET(request: Request) {
+async function handle(request: Request) {
   const denied = requireCron(request);
   if (denied) return denied;
   try {
@@ -22,4 +23,8 @@ export async function GET(request: Request) {
     console.error("outreach-push cron failed:", err instanceof Error ? err.message : "unknown error");
     return NextResponse.json({ error: "Outreach push failed" }, { status: 500 });
   }
+}
+
+export async function GET(request: Request) {
+  return trackCron("outreach-push", () => handle(request));
 }

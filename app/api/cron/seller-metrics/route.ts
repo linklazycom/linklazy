@@ -1,3 +1,4 @@
+import { trackCron } from "@/lib/cron-track";
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { requireCron } from "@/lib/cron-auth";
@@ -16,7 +17,7 @@ const FINISHED_STATUSES = ["accepted", "disputed", "refunded"];
  * aggregate) so a bug in one seller's data can't take down the whole run —
  * catalog size here doesn't call for anything fancier yet.
  */
-export async function GET(request: Request) {
+async function handle(request: Request) {
   const denied = requireCron(request);
   if (denied) return denied;
 
@@ -82,4 +83,8 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.json({ updated });
+}
+
+export async function GET(request: Request) {
+  return trackCron("seller-metrics", () => handle(request));
 }

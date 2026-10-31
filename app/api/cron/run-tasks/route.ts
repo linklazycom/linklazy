@@ -1,3 +1,4 @@
+import { trackCron } from "@/lib/cron-track";
 import { NextResponse } from "next/server";
 import { requireCron } from "@/lib/cron-auth";
 import { runDueTasks } from "@/lib/tasks";
@@ -12,7 +13,7 @@ export const maxDuration = 300;
  * Daily job: queues a check for every monitored backlink that is due (Backlink Monitor), then
  * runs the task queue (this also picks up any other queued task whose handler is registered).
  */
-export async function GET(request: Request) {
+async function handle(request: Request) {
   const denied = requireCron(request);
   if (denied) return denied;
 
@@ -25,4 +26,8 @@ export async function GET(request: Request) {
     console.error("run-tasks cron failed:", err instanceof Error ? err.message : "unknown error");
     return NextResponse.json({ error: "Task run failed" }, { status: 500 });
   }
+}
+
+export async function GET(request: Request) {
+  return trackCron("run-tasks", () => handle(request));
 }

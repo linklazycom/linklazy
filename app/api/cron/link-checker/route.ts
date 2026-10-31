@@ -1,3 +1,4 @@
+import { trackCron } from "@/lib/cron-track";
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email";
@@ -22,7 +23,7 @@ export const maxDuration = 300;
  * Timeouts, 404/5xx, bot-blocking and pages we could not read leave the
  * order's check state untouched (they used to be reported as a removed link).
  */
-export async function GET(request: Request) {
+async function handle(request: Request) {
   const denied = requireCron(request);
   if (denied) return denied;
 
@@ -96,4 +97,8 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.json({ checked: orders.length, stillLive, wentDown, skipped, unverified });
+}
+
+export async function GET(request: Request) {
+  return trackCron("link-checker", () => handle(request));
 }

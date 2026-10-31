@@ -1,3 +1,4 @@
+import { trackCron } from "@/lib/cron-track";
 import { NextResponse } from "next/server";
 import { requireCron } from "@/lib/cron-auth";
 
@@ -11,7 +12,7 @@ import { requireCron } from "@/lib/cron-auth";
  * sitemap URL declared in robots.txt automatically. Bing's ping endpoint
  * is still active as of writing and is included here.
  */
-export async function GET(request: Request) {
+async function handle(request: Request) {
   const denied = requireCron(request);
   if (denied) return denied;
 
@@ -33,4 +34,8 @@ export async function GET(request: Request) {
     "skipped — Google retired the public sitemap ping endpoint in 2023; submit the sitemap once in Google Search Console instead (see notes below)";
 
   return NextResponse.json({ sitemapUrl, results });
+}
+
+export async function GET(request: Request) {
+  return trackCron("ping-search-engines", () => handle(request));
 }

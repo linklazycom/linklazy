@@ -1,3 +1,4 @@
+import { trackCron } from "@/lib/cron-track";
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email";
@@ -41,7 +42,7 @@ function siteMatchesFilters(
  * Runs on a schedule (see vercel.json) — protected by CRON_SECRET so it
  * can't be triggered by anyone who finds the URL.
  */
-export async function GET(request: Request) {
+async function handle(request: Request) {
   const denied = requireCron(request);
   if (denied) return denied;
 
@@ -169,4 +170,8 @@ async function checkPriceDrops() {
   }
 
   return { checked: watched.length, notified };
+}
+
+export async function GET(request: Request) {
+  return trackCron("search-alerts", () => handle(request));
 }

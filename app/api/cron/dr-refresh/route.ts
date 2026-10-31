@@ -1,3 +1,4 @@
+import { trackCron } from "@/lib/cron-track";
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { fetchDomainRating } from "@/lib/ahrefs";
@@ -16,7 +17,7 @@ export const maxDuration = 300;
  * to stay well within Ahrefs' free-endpoint rate limit — this is a batch
  * job, not a live lookup, so a few minutes of runtime is fine.
  */
-export async function GET(request: Request) {
+async function handle(request: Request) {
   const denied = requireCron(request);
   if (denied) return denied;
 
@@ -63,4 +64,8 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.json({ checked: sites.length, ok, failed });
+}
+
+export async function GET(request: Request) {
+  return trackCron("dr-refresh", () => handle(request));
 }

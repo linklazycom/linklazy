@@ -3,6 +3,7 @@ import { StatCard } from "@/components/admin/stat-card";
 import { RetryTaskButton } from "@/components/admin/operations/retry-task-button";
 import { EmailHealthCard } from "@/components/admin/operations/email-health-card";
 import { summarizeUsage, taskHealth } from "@/lib/ops-summary";
+import { CRONS, cronHealth, type CronRunRow } from "@/lib/cron-schedule";
 
 export const metadata = { title: "Admin · Operations" };
 export const dynamic = "force-dynamic";
@@ -19,6 +20,17 @@ export default async function AdminOperationsPage() {
     svc.from("tasks").select("id", { count: "exact", head: true }).eq("status", "succeeded").gte("finished_at", daysAgo(1)),
     svc.from("usage_charges").select("action, amount, status").gte("created_at", daysAgo(30)).limit(20000),
   ]);
+
+  // Scheduled jobs. If SQL 067 is not applied yet the table is missing: show every job as "never run".
+  let cronRows: CronRunRow[] = [];
+  let cronTableMissing = false;
+  {
+    const { data, error } = await svc.from("cron_runs").select("name, last_finished_at, last_ok_at, last_status, last_http, last_duration_ms");
+    if (error) cronTableMissing = true;
+    else cronRows = (data ?? []) as CronRunRow[];
+  }
+  const crons = cronHealth(CRONS, cronRows, new Date());
+  const cronIcon = { ok: "✅", late: "⚠️", failing: "❌", never: "⏳", external: "➖" } as const;
 
   const health = taskHealth((open.data ?? []) as { status: string; run_at: string; locked_at: string | null }[], new Date());
   const queued = (open.data ?? []).filter((t) => t.status === "queued").length;
@@ -46,6 +58,31 @@ export default async function AdminOperationsPage() {
           ⚠️ কিছু কাজ আটকে আছে। দৈনিক cron (run-tasks) চলছে কিনা Vercel &gt; Settings &gt; Cron Jobs-এ দেখুন; আটকে-থাকা &quot;running&quot; কাজ পরের রানে নিজে আবার কিউতে যায়।
         </p>
       )}
+
+      <section className="space-y-2">
+        <h2 className="font-display text-lg font-medium">Scheduled jobs (cron)</h2>
+        <p className="text-xs text-muted">
+          প্রতিটি স্বয়ংক্রিয় কাজ শেষবার কবে সফলভাবে চলেছে। ⚠️ late মানে প্রত্যাশিত সময়ে চলেনি (Vercel &gt; Settings &gt; Cron Jobs ও Logs দেখুন); ❌ মানে শেষ রান ত্রুটি দিয়েছে; ⏳ মানে এখনো কোনো রান রেকর্ড হয়নি (ডেপ্লয়ের পর প্রথম নির্ধারিত সময় পর্যন্ত স্বাভাবিক)।
+        </p>
+        {cronTableMissing && <p className="rounded-chip bg-amber-50 p-3 text-sm text-amber-900">cron_runs টেবিল নেই — SQL 067 চালান।</p>}
+        <div className="overflow-x-auto rounded-chip border border-line bg-white">
+          <table className="w-full text-left text-sm">
+            <tbody>
+              {crons.map((c) => (
+                <tr key={c.def.name} className="border-t border-line first:border-t-0">
+                  <td className="p-2">{cronIcon[c.state]}</td>
+                  <td className="p-2">
+                    <span className="font-medium">{c.def.label}</span>
+                    <span className="ml-2 font-mono text-xs text-muted">{c.def.name}</span>
+                  </td>
+                  <td className="p-2 text-xs text-muted">{c.lastOkAt ? `last success ${new Date(c.lastOkAt).toLocaleString()}` : "—"}</td>
+                  <td className="p-2 text-xs text-muted">{c.state === "ok" ? "" : c.detail}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <section className="space-y-2">
         <h2 className="font-display text-lg font-medium">Email</h2>

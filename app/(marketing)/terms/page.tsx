@@ -9,6 +9,9 @@ export const metadata: Metadata = {
   description: "The terms governing use of the LinkLazy marketplace.",
 };
 
+/** Update this date whenever the text changes (it used to show today's date on every visit, which is misleading for legal text). */
+const LEGAL_UPDATED = "30 October 2026";
+
 export default async function TermsPage() {
   const settings = await getSiteSettings();
   const email = settings.contact_email as string;
@@ -19,7 +22,7 @@ export default async function TermsPage() {
         eyebrow="Legal"
         eyebrowIcon={FileText}
         title="Terms & Conditions"
-        description={`Last updated: ${new Date().toLocaleDateString()}`}
+        description={`Last updated: ${LEGAL_UPDATED}`}
       />
 
       <div className="mx-auto max-w-2xl px-6 py-16">
@@ -96,20 +99,56 @@ export default async function TermsPage() {
           </p>
         </section>
         <section>
-          <h2 className="mb-2 font-display text-lg font-medium">7. Referral program</h2>
+          <h2 className="mb-2 font-display text-lg font-medium">7. Wallet, deposit bonus and withdrawals</h2>
+          <p>
+            You can add money to your LinkLazy wallet using the payment methods we offer (currently PayPal and bKash) and use it for orders and paid tools on the platform. We may offer a deposit bonus on top-ups. A bonus is wallet credit that can be spent on LinkLazy but cannot be withdrawn; when you spend from your wallet, any unspent bonus is used first. If a top-up is refunded or reversed, we may take back the part of its bonus that has not been spent.
+          </p>
+          <p>
+            You may ask to withdraw your earnings and referral credit to bKash, Nagad or a bank account. Every request is reviewed by our team and paid manually, so payouts are not instant. We may delay or reject a request that looks fraudulent or breaks these terms; a rejected amount returns to your balance. You are responsible for entering correct payout details, and we are not liable for a payout sent to the details you gave us.
+          </p>
+        </section>
+        <section>
+          <h2 className="mb-2 font-display text-lg font-medium">8. Refunds and cancellations</h2>
+          <p>
+            When a paid order is rejected by the seller, cancelled before the seller accepts it, or resolved in the buyer&apos;s favour through a dispute, the escrowed amount is returned to the buyer&apos;s LinkLazy wallet. Escrowed funds are released to the seller when the buyer accepts delivery or as otherwise provided in these terms.
+          </p>
+          <p>
+            Money added to the wallet is meant to be used on LinkLazy. If you want a refund of an unused top-up, contact support and we will review it case by case; fees charged by payment providers may not be refundable. If a paid tool fails to produce a result, the charge for that use is refunded to your wallet.
+          </p>
+        </section>
+        <section>
+          <h2 className="mb-2 font-display text-lg font-medium">9. Referral program</h2>
           <p>
             Users may earn a commission credit — currently 50% of LinkLazy&apos;s
             commission on a referred user&apos;s completed paid orders — by
             referring new users with their unique referral link. Referral
-            credits are informational account balances until a withdrawal
-            process is made available; LinkLazy reserves the right to adjust
+            credits can be withdrawn through the withdrawal process
+            described above, once reviewed by our team; LinkLazy reserves the right to adjust
             the referral commission rate, and to withhold or reverse credits
             found to result from fraudulent, self-referred, or abusive
             signups.
           </p>
         </section>
         <section>
-          <h2 className="mb-2 font-display text-lg font-medium">8. Disputes</h2>
+          <h2 className="mb-2 font-display text-lg font-medium">10. Short links and acceptable use</h2>
+          <p>
+            LinkLazy offers a short-link service. You may not use it to point to phishing pages, malware, scams, illegal content, content that exploits children, or anything that misleads people about where a link goes. Anyone can report a link from our Report a link page. We may turn off a link or limit link features at any time, with or without notice, and we may flag or suspend accounts that abuse the service. If an account is suspended or banned, its short links are turned off too. Links with a password, expiry date or click limit behave as you set them, and we may apply usage limits to accounts.
+          </p>
+        </section>
+        <section>
+          <h2 className="mb-2 font-display text-lg font-medium">11. AI-assisted tools</h2>
+          <p>
+            Some LinkLazy tools use artificial intelligence to draft or suggest text, images or ideas. Results can be wrong, incomplete or similar to other content, so you must review them before use and you are responsible for how you use them, including making sure they follow these terms and the law. Do not enter passwords, secrets or other people&apos;s personal data into these tools. What you enter may be sent to third-party AI providers in order to produce the result.
+          </p>
+        </section>
+        <section>
+          <h2 className="mb-2 font-display text-lg font-medium">12. Press release service</h2>
+          <p>
+            If you order a press release, you must give us accurate information that you have the right to publish. We review every request and may decline it or ask for changes. Payment arrangements are confirmed by our team before work starts. Delivery times we show are estimates, not guarantees. We pass your release to media and publishing partners, but we cannot control whether, or for how long, a third-party site keeps an article online, or what effect it has on search rankings.
+          </p>
+        </section>
+        <section>
+          <h2 className="mb-2 font-display text-lg font-medium">13. Disputes</h2>
           <p>
             If a buyer and seller cannot resolve an issue directly through
             in-platform messaging, either party may open a dispute for admin
@@ -119,7 +158,7 @@ export default async function TermsPage() {
           </p>
         </section>
         <section>
-          <h2 className="mb-2 font-display text-lg font-medium">9. Account suspension</h2>
+          <h2 className="mb-2 font-display text-lg font-medium">14. Account suspension</h2>
           <p>
             We may suspend or terminate accounts that violate these terms,
             submit fraudulent listings, repeatedly fail to deliver on orders,
@@ -127,7 +166,7 @@ export default async function TermsPage() {
           </p>
         </section>
         <section>
-          <h2 className="mb-2 font-display text-lg font-medium">10. Limitation of liability</h2>
+          <h2 className="mb-2 font-display text-lg font-medium">15. Limitation of liability</h2>
           <p>
             LinkLazy is provided &quot;as is.&quot; We are not liable for any
             indirect, incidental, or consequential damages arising from your
@@ -141,7 +180,7 @@ export default async function TermsPage() {
           </p>
         </section>
         <section>
-          <h2 className="mb-2 font-display text-lg font-medium">11. Changes to these terms</h2>
+          <h2 className="mb-2 font-display text-lg font-medium">16. Changes to these terms</h2>
           <p>
             We may update these terms from time to time. Continued use of
             the platform after changes take effect constitutes acceptance of
@@ -149,7 +188,7 @@ export default async function TermsPage() {
           </p>
         </section>
         <section>
-          <h2 className="mb-2 font-display text-lg font-medium">12. Contact</h2>
+          <h2 className="mb-2 font-display text-lg font-medium">17. Contact</h2>
           <p>
             Questions about these terms can be sent to{" "}
             <a href={`mailto:${email}`} className="underline">

@@ -1,3 +1,4 @@
+import { trackCron } from "@/lib/cron-track";
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email";
@@ -44,7 +45,7 @@ function siteMatchesFilters(
  * fallback "top new listings this week" list if they had no personal
  * matches. This is separate from the daily real-time search-alerts cron.
  */
-export async function GET(request: Request) {
+async function handle(request: Request) {
   const denied = requireCron(request);
   if (denied) return denied;
 
@@ -134,4 +135,8 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.json({ usersChecked: byUser.size, sent });
+}
+
+export async function GET(request: Request) {
+  return trackCron("weekly-digest", () => handle(request));
 }

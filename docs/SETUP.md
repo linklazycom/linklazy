@@ -4,7 +4,7 @@
 - `app/` — Next.js পেজ ও API route
 - `components/`, `lib/` — UI ও বিজনেস লজিক
 - `proxy.ts` — সেশন রিফ্রেশ (আগের `middleware.ts` এর জায়গায়; দুটো একসাথে থাকলে সমস্যা)
-- `vercel.json` — ৭টি cron job
+- `vercel.json` — ৯টি cron job (Admin > Operations-এ প্রতিটির সর্বশেষ সফল রান দেখা যায়)
 - `supabase/` — স্কিমা রেফারেন্স ও SQL (নিচে দেখুন)
 
 ## ২. Supabase

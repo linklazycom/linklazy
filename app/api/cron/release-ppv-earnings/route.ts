@@ -1,3 +1,4 @@
+import { trackCron } from "@/lib/cron-track";
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { requireCron } from "@/lib/cron-auth";
@@ -14,7 +15,7 @@ export const maxDuration = 300;
  * before being credited to the seller's wallet. This releases anything
  * past that window that hasn't been reversed by an admin in the meantime.
  */
-export async function GET(request: Request) {
+async function handle(request: Request) {
   const denied = requireCron(request);
   if (denied) return denied;
 
@@ -76,4 +77,8 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.json({ ok: true, released });
+}
+
+export async function GET(request: Request) {
+  return trackCron("release-ppv-earnings", () => handle(request));
 }
