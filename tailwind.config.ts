@@ -35,9 +35,9 @@ const config: Config = {
         muted: "#6B7280",
       },
       fontFamily: {
-        display: ["var(--font-display)", "serif"],
-        body: ["var(--font-body)", "sans-serif"],
-        mono: ["var(--font-mono)", "monospace"],
+        display: ["var(--font-display)", "Georgia", "Times New Roman", "serif"],
+        body: ["var(--font-body)", "system-ui", "Segoe UI", "Arial", "sans-serif"],
+        mono: ["var(--font-mono)", "Consolas", "Menlo", "monospace"],
       },
       borderRadius: {
         chip: "6px",

@@ -15,7 +15,7 @@ import { headers } from "next/headers";
 import { CurrencyProvider } from "@/components/currency/currency-provider";
 
 // Fonts are self-hosted (app/fonts) so the build does not depend on downloading from Google.
-const display = localFont({
+const llDisplay = localFont({
   src: [
     { path: "./fonts/fraunces-latin-500-normal.woff2", weight: "500", style: "normal" },
     { path: "./fonts/fraunces-latin-500-italic.woff2", weight: "500", style: "italic" },
@@ -26,7 +26,7 @@ const display = localFont({
   display: "swap",
 });
 
-const body = localFont({
+const llBody = localFont({
   src: [
     { path: "./fonts/inter-latin-400-normal.woff2", weight: "400", style: "normal" },
     { path: "./fonts/inter-latin-500-normal.woff2", weight: "500", style: "normal" },
@@ -36,7 +36,7 @@ const body = localFont({
   display: "swap",
 });
 
-const mono = localFont({
+const llMono = localFont({
   src: [
     { path: "./fonts/jetbrains-mono-latin-400-normal.woff2", weight: "400", style: "normal" },
     { path: "./fonts/jetbrains-mono-latin-500-normal.woff2", weight: "500", style: "normal" },
@@ -101,7 +101,7 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="en" className={`${display.variable} ${body.variable} ${mono.variable}`}>
+    <html lang="en" className={`${llDisplay.variable} ${llBody.variable} ${llMono.variable}`}>
       <head>
         {(settings.gsc_verification_code as string) && (
           <meta name="google-site-verification" content={settings.gsc_verification_code as string} />

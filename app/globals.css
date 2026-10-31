@@ -2,11 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --font-display: "Fraunces", serif;
-  --font-body: "Inter", sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
-}
+/* The --font-display / --font-body / --font-mono variables come from the self-hosted fonts in app/layout.tsx
+   (a second definition here used to compete with them and could win, leaving the page on a system font). */
 
 body {
   @apply bg-paper text-ink font-body antialiased;
