@@ -75,8 +75,6 @@ export default function SiteMatchesPage({
         site_b_id: proposingTo,
         my_target_url: form.get("my_target_url"),
         my_anchor_text: form.get("my_anchor_text"),
-        their_target_url: form.get("their_target_url"),
-        their_anchor_text: form.get("their_anchor_text"),
         notes: form.get("notes") || undefined,
       }),
     });
@@ -134,12 +132,12 @@ export default function SiteMatchesPage({
 
             {proposingTo === c.id ? (
               <form onSubmit={handlePropose} className="space-y-3 border-t border-line pt-3">
-                <p className="text-xs font-medium text-muted">Your link (on their site)</p>
-                <Field id="my_target_url" name="my_target_url" label="Page they should link to" placeholder="https://yoursite.com/page" required />
+                <p className="text-xs font-medium text-muted">The link you ask for (placed on their site)</p>
+                <Field id="my_target_url" name="my_target_url" label="Page on YOUR site they should link to" placeholder={`https://${mySite.domain}/page`} required />
                 <Field id="my_anchor_text" name="my_anchor_text" label="Anchor text" required />
-                <p className="pt-2 text-xs font-medium text-muted">Their link (on your site)</p>
-                <Field id="their_target_url" name="their_target_url" label="Page you'll link to" placeholder="https://theirsite.com/page" required />
-                <Field id="their_anchor_text" name="their_anchor_text" label="Anchor text" required />
+                <p className="rounded-chip bg-paper p-3 text-xs text-muted">
+                  The other owner chooses which page on their site you link to when they accept, so you don&apos;t need to know it. Their site stays hidden until the exchange is accepted.
+                </p>
                 <div>
                   <label htmlFor="notes" className="mb-1 block text-sm text-muted">Notes (optional)</label>
                   <textarea id="notes" name="notes" rows={2} className="w-full rounded-chip border border-line px-3 py-2 text-sm outline-none focus:border-brand-violet" />

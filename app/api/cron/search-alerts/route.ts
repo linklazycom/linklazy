@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email";
 import { requireCron } from "@/lib/cron-auth";
+import { getFlags } from "@/lib/feature-flags";
 
 // This route loops sequentially over many items with external API/email
 // calls per item, which can exceed Vercel's default serverless timeout
@@ -49,12 +50,18 @@ async function handle(request: Request) {
   const supabase = createServiceClient();
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
-  const { data: searches } = await supabase
-    .from("saved_searches")
-    .select("id, user_id, name, filters, email_alerts, last_notified_at")
-    .eq("email_alerts", true);
+  // Tool switches: a tool an admin switched off must not keep sending its emails.
+  const flags = await getFlags(["feature_tool_saved_searches", "feature_tool_watchlist"]);
+  const searchesOn = flags["feature_tool_saved_searches"] !== false;
+  const watchlistOn = flags["feature_tool_watchlist"] !== false;
 
-  if (!searches?.length) return NextResponse.json({ checked: 0, notified: 0 });
+  const { data: foundSearches } = searchesOn
+    ? await supabase
+        .from("saved_searches")
+        .select("id, user_id, name, filters, email_alerts, last_notified_at")
+        .eq("email_alerts", true)
+    : { data: [] as { id: string; user_id: string; name: string | null; filters: unknown; email_alerts: boolean; last_notified_at: string | null }[] };
+  const searches = foundSearches ?? [];
 
   let notified = 0;
 
@@ -112,10 +119,11 @@ async function handle(request: Request) {
     }
   }
 
-  const priceDrops = await checkPriceDrops();
+  // Price-drop alerts run even when nobody has a saved search (they used to be skipped by an early return above).
+  const priceDrops = watchlistOn ? await checkPriceDrops() : { checked: 0, notified: 0, skipped: "watchlist switched off" };
 
   return NextResponse.json({
-    newListingAlerts: { checked: searches.length, notified },
+    newListingAlerts: { checked: searches.length, notified, ...(searchesOn ? {} : { skipped: "saved searches switched off" }) },
     priceDropAlerts: priceDrops,
   });
 }

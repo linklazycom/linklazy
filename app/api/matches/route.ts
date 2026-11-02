@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { proposeMatchSchema } from "@/lib/validators/match";
 import { computeMatchScore } from "@/lib/match-score";
+import { buildProposedTerms, urlBelongsToDomain } from "@/lib/match-flow";
 
 /**
  * SECURITY (Batch 7C): exchange_matches can no longer be written from the
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
   const service = createServiceClient();
   const { data: sites } = await service
     .from("sites")
-    .select("id, owner_id, da, niche, status, accepts_exchange")
+    .select("id, owner_id, domain, da, niche, status, accepts_exchange")
     .in("id", [input.site_a_id, input.site_b_id]);
   const siteA = sites?.find((s) => s.id === input.site_a_id);
   const siteB = sites?.find((s) => s.id === input.site_b_id);
@@ -45,6 +46,11 @@ export async function POST(request: Request) {
   }
   if (siteA.owner_id === siteB.owner_id) {
     return NextResponse.json({ error: "Can't propose an exchange with your own site" }, { status: 400 });
+  }
+
+  // The page you ask them to link to must be on YOUR site (never a third-party address).
+  if (!urlBelongsToDomain(input.my_target_url, siteA.domain)) {
+    return NextResponse.json({ error: { my_target_url: ["Use a page on your own listed site."] } }, { status: 400 });
   }
 
   // Prevent duplicate active proposals between the same two sites.
@@ -71,11 +77,7 @@ export async function POST(request: Request) {
       initiated_by: user.id,
       status: "proposed",
       match_score: score,
-      proposed_terms: {
-        from_a: { target_url: input.my_target_url, anchor_text: input.my_anchor_text },
-        from_b: { target_url: input.their_target_url, anchor_text: input.their_anchor_text },
-        notes: input.notes,
-      },
+      proposed_terms: buildProposedTerms(input),
     })
     .select("id")
     .single();

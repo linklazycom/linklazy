@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { counterTermsSchema } from "@/lib/validators/match";
-import { checkResponder } from "@/lib/match-flow";
+import { acceptTermsSchema, counterSchema } from "@/lib/validators/match";
+import { applyCounter, checkResponder, resolveAcceptTerms, type MatchTerms } from "@/lib/match-flow";
 
 const respondSchema = z.object({
   action: z.enum(["accept", "reject", "counter"]),
-  counter_terms: counterTermsSchema.optional(),
+  counter: counterSchema.optional(),
+  /** Accepting a first proposal: the page on the accepter's own site that receives the return link. */
+  accept_terms: acceptTermsSchema.optional(),
 });
 
 /**
@@ -35,7 +37,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const { data: sites } = await service
     .from("sites")
-    .select("id, owner_id, status, accepts_exchange, turnaround_hours")
+    .select("id, owner_id, domain, status, accepts_exchange, turnaround_hours")
     .in("id", [match.site_a_id, match.site_b_id]);
   const siteA = sites?.find((s) => s.id === match.site_a_id);
   const siteB = sites?.find((s) => s.id === match.site_b_id);
@@ -49,7 +51,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
-  const { action, counter_terms } = parsed.data;
+  const { action, counter, accept_terms } = parsed.data;
+  const current = (match.counter_terms ?? match.proposed_terms) as MatchTerms;
+  const ownDomain = check.side === "a" ? siteA.domain : siteB.domain;
 
   // Every transition below only applies if the status is still what we just read.
   const guarded = (patch: Record<string, unknown>) =>
@@ -62,8 +66,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
 
   if (action === "counter") {
-    if (!counter_terms) return NextResponse.json({ error: "Counter terms required" }, { status: 400 });
-    const { data } = await guarded({ status: "countered", counter_terms, initiated_by: user.id });
+    if (!counter) return NextResponse.json({ error: "Counter terms required" }, { status: 400 });
+    const countered = applyCounter(current, check.side, counter, ownDomain);
+    if (!countered.ok) return NextResponse.json({ error: countered.error }, { status: 400 });
+    const { data } = await guarded({ status: "countered", counter_terms: countered.terms, initiated_by: user.id });
     if (!data?.length) return NextResponse.json({ error: "This proposal just changed. Refresh and try again." }, { status: 409 });
     return NextResponse.json({ ok: true });
   }
@@ -73,14 +79,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "One of the sites is no longer available for exchange" }, { status: 400 });
   }
 
-  const terms = (match.counter_terms ?? match.proposed_terms) as {
-    from_a: { target_url: string; anchor_text: string };
-    from_b: { target_url: string; anchor_text: string };
-    notes?: string;
-  };
+  // A first proposal names only the proposer's page; the accepting owner names theirs here (on their own site).
+  const resolved = resolveAcceptTerms(current, check.side, accept_terms, ownDomain);
+  if (!resolved.ok) return NextResponse.json({ error: resolved.error }, { status: 400 });
+  if (!resolved.terms.from_a || !resolved.terms.from_b) return NextResponse.json({ error: "This proposal is incomplete." }, { status: 400 });
+  const terms = { ...resolved.terms, from_a: resolved.terms.from_a, from_b: resolved.terms.from_b };
 
   // Claim first (prevents double orders), create orders second, undo the claim on failure.
-  const { data: claimed } = await guarded({ status: "accepted" });
+  const { data: claimed } = await guarded({ status: "accepted", ...(resolved.filled ? { counter_terms: terms } : {}) });
   if (!claimed?.length) {
     return NextResponse.json({ error: "This proposal just changed. Refresh and try again." }, { status: 409 });
   }
@@ -129,7 +135,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     // Undo: remove whichever order did get created and re-open the proposal.
     const created = [orderForA?.id, orderForB?.id].filter(Boolean) as string[];
     if (created.length) await service.from("orders").delete().in("id", created);
-    await service.from("exchange_matches").update({ status: match.status }).eq("id", matchId).eq("status", "accepted");
+    await service
+      .from("exchange_matches")
+      .update({ status: match.status, ...(resolved.filled ? { counter_terms: match.counter_terms } : {}) })
+      .eq("id", matchId)
+      .eq("status", "accepted");
     return NextResponse.json({ error: "Could not create the exchange orders. Please try again." }, { status: 500 });
   }
 

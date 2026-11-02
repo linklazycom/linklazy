@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useToolOn } from "@/components/dashboard/tool-flags";
 
 export function SaveSearchButton({ filters }: { filters: Record<string, string | undefined> }) {
+  const toolOn = useToolOn("feature_tool_saved_searches");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [name, setName] = useState("");
@@ -25,6 +27,8 @@ export function SaveSearchButton({ filters }: { filters: Record<string, string |
     setSaved(true);
     setShowForm(false);
   }
+
+  if (!toolOn) return null;
 
   if (saved) {
     return <p className="text-sm text-signal">Search saved — we&apos;ll email you about new matches.</p>;

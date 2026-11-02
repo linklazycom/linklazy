@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/email";
 import { requireCron } from "@/lib/cron-auth";
+import { getFlags } from "@/lib/feature-flags";
 
 // This route loops sequentially over many items with external API/email
 // calls per item, which can exceed Vercel's default serverless timeout
@@ -51,6 +52,10 @@ async function handle(request: Request) {
 
   const supabase = createServiceClient();
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+  // The digest only goes to people with saved searches, so it follows that tool's switch.
+  const digestFlags = await getFlags(["feature_tool_saved_searches"]);
+  if (digestFlags["feature_tool_saved_searches"] === false) return NextResponse.json({ sent: 0, skipped: "saved searches switched off" });
 
   const since = new Date();
   since.setDate(since.getDate() - 7);

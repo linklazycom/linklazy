@@ -6,7 +6,8 @@ import { TOOLS, TOOL_FLAG_KEYS, type ToolGroup } from "@/lib/features/registry";
 export const metadata = { title: "Admin · Tools & features" };
 export const dynamic = "force-dynamic";
 
-const GROUPS: ToolGroup[] = ["SEO workspace", "Link tools"];
+// Groups follow the registry order, so a new group can never be left out of this page again.
+const GROUPS: ToolGroup[] = Array.from(new Set(TOOLS.map((t) => t.group)));
 
 export default async function AdminFeaturesPage() {
   const flags = await getFlags(TOOL_FLAG_KEYS);
@@ -65,7 +66,7 @@ export default async function AdminFeaturesPage() {
       ))}
 
       <p className="text-xs text-muted">
-        আরও টুল (যেমন সাইট স্ক্যান, এক্সচেঞ্জ ম্যাচ, ওয়াচলিস্ট, প্রেস রিলিজ) পরের ব্যাচগুলোতে এই তালিকায় যোগ হবে, প্রতিটির ব্যাখ্যাসহ।
+        মার্কেটপ্লেসের মূল অংশ (ব্রাউজ, অর্ডার, ওয়ালেট, মেসেজ, সাপোর্ট) এখানে নেই, ইচ্ছা করেই। নতুন কোনো টুল বানালে এই তালিকায় সেটির সুইচ ও ব্যাখ্যা যোগ হয়।
       </p>
     </div>
   );

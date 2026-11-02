@@ -75,6 +75,7 @@ export const STATIC_SITEMAP: { path: string; changeFrequency: "daily" | "weekly"
   { path: "/niches", changeFrequency: "weekly", priority: 0.7 },
   { path: "/how-it-works", changeFrequency: "monthly", priority: 0.6 },
   { path: "/getting-started", changeFrequency: "monthly", priority: 0.6 },
+  { path: "/help", changeFrequency: "monthly", priority: 0.5 },
   { path: "/tools", changeFrequency: "monthly", priority: 0.6 },
   { path: "/tools/dr-checker", changeFrequency: "monthly", priority: 0.5 },
   { path: "/tools/price-check", changeFrequency: "weekly", priority: 0.5 },

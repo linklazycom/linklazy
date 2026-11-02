@@ -7,7 +7,7 @@
  * It never deletes anything the users saved. Marketplace essentials (browse, orders, wallet, support, messages) are NOT
  * switchable here on purpose.
  */
-export type ToolGroup = "SEO workspace" | "Link tools" | "Public tools";
+export type ToolGroup = "SEO workspace" | "Link tools" | "Marketplace extras" | "Public tools";
 
 export interface ToolInfo {
   id: string;
@@ -33,6 +33,8 @@ export interface ToolInfo {
   adminHref: string | null;
   /** Pages that belong to the tool (matched as path prefixes): /dashboard/... for dashboard tools, e.g. /tools for public ones. */
   pagePrefixes: string[];
+  /** Exact-shape pages that a plain prefix cannot describe (e.g. /dashboard/sites/<id>/matches, because /dashboard/sites itself is never switchable). */
+  pagePatterns?: RegExp[];
   /** API routes that belong to the tool. */
   apiPrefixes: string[];
 }
@@ -225,6 +227,153 @@ export const TOOLS: ToolInfo[] = [
     apiPrefixes: ["/api/api-keys"],
   },
   {
+    id: "matches",
+    flagKey: "feature_tool_matches",
+    label: "Exchange matches",
+    group: "Marketplace extras",
+    publicSummary: "Exchange matches: propose a link swap with another listed site; the other owner can accept, counter or decline, and an accepted swap becomes two linked orders.",
+    what: "ব্যবহারকারী তার অনুমোদিত সাইটের জন্য \"এক্সচেঞ্জ গ্রহণকারী\" অন্য সাইটের মালিককে লিংক-বিনিময়ের প্রস্তাব পাঠায়। অন্য মালিক গ্রহণ, পাল্টা প্রস্তাব বা প্রত্যাখ্যান করতে পারেন। গৃহীত হলে দুই দিকের জন্য দুটি পরস্পর-সংযুক্ত অর্ডার তৈরি হয় (এক্সচেঞ্জ-টাইপ; ওয়ালেটের টাকা নড়ে না)।",
+    why: "টাকা খরচ না করে নিজের সাইটের জন্য লিংক পাওয়ার উপায়। দুই পক্ষই অর্ডার হিসেবে ডেডলাইনসহ কাজ করে, তাই বিনিময় এলোমেলো কথাবার্তায় হারিয়ে যায় না।",
+    steps: [
+      "Dashboard > My sites > কোনো অনুমোদিত সাইটের \"Find exchange partners\"",
+      "মানানসই সাইট বেছে \"Propose exchange\" চাপুন; শুধু নিজের সাইটের কোন পেজে লিংক চান ও অ্যাঙ্কার টেক্সট লিখুন",
+      "অন্য মালিক Dashboard > Exchange matches থেকে প্রস্তাব দেখে নিজের সাইটের যে পেজে লিংক নিতে চান সেটি লিখে Accept করেন (অথবা Counter-offer / Decline)",
+      "Accept হলে দুটি অর্ডার তৈরি হয়; দুই পক্ষ নিজের সাইটে লিংক বসিয়ে অর্ডারের ধাপ এগোয়",
+    ],
+    adminNotes: [
+      "প্রস্তাবক শুধু নিজের সাইটের পেজ দেয়; অন্য সাইটের কোন পেজ হবে তা সেই সাইটের মালিক Accept বা Counter-এর সময় ঠিক করেন। দুই দিকেই পেজের ঠিকানা অবশ্যই ওই সাইটের তালিকাভুক্ত ডোমেইনের ভেতরের হতে হয়।",
+      "গ্রহণের আগে অন্য পক্ষের ডোমেইন ও পেজের ঠিকানা মাস্ক করা দেখায় (ex****.com); গ্রহণের পর দুজনেই আসল ঠিকানা দেখে।",
+      "সাইটে \"accepts exchange\" টিক না থাকলে সেটি প্রস্তাবের তালিকায় আসে না।",
+      "এই সুইচ শুধু প্রস্তাব পাঠানো ও সাড়া দেওয়া বন্ধ করে। গৃহীত বিনিময়ের অর্ডার ও চ্যাট (মার্কেটপ্লেসের মূল অংশ) আগের মতো চলে।",
+    ],
+    whenOff: "বন্ধ করলে নতুন প্রস্তাব পাঠানো ও খোলা প্রস্তাবে সাড়া দেওয়া যায় না (খোলা প্রস্তাব মোছে না, অপেক্ষায় থাকে); সাইডবার ও \"Find exchange partners\" লিংক সরে যায়। আগে গৃহীত বিনিময়ের অর্ডারগুলো অর্ডার পেজে আগের মতোই চলে।",
+    userHref: "/dashboard/matches",
+    adminHref: null,
+    pagePrefixes: ["/dashboard/matches"],
+    pagePatterns: [/^\/dashboard\/sites\/[^/]+\/matches$/],
+    apiPrefixes: ["/api/matches"],
+  },
+  {
+    id: "scan_site",
+    flagKey: "feature_tool_scan_site",
+    label: "Scan my site",
+    group: "Marketplace extras",
+    publicSummary: "Scan my site: enter your website address and see which listed sites match its niche, with an optional wallet-paid bulk order.",
+    what: "ক্রেতা নিজের সাইটের ঠিকানা দিলে সিস্টেম পেজটি পড়ে কিওয়ার্ড মিলিয়ে niche ধরে (দুর্বল হলে চালু থাকা AI প্রোভাইডারের সাহায্যও নেয়) এবং মার্কেটপ্লেসের কোন অনুমোদিত লিস্টিংগুলো সবচেয়ে মানানসই তা দেখায়। চাইলে বাজেট ও সর্বোচ্চ সাইট-সংখ্যা দিয়ে ওয়ালেট থেকে স্বয়ংক্রিয় বাল্ক-অর্ডারও দিতে পারে।",
+    why: "নতুন ক্রেতা জানে না কোথা থেকে লিংক কিনবে। স্ক্যান তার সাইটের বিষয় অনুযায়ী তালিকা বেছে দেয়, ফলে ব্রাউজ করার সময় বাঁচে ও ভুল niche-এর সাইট কেনার ঝুঁকি কমে।",
+    steps: [
+      "Dashboard > Scan my site for links",
+      "সাইটের ঠিকানা (https://…) দিন; niche ভুল ধরা পড়লে তালিকা থেকে নিজে বেছে নিন",
+      "ফলাফলের তালিকা দেখে পছন্দের সাইটে নিজে অর্ডার করুন",
+      "চাইলে \"auto order\" চালু করে লিংকের ঠিকানা, অ্যাঙ্কার, বাজেট ও সর্বোচ্চ সাইট-সংখ্যা দিন; টাকা শুধু ওয়ালেট থেকে কাটে",
+      "Scan history-তে সর্বশেষ ১০টি স্ক্যান থাকে; আরও ১০টি আলাদা করে সংরক্ষণ (Save) করা যায়",
+    ],
+    adminNotes: [
+      "প্রতি ক্রেতা ঘণ্টায় সর্বোচ্চ ৫টি স্ক্যান করতে পারে (প্রতিটি স্ক্যানে কয়েকটি বাইরের পেজ পড়া হয়)।",
+      "স্বয়ংক্রিয় অর্ডার শুধু ওয়ালেট ব্যালেন্স থেকে। ব্যালেন্স কম হলে যেগুলো পারে সেগুলো অর্ডার হয়, বাকিগুলো বাদ যায়; bKash/PayPal থেকে নিজে থেকে কিছু কাটে না।",
+      "AI-সহায়তা শুধু তখনই চলে যখন Admin > API Providers-এ একটি AI প্রোভাইডার চালু থাকে; না থাকলে কেবল কিওয়ার্ড-মিল ব্যবহার হয়।",
+    ],
+    whenOff: "বন্ধ করলে স্ক্যান পেজ, স্ক্যান হিস্টরি ও এর API ব্যবহারকারীদের জন্য বন্ধ হয়। আগের সংরক্ষিত স্ক্যান মোছে না; ওয়ালেট ও চলমান অর্ডার প্রভাবিত হয় না; Browse ও Browse থেকে বাল্ক-অর্ডার আগের মতো চলে।",
+    userHref: "/dashboard/scan-site",
+    adminHref: null,
+    pagePrefixes: ["/dashboard/scan-site"],
+    apiPrefixes: ["/api/buyer-scan"],
+  },
+  {
+    id: "watchlist",
+    flagKey: "feature_tool_watchlist",
+    label: "Watchlist",
+    group: "Marketplace extras",
+    publicSummary: "Watchlist: keep the listed sites you like in one place and get an email when the price of one of them drops.",
+    what: "ক্রেতা Browse-এ কোনো সাইটের \"Watch\" বোতাম চেপে সাইটটি নিজের ওয়াচলিস্টে রাখে। রাখার সময়ের দাম মনে রাখা হয়; পরে দাম কমলে ইমেইল যায়।",
+    why: "পছন্দের সাইট হারিয়ে যায় না, আর দাম কমলে ক্রেতা নিজে থেকে জানতে পারে, ফলে ফিরে এসে কেনার সম্ভাবনা বাড়ে।",
+    steps: [
+      "Browse বা সাইটের পেজে \"Watch\" বোতাম চাপুন",
+      "Dashboard > Watchlist-এ সব দেখুন; আনলক না করা পর্যন্ত ডোমেইন মাস্ক করা থাকে",
+      "দাম কমলে ইমেইল আসে; সেই কমা দামটি পরের তুলনার নতুন ভিত্তি হয়",
+    ],
+    adminNotes: [
+      "দাম-কমার ইমেইল দৈনিক `search-alerts` ক্রনের সাথে যায় (Admin > Operations > Scheduled jobs-এ দেখুন)। সুইচ বন্ধ থাকলে এই ইমেইল যায় না।",
+      "ইমেইল পাঠাতে Resend সেটআপ দরকার (Admin > Operations > Email)।",
+      "ওয়াচলিস্টেও ডোমেইন-মাস্কিংয়ের নিয়ম বহাল: নিজের বা আনলক-করা সাইট ছাড়া ডোমেইন মাস্ক থাকে।",
+    ],
+    whenOff: "বন্ধ করলে Watch বোতাম ও ওয়াচলিস্ট পেজ লুকায়, API বন্ধ হয় ও দাম-কমার ইমেইল থামে। ব্যবহারকারীর রাখা তালিকা মোছে না; আবার চালু করলে আগের মতো ফিরে আসে।",
+    userHref: "/dashboard/watchlist",
+    adminHref: null,
+    pagePrefixes: ["/dashboard/watchlist"],
+    apiPrefixes: ["/api/watchlist"],
+  },
+  {
+    id: "saved_searches",
+    flagKey: "feature_tool_saved_searches",
+    label: "Saved searches",
+    group: "Marketplace extras",
+    publicSummary: "Saved searches: save your Browse filters and get an email when a newly approved site matches them.",
+    what: "ক্রেতা Browse-এ ফিল্টার (niche, DA-র সীমা, সর্বোচ্চ দাম, লিংক-টাইপ, শুধু-এক্সচেঞ্জ) বেছে \"Save search\" করে। নতুন অনুমোদিত সাইট ফিল্টারের সাথে মিললে ইমেইল পায়।",
+    why: "নতুন লিস্টিং আসার জন্য প্রতিদিন Browse খুলে বসে থাকতে হয় না; মানানসই সাইট এলে ক্রেতাকেই জানানো হয়।",
+    steps: [
+      "Browse-এ ফিল্টার বেছে \"Save search\" চাপুন",
+      "Dashboard > Saved searches-এ তালিকা দেখুন; দরকার না হলে মুছুন",
+      "নতুন সাইট মিললে ইমেইল আসে",
+    ],
+    adminNotes: [
+      "ইমেইল যায় দৈনিক `search-alerts` ক্রন (নতুন সাইট) ও সাপ্তাহিক `weekly-digest` ক্রন (শুক্রবার, সারসংক্ষেপ) দিয়ে। সুইচ বন্ধ থাকলে দুটোই এই ইমেইল পাঠানো বন্ধ রাখে।",
+      "ইমেইল পাঠাতে Resend সেটআপ দরকার (Admin > Operations > Email)।",
+    ],
+    whenOff: "বন্ধ করলে \"Save search\" বোতাম ও Saved searches পেজ লুকায়, API বন্ধ হয় এবং নতুন-সাইট ইমেইল (দৈনিক ও সাপ্তাহিক) থামে। ব্যবহারকারীর সংরক্ষিত সার্চ মোছে না।",
+    userHref: "/dashboard/saved-searches",
+    adminHref: null,
+    pagePrefixes: ["/dashboard/saved-searches"],
+    apiPrefixes: ["/api/saved-searches"],
+  },
+  {
+    id: "press_releases",
+    flagKey: "feature_tool_press_releases",
+    label: "Press releases",
+    group: "Marketplace extras",
+    publicSummary: "Press releases: order press-release distribution packages and follow each order from review to delivery.",
+    what: "ক্রেতা /press-releases পেজে প্যাকেজ বেছে হেডলাইন, সারাংশ ও লিংক দিয়ে প্রেস রিলিজ অর্ডার করে, আর Dashboard > Press releases-এ রিভিউ-লেখা-বিতরণের অগ্রগতি দেখে। সেবাটি ম্যানুয়াল: আপনি অ্যাডমিন থেকে অর্ডার এগিয়ে নেন।",
+    why: "ব্যাকলিংকের বাইরে আরেকটি আয়ের পথ; প্যাকেজ, দাম ও ডেলিভারির সময় স্পষ্ট থাকে, ক্রেতা প্রতিটি ধাপ দেখতে পায়।",
+    steps: [
+      "/press-releases খুলে প্যাকেজ বাছুন, হেডলাইন-সারাংশ-লিংক দিয়ে অর্ডার করুন",
+      "Dashboard > Press releases-এ স্ট্যাটাস দেখুন; প্রতিটি স্ট্যাটাস বদলে ইমেইল যায়",
+      "ডেলিভারি হলে প্রকাশিত লিংক অর্ডারে দেখা যায়",
+    ],
+    adminNotes: [
+      "Admin > Press releases-এ প্যাকেজ ও দাম, অর্ডার-কিউ, সরবরাহকারী ও খরচ, ডেলিভারি লিংক ও প্রত্যাশিত তারিখ আছে।",
+      "অনলাইন পেমেন্ট নেই; টাকা আলাদাভাবে নেওয়া হয়। Cancelled করলে ফেরত আপনাকে আলাদা মেটাতে হয়।",
+      "এই সুইচ শুধু ব্যবহারকারীর দিক বন্ধ করে; অ্যাডমিন পেজে চলমান অর্ডার আপনি চালিয়ে যেতে পারবেন।",
+    ],
+    whenOff: "বন্ধ করলে পাবলিক /press-releases পেজে অর্ডার ফর্মের জায়গায় \"এখন অর্ডার নেওয়া হচ্ছে না\" বার্তা আসে, নতুন অর্ডারের API বন্ধ হয় ও Dashboard পেজ লুকায়। আগের অর্ডার মোছে না।",
+    userHref: "/dashboard/press-releases",
+    adminHref: "/admin/press-releases",
+    pagePrefixes: ["/dashboard/press-releases"],
+    apiPrefixes: ["/api/press-releases"],
+  },
+  {
+    id: "referrals",
+    flagKey: "feature_tool_referrals",
+    label: "Referrals",
+    group: "Marketplace extras",
+    publicSummary: "Referrals: share your personal link and earn a share of LinkLazy's commission when people you refer complete paid orders.",
+    what: "প্রতিটি ব্যবহারকারীর নিজস্ব রেফারেল লিংক আছে। কেউ সেই লিংকে সাইন-আপ করে পেইড অর্ডার সম্পন্ন করলে LinkLazy-র কমিশনের একটি অংশ রেফারারের অ্যাকাউন্টে জমা হয় (ব্যবহারকারীর পেজে বর্তমানে \"৫০%\" লেখা আছে)।",
+    why: "খরচ ছাড়াই নতুন ব্যবহারকারী আনার উপায়: যারা আনে তারা আয় করে, আর আয় আসে কেবল সম্পন্ন পেইড অর্ডার থেকে।",
+    steps: [
+      "Dashboard > Referrals থেকে নিজের লিংক কপি করুন",
+      "বন্ধুকে লিংকে সাইন-আপ করতে বলুন",
+      "সে পেইড অর্ডার সম্পন্ন করলে ক্রেডিট স্বয়ংক্রিয়ভাবে জমা হয়; পেজে তালিকা দেখা যায়",
+    ],
+    adminNotes: [
+      "ক্রেডিট গোনা ও টাকা নড়ার কোড (ওয়ালেট/ডাটাবেস-ফাংশন) এই সুইচে বদলায় না: যারা আগে থেকেই কারও রেফারেলে যুক্ত, তাদের অর্ডার থেকে আয় ও জমা-ক্রেডিট আগের মতোই থাকে।",
+      "সুইচ বন্ধ থাকলে সাইন-আপের সময় নতুন কাউকে রেফারার হিসেবে যুক্ত করা হয় না (`/api/referral/resolve` কিছু ধরে না)।",
+    ],
+    whenOff: "বন্ধ করলে Referrals পেজ লুকায়, নতুন সাইন-আপে রেফারেল-সংযোগ হয় না, পাবলিক /referrals পেজে \"এখন বন্ধ\" বার্তা আসে। আগে জমা ক্রেডিট ও আগে থেকে যুক্ত রেফারেল-সম্পর্ক অপরিবর্তিত থাকে।",
+    userHref: "/dashboard/referrals",
+    adminHref: null,
+    pagePrefixes: ["/dashboard/referrals"],
+    apiPrefixes: ["/api/referral"],
+  },
+  {
     id: "public_tools",
     flagKey: "feature_public_tools",
     surface: "public",
@@ -285,7 +434,7 @@ const matchesPrefix = (path: string, prefix: string) => path === prefix || path.
 /** Which tool a request path belongs to, and whether it is one of its pages or its API. Null for everything else. */
 export function toolForPath(path: string): { tool: ToolInfo; surface: "page" | "api" } | null {
   for (const tool of TOOLS) {
-    if (tool.pagePrefixes.some((p) => matchesPrefix(path, p))) return { tool, surface: "page" };
+    if (tool.pagePrefixes.some((p) => matchesPrefix(path, p)) || tool.pagePatterns?.some((re) => re.test(path))) return { tool, surface: "page" };
     if (tool.apiPrefixes.some((p) => matchesPrefix(path, p))) return { tool, surface: "api" };
   }
   return null;

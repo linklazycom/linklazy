@@ -1,23 +1,13 @@
 import type { MetadataRoute } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { STATIC_SITEMAP } from "@/lib/seo";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://linklazy.com";
   const supabase = await createClient();
 
-  const staticPages: MetadataRoute.Sitemap = [
-    { url: siteUrl, changeFrequency: "weekly", priority: 1 },
-    { url: `${siteUrl}/browse`, changeFrequency: "daily", priority: 0.9 },
-    { url: `${siteUrl}/niches`, changeFrequency: "weekly", priority: 0.7 },
-    { url: `${siteUrl}/blog`, changeFrequency: "daily", priority: 0.8 },
-    { url: `${siteUrl}/how-it-works`, changeFrequency: "monthly", priority: 0.6 },
-    { url: `${siteUrl}/case-studies`, changeFrequency: "weekly", priority: 0.6 },
-    { url: `${siteUrl}/referrals`, changeFrequency: "monthly", priority: 0.5 },
-    { url: `${siteUrl}/support`, changeFrequency: "monthly", priority: 0.4 },
-    { url: `${siteUrl}/about`, changeFrequency: "monthly", priority: 0.4 },
-    { url: `${siteUrl}/privacy`, changeFrequency: "yearly", priority: 0.2 },
-    { url: `${siteUrl}/terms`, changeFrequency: "yearly", priority: 0.2 },
-  ];
+  // One shared list (lib/seo), so a new public page cannot be forgotten here.
+  const staticPages: MetadataRoute.Sitemap = STATIC_SITEMAP.map((p) => ({ url: `${siteUrl}${p.path}`, changeFrequency: p.changeFrequency, priority: p.priority }));
 
   const { data: articles } = await supabase
     .from("articles")

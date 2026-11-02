@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { MetricChip } from "@/components/ui/metric-chip";
 import { DrBadge } from "@/components/sites/dr-badge";
 import { PayPerViewSettings } from "@/components/sites/pay-per-view-settings";
+import { getFlags } from "@/lib/feature-flags";
 
 const STATUS_TONE: Record<string, "verified" | "price" | "default"> = {
   approved: "verified",
@@ -17,6 +18,10 @@ export default async function MySitesPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  const { data: me } = await supabase.from("profiles").select("role").eq("id", user!.id).single();
+  const matchFlags = await getFlags(["feature_tool_matches"]);
+  const showMatches = me?.role === "admin" || matchFlags["feature_tool_matches"] !== false;
 
   const { data: sites } = await supabase
     .from("sites")
@@ -76,7 +81,7 @@ export default async function MySitesPage() {
             >
               Manage link slots
             </Link>
-            {site.status === "approved" && (
+            {site.status === "approved" && showMatches && (
               <Link
                 href={`/dashboard/sites/${site.id}/matches`}
                 className="mt-3 ml-4 inline-block text-sm text-brand-violet underline"

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { domainForViewer } from "@/lib/match-flow";
+import { domainForViewer, termsForViewer, type MatchTerms } from "@/lib/match-flow";
 
 /** One proposal, only for the owners of its two sites. The other party's domain stays masked until accepted. */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -37,8 +37,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       status: match.status,
       match_score: match.match_score,
       initiated_by: match.initiated_by,
-      proposed_terms: match.proposed_terms,
-      counter_terms: match.counter_terms,
+      // The other owner's page address is masked too until the exchange is accepted.
+      proposed_terms: termsForViewer(match.proposed_terms as MatchTerms, a, b, user.id, match.status),
+      counter_terms: termsForViewer(match.counter_terms as MatchTerms | null, a, b, user.id, match.status),
       site_a: { id: a.id, owner_id: a.owner_id, domain: domainForViewer(a, user.id, match.status) },
       site_b: { id: b.id, owner_id: b.owner_id, domain: domainForViewer(b, user.id, match.status) },
     },

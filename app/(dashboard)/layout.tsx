@@ -11,6 +11,9 @@ import { NotificationBell } from "@/components/layout/notification-bell";
 import { VerifyEmailBanner } from "@/components/layout/verify-email-banner";
 import { GlobalSearch } from "@/components/search/global-search";
 import { AdSlot } from "@/components/ads/ad-slot";
+import { ToolFlagsProvider } from "@/components/dashboard/tool-flags";
+import { UserHelpButton } from "@/components/dashboard/help-button";
+import { USER_HELP } from "@/lib/help/user-help";
 
 export const metadata = { robots: { index: false, follow: false } };
 
@@ -145,10 +148,13 @@ export default async function DashboardLayout({
       <main className="flex-1 bg-paper p-4 md:p-8">
         <div className="mb-4 flex items-center justify-between gap-4">
           <GlobalSearch browseHref="/dashboard/browse" className="max-w-sm min-w-0 flex-1" />
-          <NotificationBell userId={user.id} />
+          <div className="flex shrink-0 items-center gap-2">
+            <UserHelpButton entries={USER_HELP} />
+            <NotificationBell userId={user.id} />
+          </div>
         </div>
         {!user.email_confirmed_at && user.email && <VerifyEmailBanner email={user.email} />}
-        {children}
+        <ToolFlagsProvider flags={role === "admin" ? {} : toolFlags}>{children}</ToolFlagsProvider>
       </main>
     </div>
   );

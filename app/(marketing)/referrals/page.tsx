@@ -4,6 +4,7 @@ import { Gift, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { PageHero } from "@/components/marketing/page-hero";
+import { getFlags } from "@/lib/feature-flags";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/referrals" },
@@ -45,6 +46,19 @@ export default async function ReferralsMarketingPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const toolOn = (await getFlags(["feature_tool_referrals"]))["feature_tool_referrals"] !== false;
+
+  if (!toolOn) {
+    return (
+      <main>
+        <PageHero eyebrow="Referral program" eyebrowIcon={Gift} title="The referral program is paused right now" wide />
+        <div className="mx-auto max-w-2xl px-6 pb-16 pt-10 text-center">
+          <p className="mb-8 text-muted">New referrals are not being counted at the moment. Credits you have already earned stay in your account.</p>
+          <Link href="/"><Button size="lg">Back to home</Button></Link>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main>

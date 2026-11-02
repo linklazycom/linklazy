@@ -31,6 +31,7 @@ const DEFAULTS: Record<string, unknown> = {
     ],
     Resources: [
       { label: "Getting started", href: "/getting-started" },
+      { label: "Help center", href: "/help" },
       { label: "Free tools", href: "/tools" },
       { label: "Niches", href: "/niches" },
       { label: "How it works", href: "/how-it-works" },

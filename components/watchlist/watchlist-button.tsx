@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { useToolOn } from "@/components/dashboard/tool-flags";
 
 export function WatchlistButton({ siteId, className }: { siteId: string; className?: string }) {
   const supabase = createClient();
+  const toolOn = useToolOn("feature_tool_watchlist");
   const [watching, setWatching] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -41,7 +43,7 @@ export function WatchlistButton({ siteId, className }: { siteId: string; classNa
     setBusy(false);
   }
 
-  if (loading) return null;
+  if (loading || !toolOn) return null;
 
   return (
     <button

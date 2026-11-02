@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { CommissionTierCard } from "@/components/dashboard/commission-tier-card";
 import { startOfCurrentMonthISO } from "@/lib/commission";
 import { getBdtPerUsd } from "@/lib/exchange-rate";
+import { getFlags } from "@/lib/feature-flags";
 
 export default async function DashboardOverviewPage() {
   const supabase = await createClient();
@@ -19,6 +20,8 @@ export default async function DashboardOverviewPage() {
     .single();
 
   const role = profile?.role ?? "buyer";
+  const toolFlags = await getFlags(["feature_tool_watchlist"]);
+  const showWatchlist = role === "admin" || toolFlags["feature_tool_watchlist"] !== false;
   const canSell = role === "seller" || role === "both" || role === "admin";
 
   const [
@@ -122,7 +125,7 @@ export default async function DashboardOverviewPage() {
           </div>
         </div>
 
-        <div className="rounded-chip border border-line bg-white p-5">
+        {showWatchlist && <div className="rounded-chip border border-line bg-white p-5">
           <p className="mb-1 text-xs text-muted">Watchlist</p>
           <p className="mb-3 font-display text-2xl font-medium">{watchlistCount ?? 0}</p>
           <div className="mt-3">
@@ -130,7 +133,7 @@ export default async function DashboardOverviewPage() {
               View watchlist
             </Link>
           </div>
-        </div>
+        </div>}
 
         {!!unreadDisputesCount && (
           <div className="rounded-chip border border-amber/40 bg-amber-soft p-5">
