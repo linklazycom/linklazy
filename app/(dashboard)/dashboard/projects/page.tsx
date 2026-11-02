@@ -26,6 +26,10 @@ export default async function ProjectsPage() {
   const max = limits.project_max_per_user;
   const canCreate = isAdmin || (max > 0 && list.length < max);
 
+  // Which of my projects an admin has paused (a separate read, so this page still works before SQL 071 is applied).
+  const { data: pausedRows } = await supabase.from("projects").select("id").eq("user_id", user.id).not("suspended_at", "is", null);
+  const paused = new Set((pausedRows ?? []).map((r) => r.id as string));
+
   // Per-project counts (small lists: at most a few projects per user).
   const ids = list.map((p) => p.id);
   const kwCount = new Map<string, number>();
@@ -79,7 +83,7 @@ export default async function ProjectsPage() {
             <Link key={p.id} href={`/dashboard/projects/${p.id}`} className="block rounded-chip border border-line bg-white p-4 transition-colors hover:bg-paper">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="font-medium">{p.name}</p>
+                  <p className="font-medium">{p.name}{paused.has(p.id) && <span className="ml-2 rounded-chip bg-amber-100 px-2 py-0.5 text-xs font-normal text-amber-900">Paused</span>}</p>
                   <p className="break-all font-mono text-xs text-brand-violet">{p.canonical_url}</p>
                   <p className="mt-1 text-xs text-muted">
                     {[p.niche, p.country, p.language].filter(Boolean).join(" · ") || "No niche, country or language set"}

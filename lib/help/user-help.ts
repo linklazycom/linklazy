@@ -182,7 +182,7 @@ export const USER_HELP: Record<string, UserHelpEntry> = {
     what: "One project per website you promote, keeping its niche, keywords and competitors in one place.",
     why: "The other SEO tools use your project, so you do not retype the same details.",
     how: ["Press New project", "Enter the site address, niche and two or three keywords", "Pick the project in Opportunity Finder, Backlink monitor and AI Content Studio"],
-    watch: ["There is a limit on how many projects you can have."],
+    watch: ["There is a limit on how many projects you can have.", "If the LinkLazy team pauses a project you will see a Paused label. A paused project cannot run new searches, drafts or monitors, and cannot be deleted until it is restored; your saved data stays safe."],
   },
   "/dashboard/opportunities": {
     area: "SEO workspace",
@@ -229,7 +229,7 @@ export const USER_HELP: Record<string, UserHelpEntry> = {
     what: "Use your own domain for short links, for example go.yourbrand.com/sale.",
     why: "Links on your own brand look more trustworthy.",
     how: ["Enter the domain or subdomain you want to use", "Step 1: prove you control it by adding the ownership (TXT) record shown, at your domain provider", "Step 2: point the domain to LinkLazy with the record shown, then check the status", "Once it is active, choose the domain when you create a short link"],
-    watch: ["DNS changes can take a few minutes to appear.", "If your provider offers a proxy (for example Cloudflare's orange cloud), turn it off for these records."],
+    watch: ["Keep the ownership (TXT) record in your DNS. We re-check ownership every day; if the record is missing and the domain no longer points to us for 3 days in a row, it goes back to pending and we email you.", "DNS changes can take a few minutes to appear.", "If your provider offers a proxy (for example Cloudflare's orange cloud), turn it off for these records."],
   },
   "/dashboard/api-keys": {
     area: "Link tools",

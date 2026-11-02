@@ -9,7 +9,7 @@ import { FooterLinksEditor } from "@/components/dashboard/footer-links-editor";
 import { SiteToggles } from "@/components/dashboard/site-toggles";
 
 const SIMPLE_STRING_KEYS = [
-  { key: "bdt_per_usd", label: "BDT per USD exchange rate", placeholder: "125" },
+  { key: "bdt_per_usd", label: "BDT per USD exchange rate (50–500; wallet top-ups and commissions use it)", placeholder: "125" },
   { key: "contact_email", label: "Contact email" },
   { key: "ga_measurement_id", label: "Google Analytics 4 Measurement ID", placeholder: "G-XXXXXXX" },
   { key: "ga4_property_id", label: "GA4 property ID (numeric, for API reports — Admin → Property Settings)", placeholder: "123456789" },
@@ -58,6 +58,7 @@ export default function AdminSettingsPage() {
   const [values, setValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<{ key: string; message: string } | null>(null);
   const [navLinks, setNavLinks] = useState<NavLink[] | null>(null);
   const [footerLinks, setFooterLinks] = useState<Record<string, NavLink[]> | null>(null);
 
@@ -96,12 +97,18 @@ export default function AdminSettingsPage() {
   async function handleSave(key: string) {
     setSaving(key);
     setSaved(null);
-    await fetch("/api/settings", {
+    setSaveError(null);
+    const res = await fetch("/api/settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ key, value: values[key] ?? "" }),
     });
     setSaving(null);
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      setSaveError({ key, message: typeof body?.error === "string" ? body.error : "Could not save." });
+      return;
+    }
     setSaved(key);
   }
 
@@ -138,19 +145,22 @@ export default function AdminSettingsPage() {
 
       <div className="space-y-5">
         {SIMPLE_STRING_KEYS.map(({ key, label, placeholder }) => (
-          <div key={key} className="flex items-end gap-2">
-            <div className="flex-1">
-              <Field
-                id={key}
-                label={label}
-                placeholder={placeholder}
-                value={values[key] ?? ""}
-                onChange={(e) => setValues((v) => ({ ...v, [key]: e.target.value }))}
-              />
+          <div key={key}>
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <Field
+                  id={key}
+                  label={label}
+                  placeholder={placeholder}
+                  value={values[key] ?? ""}
+                  onChange={(e) => setValues((v) => ({ ...v, [key]: e.target.value }))}
+                />
+              </div>
+              <Button size="sm" onClick={() => handleSave(key)} disabled={saving === key}>
+                {saving === key ? "Saving…" : saved === key ? "Saved" : "Save"}
+              </Button>
             </div>
-            <Button size="sm" onClick={() => handleSave(key)} disabled={saving === key}>
-              {saving === key ? "Saving…" : saved === key ? "Saved" : "Save"}
-            </Button>
+            {saveError?.key === key && <p className="mt-1 text-xs text-red-600">{saveError.message}</p>}
           </div>
         ))}
       </div>

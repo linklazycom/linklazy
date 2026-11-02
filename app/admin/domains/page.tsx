@@ -28,6 +28,13 @@ export default async function AdminDomainsPage({ searchParams }: { searchParams:
   const ownerIds = Array.from(new Set((rows ?? []).map((r) => r.user_id)));
   const { data: owners } = ownerIds.length ? await supabase.from("profiles").select("id, full_name, email").in("id", ownerIds) : { data: [] as { id: string; full_name: string | null; email: string | null }[] };
   const ownerMap = new Map((owners ?? []).map((o) => [o.id, o]));
+  // Daily ownership re-check state (SQL 071). A separate read, so the page still works if the columns do not exist yet.
+  const recheck = new Map<string, { failures: number; at: string | null }>();
+  const rowIds = (rows ?? []).map((r) => r.id);
+  if (rowIds.length) {
+    const { data: rc, error: rcError } = await supabase.from("custom_domains").select("id, recheck_failures, last_recheck_at").in("id", rowIds);
+    if (!rcError) for (const x of rc ?? []) recheck.set(x.id as string, { failures: (x.recheck_failures as number) ?? 0, at: (x.last_recheck_at as string | null) ?? null });
+  }
   const totalPages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
   const mode = connectionMode();
 
@@ -88,6 +95,12 @@ export default async function AdminDomainsPage({ searchParams }: { searchParams:
                     <span className="break-all font-mono text-xs">{r.hostname}</span>
                     {r.last_error && r.status !== "active" && <div className="mt-1 max-w-xs text-xs text-muted">{r.last_error}</div>}
                     {r.disabled_note && <div className="mt-1 text-xs text-red-700">Note: {r.disabled_note}</div>}
+                    {recheck.get(r.id) && (recheck.get(r.id)!.failures > 0 || recheck.get(r.id)!.at) && (
+                      <div className={`mt-1 text-xs ${recheck.get(r.id)!.failures > 0 ? "text-amber-700" : "text-muted"}`}>
+                        Ownership re-check: {recheck.get(r.id)!.at ? new Date(recheck.get(r.id)!.at!).toLocaleDateString("en-GB") : "not yet"}
+                        {recheck.get(r.id)!.failures > 0 ? ` · ${recheck.get(r.id)!.failures} miss${recheck.get(r.id)!.failures === 1 ? "" : "es"} in a row` : " · ok"}
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-xs">{o?.full_name || o?.email || r.user_id.slice(0, 8)}</td>
                   <td className="px-4 py-3 text-xs">{r.status}</td>

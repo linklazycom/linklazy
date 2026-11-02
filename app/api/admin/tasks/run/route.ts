@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/require-admin";
 import { runDueTasks } from "@/lib/tasks";
 import "@/lib/backlinks/register";
+import "@/lib/domains/register";
 
 // Manual trigger for the background-task runner (admin only). The scheduled
 // version is /api/cron/run-tasks (Batch 13).

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { validateSetting } from "@/lib/setting-rules";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -13,10 +14,12 @@ export async function POST(request: Request) {
 
   const { key, value } = await request.json();
   if (!key) return NextResponse.json({ error: "Missing key" }, { status: 400 });
+  const checked = validateSetting(String(key), value);
+  if (!checked.ok) return NextResponse.json({ error: checked.error }, { status: 400 });
 
   const { error } = await supabase
     .from("site_settings")
-    .upsert({ key, value, updated_by: user.id, updated_at: new Date().toISOString() });
+    .upsert({ key, value: checked.value, updated_by: user.id, updated_at: new Date().toISOString() });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });

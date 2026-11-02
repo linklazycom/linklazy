@@ -1,4 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/service";
+import { PROJECT_PAUSED_MESSAGE, isProjectSuspended } from "@/lib/projects/suspension";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { chargeUsage, refundUsage } from "@/lib/usage/charge";
 import { decideCharge } from "@/lib/usage/pricing";
@@ -45,6 +46,7 @@ async function loadOwnedProject(userId: string, projectId: string | null | undef
   if (!UUID_RE.test(projectId)) return { ok: false, status: 400, error: "Choose one of your projects.", field: "project_id" };
   const { data } = await createServiceClient().from("projects").select("id, domain").eq("id", projectId).eq("user_id", userId).maybeSingle();
   if (!data) return { ok: false, status: 400, error: "Choose one of your projects.", field: "project_id" };
+  if (await isProjectSuspended(createServiceClient(), projectId)) return { ok: false, status: 403, error: PROJECT_PAUSED_MESSAGE, field: "project_id" };
   return { ok: true, project: data as { id: string; domain: string } };
 }
 

@@ -1,4 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/service";
+import { isProjectSuspended } from "@/lib/projects/suspension";
 import { getLinkLimits, ownHosts } from "@/lib/links/server";
 import type { ServiceResult, UserCtx } from "@/lib/links/service";
 import {
@@ -183,6 +184,8 @@ export async function updateProject(ctx: UserCtx, id: string, input: ProjectInpu
 }
 
 export async function deleteProject(ctx: UserCtx, id: string): Promise<ServiceResult<null>> {
+  // Paused projects stay until an admin restores them, so a pause cannot be dodged by deleting and re-creating the project.
+  if (await isProjectSuspended(createServiceClient(), id)) return fail(403, "This project is paused, so it cannot be deleted right now. Please contact support.");
   const { data, error } = await createServiceClient().from("projects").delete().eq("id", id).eq("user_id", ctx.userId).select("id");
   if (error) return fail(500, "Could not delete the project.");
   if (!data || data.length === 0) return fail(404, "Project not found.");

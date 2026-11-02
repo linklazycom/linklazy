@@ -50,6 +50,7 @@ const NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin/links/reports", label: "Abuse reports" },
       { href: "/admin/links/blocklist", label: "Blocklist" },
       { href: "/admin/domains", label: "Custom domains" },
+      { href: "/admin/api-keys", label: "API keys" },
       { href: "/admin/bio", label: "Bio pages" },
     ],
   },

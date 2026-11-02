@@ -101,6 +101,7 @@ function DomainCard({ d, mode }: { d: DomainView; mode: "automatic" | "manual" }
         <>
           <p className="text-sm text-muted">Step 1 — prove you control this domain by adding this DNS record at your domain provider:</p>
           <DnsRecord label="Ownership record" type="TXT" name={d.txtName} value={d.txtValue} />
+          <p className="text-xs text-muted">Keep this record in place. We re-check ownership every day; if we cannot find it and the domain no longer points to us for 3 days in a row, the domain goes back to pending.</p>
         </>
       )}
       {(d.status === "pending" || d.status === "verified") && (

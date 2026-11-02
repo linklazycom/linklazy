@@ -41,6 +41,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
     supabase.from("backlinks").select("id, source_url, status", { count: "exact" }).eq("user_id", user.id).eq("project_id", id).order("created_at", { ascending: false }).limit(5),
   ]);
   const isAdmin = profile?.role === "admin";
+  const { data: pauseRow } = await supabase.from("projects").select("suspended_at").eq("id", id).maybeSingle();
+  const paused = Boolean((pauseRow as { suspended_at?: string | null } | null)?.suspended_at);
 
   return (
     <div className="max-w-3xl space-y-8">
@@ -53,6 +55,13 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
           {project.canonical_url}
         </a>
       </div>
+
+      {paused && (
+        <p className="rounded-chip border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+          This project is paused by the LinkLazy team. It cannot run new searches, drafts or monitors until it is restored. Your saved data is safe.{" "}
+          <Link href="/dashboard/support" className="underline">Contact support</Link> if you think this is a mistake.
+        </p>
+      )}
 
       <ProjectForm
         mode="edit"

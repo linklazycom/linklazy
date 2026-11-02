@@ -1,4 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/service";
+import { PROJECT_PAUSED_MESSAGE, isProjectSuspended } from "@/lib/projects/suspension";
 import { AiUnavailableError, searchWeb } from "@/lib/api-providers";
 import { buildQueries, projectTerms } from "@/lib/opportunities/queries";
 import { collectCandidates, excludedDomains, planWrites, type QueryResult } from "@/lib/opportunities/plan";
@@ -66,6 +67,7 @@ export async function runOpportunitySearch(userId: string, projectId: string, ty
 
   const { data: project } = await db.from("projects").select("id, canonical_url, domain, niche, competitors").eq("id", projectId).eq("user_id", userId).maybeSingle();
   if (!project) throw new OpportunityError("Project not found.", 404);
+  if (await isProjectSuspended(db, projectId)) throw new OpportunityError(PROJECT_PAUSED_MESSAGE, 403);
 
   const { data: kw } = await db.from("project_keywords").select("keyword").eq("project_id", projectId).order("created_at", { ascending: true }).limit(10);
   const keywords = (kw ?? []).map((k) => String(k.keyword));

@@ -1,4 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/service";
+import { isProjectSuspended } from "@/lib/projects/suspension";
 import { enqueueTask, type TaskRow } from "@/lib/tasks";
 import { isBacklinkMonitorOn } from "@/lib/backlinks/feature";
 import { BACKLINK_COLUMNS, runAndStoreCheck, type BacklinkRow } from "@/lib/backlinks/service";
@@ -59,6 +60,8 @@ export async function handleBacklinkCheckTask(task: TaskRow): Promise<Record<str
   const row = data as BacklinkRow | null;
   if (!row) return { skipped: "deleted" };
   if (!row.monitoring) return { skipped: "monitoring_off" };
+  // A paused project makes no outside requests until an admin restores it.
+  if (row.project_id && (await isProjectSuspended(svc, row.project_id as string))) return { skipped: "project_paused" };
 
   const { data: profile } = await svc.from("profiles").select("is_banned, is_suspended").eq("id", row.user_id).maybeSingle();
   if (profile?.is_banned || profile?.is_suspended) return { skipped: "owner_restricted" };

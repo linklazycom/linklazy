@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireProjectUser } from "@/lib/projects/auth";
 import { createServiceClient } from "@/lib/supabase/service";
+import { PROJECT_PAUSED_MESSAGE, isProjectSuspended } from "@/lib/projects/suspension";
 import { AiUnavailableError, callAi } from "@/lib/api-providers";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { readJson } from "@/lib/links/http";
@@ -48,6 +49,7 @@ export async function POST(request: Request) {
       .eq("user_id", gate.ctx.userId)
       .maybeSingle();
     if (!data) return NextResponse.json({ error: "Project not found.", field: "project_id" }, { status: 404 });
+    if (await isProjectSuspended(createServiceClient(), projectId)) return NextResponse.json({ error: PROJECT_PAUSED_MESSAGE, field: "project_id" }, { status: 403 });
     project = { name: data.name, url: data.canonical_url, description: data.description, niche: data.niche };
   }
 
