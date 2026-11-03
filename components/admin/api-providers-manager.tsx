@@ -229,7 +229,9 @@ export function ApiProvidersManager({
             <Field
               id="p-base"
               label="Base URL (optional)"
-              hint="Leave empty for OpenAI / Anthropic / Pexels / Pixabay / Tavily / Google search. Required for SearXNG (your server). For others, e.g. https://api.groq.com/openai/v1 — must be a public https address."
+              hint={form.kind === "search" && form.adapter === "custom_json"
+                ? "Required: the full https address of your search service with {query} where the search words go, for example https://search.example.com/api?q={query}&limit={count}. {count} is optional."
+                : "Leave empty for OpenAI / Anthropic / Pexels / Pixabay / Tavily / Brave / Google search. Required for SearXNG (your server). For others, e.g. https://api.groq.com/openai/v1 — must be a public https address."}
               value={form.base_url}
               onChange={(e) => setField("base_url", e.target.value)}
             />
@@ -254,7 +256,7 @@ export function ApiProvidersManager({
               hint="Stored encrypted. It is never shown again — only a masked hint."
               value={form.api_key}
               onChange={(e) => setField("api_key", e.target.value)}
-              required={!(form.kind === "search" && form.adapter === "searxng")}
+              required={!(form.kind === "search" && (form.adapter === "searxng" || form.adapter === "custom_json"))}
             />
             <div className="grid grid-cols-3 gap-3">
               <Field id="p-prio" label="Priority (low = first)" type="number" min={0} value={form.priority} onChange={(e) => setField("priority", e.target.value)} />

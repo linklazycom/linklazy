@@ -101,6 +101,20 @@ export function validateOppPatch(input: Record<string, unknown>): OppPatchResult
   return { ok: true, value };
 }
 
+/** Most opportunities one bulk change may touch (a page shows 25; this leaves room for several pages). */
+export const OPP_BULK_MAX = 100;
+export type OppBulkResult = { ok: true; ids: string[]; status: OppStatus } | { ok: false; message: string };
+
+/** A bulk status change: 1 to OPP_BULK_MAX distinct ids and one valid status. Pure. */
+export function validateOppBulk(input: Record<string, unknown>): OppBulkResult {
+  if (!isOppStatus(input.status)) return { ok: false, message: "Choose a valid status." };
+  if (!Array.isArray(input.ids)) return { ok: false, message: "Choose at least one opportunity." };
+  const ids = Array.from(new Set(input.ids.filter((v): v is string => isUuid(v)).map((v) => v.toLowerCase())));
+  if (ids.length === 0) return { ok: false, message: "Choose at least one opportunity." };
+  if (ids.length > OPP_BULK_MAX) return { ok: false, message: `Choose at most ${OPP_BULK_MAX} at a time.` };
+  return { ok: true, ids, status: input.status };
+}
+
 export type Confidence = "likely" | "possible" | "unknown";
 export const CONFIDENCE_LABELS: Record<Confidence, string> = {
   likely: "Likely accepts submissions",

@@ -64,5 +64,6 @@ test("parseSearchResponse: google_cse and searxng shapes", () => {
 
 test("isSearchAdapter", () => {
   assert.ok(isSearchAdapter("tavily") && isSearchAdapter("searxng") && isSearchAdapter("google_cse"));
-  assert.ok(!isSearchAdapter("brave") && !isSearchAdapter(null));
+  assert.ok(isSearchAdapter("brave") && isSearchAdapter("custom_json"));
+  assert.ok(!isSearchAdapter("bing") && !isSearchAdapter(null));
 });

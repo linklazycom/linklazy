@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { TicketActions } from "@/components/admin/outreach/ticket-actions";
 import { TICKET_KIND_LABELS, isTicketKind } from "@/lib/outreach/reply";
+import { OUTREACH_INBOX_LINK_KEY, buildInboxLink } from "@/lib/outreach/notify";
 
 export const metadata = { title: "Admin · Reply ticket" };
 export const dynamic = "force-dynamic";
@@ -26,6 +27,9 @@ export default async function AdminOutreachTicketPage({ params }: { params: Prom
     supabase.from("outreach_suppressions").select("id").eq("email", ticket.email as string).maybeSingle(),
   ]);
 
+  const { data: linkSetting } = await supabase.from("site_settings").select("value").eq("key", OUTREACH_INBOX_LINK_KEY).maybeSingle();
+  const inboxLink = buildInboxLink(typeof linkSetting?.value === "string" ? linkSetting.value : null, { conversationId: (ticket.conversation_id as string | null) ?? null, email: ticket.email as string });
+
   const camp = ticket.outreach_campaigns as unknown as { name?: string } | { name?: string }[] | null;
   const campName = Array.isArray(camp) ? camp[0]?.name : camp?.name;
 
@@ -46,6 +50,12 @@ export default async function AdminOutreachTicketPage({ params }: { params: Prom
         {ticket.conversation_id ? (
           <p className="text-xs text-muted">Saleshandy conversation id: <code>{ticket.conversation_id as string}</code> — open your Saleshandy inbox and search for this person to answer.</p>
         ) : null}
+        {inboxLink && (
+          <p className="mt-1 text-sm">
+            <a href={inboxLink} target="_blank" rel="noopener noreferrer nofollow" className="underline">Open in Saleshandy ↗</a>
+            <span className="ml-2 text-xs text-muted">(built from the link you saved on the Replies page)</span>
+          </p>
+        )}
         {suppressed && <p className="mt-1 text-xs text-red-700">This address is on the do-not-email list.</p>}
       </div>
 

@@ -4,6 +4,8 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { FinderPanel } from "@/components/opportunities/finder-panel";
 import { OpportunityActions } from "@/components/opportunities/row-actions";
+import { BulkBar, BulkProvider, SelectBox } from "@/components/opportunities/bulk";
+import { buildOutreachPrefillHref } from "@/lib/content/prefill";
 import { CONFIDENCE_LABELS, OPP_PER_PAGE, OPP_STATUSES, OPP_STATUS_LABELS, OPP_TYPES, oppTypeLabel, parseOppFilters, type Confidence } from "@/lib/opportunities/rules";
 import { SCORE_MAX, type ScorePart } from "@/lib/opportunities/score";
 
@@ -46,6 +48,9 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
   const total = count ?? 0;
   const pages = Math.max(1, Math.ceil(total / OPP_PER_PAGE));
   const projectName = new Map((projects ?? []).map((p) => [p.id as string, p.name as string]));
+  // Only guest-post and resource-page results are emailed; the Content Studio opens with the page and the project already filled in.
+  const draftHref = (o: { project_id: unknown; opp_type: unknown; domain: unknown; title: unknown; url: unknown }) =>
+    buildOutreachPrefillHref({ projectId: String(o.project_id), projectName: projectName.get(String(o.project_id)) ?? "", oppType: String(o.opp_type), domain: String(o.domain), title: String(o.title ?? ""), url: String(o.url) });
 
   const qs = (over: Record<string, string | number | null>) => {
     const s = new URLSearchParams();
@@ -101,6 +106,8 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
         {(rows ?? []).length === 0 ? (
           <p className="rounded-chip border border-line bg-white p-4 text-sm text-muted">Nothing here yet. Choose a project above and press “Find opportunities”.</p>
         ) : (
+          <BulkProvider>
+          <BulkBar pageIds={(rows ?? []).map((o) => o.id as string)} />
           <ul className="space-y-3">
             {(rows ?? []).map((o) => {
               const conf = (o.confidence as Confidence) in CONFIDENCE_LABELS ? (o.confidence as Confidence) : "unknown";
@@ -108,9 +115,12 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
               return (
                 <li key={o.id as string} className="rounded-chip border border-line bg-white p-4">
                   <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div className="min-w-0">
+                    <div className="flex min-w-0 items-start gap-2">
+                      <SelectBox id={o.id as string} />
+                      <div className="min-w-0">
                       <a href={o.url as string} target="_blank" rel="noopener noreferrer nofollow" className="break-words font-medium underline">{(o.title as string) || (o.domain as string)}</a>
                       <p className="break-all text-xs text-muted">{o.domain as string} · {oppTypeLabel(o.opp_type as string)} · {projectName.get(o.project_id as string) ?? "—"} · found {String(o.found_at).slice(0, 10)}</p>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className={`rounded-chip px-2 py-0.5 text-xs ${CONF_STYLE[conf]}`}>{CONFIDENCE_LABELS[conf]}</span>
@@ -128,11 +138,13 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
                       <li>Found with the search: <em>{o.query as string}</em>. The kind is a guess from this phrase. No Domain Authority or traffic data is used.</li>
                     </ul>
                   </details>
+                  {draftHref(o) && <p className="mt-2 text-sm"><Link href={draftHref(o)!} className="underline">Draft an outreach email for this page →</Link></p>}
                   <OpportunityActions id={o.id as string} status={o.status as string} note={(o.note as string | null) ?? null} />
                 </li>
               );
             })}
           </ul>
+          </BulkProvider>
         )}
 
         {pages > 1 && (

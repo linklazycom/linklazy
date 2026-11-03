@@ -189,8 +189,8 @@ export const USER_HELP: Record<string, UserHelpEntry> = {
     title: "Opportunity Finder",
     what: "Searches the web for places that may link to you: guest-post pages, directories, resource pages, communities and blogs, each with a score and the reasons.",
     why: "Finding who to contact is the slowest part of link building. This gives you a ready list.",
-    how: ["Create a project first (with niche and keywords)", "Choose the project and the kinds of opportunities, then press Find opportunities", "Open Why this score? to see the reasons; mark each result Saved, Contacted, Done or Ignored", "Download the list as CSV if you want"],
-    watch: ["Nothing is sent to anyone for you. You decide whom to contact.", "A high score is a hint, not a promise that the site will link to you."],
+    how: ["Create a project first (with niche and keywords)", "Choose the project and the kinds of opportunities, then press Find opportunities", "Open Why this score? to see the reasons; mark each result Saved, Contacted, Done or Ignored", "To give several results the same status, tick them (or tick Select all on this page) and use the Mark as buttons; up to 100 at a time", "On guest-post and resource-page results, press Draft an outreach email: the AI Content Studio opens with your project, their site and their page already filled in", "Download the list as CSV if you want"],
+    watch: ["Nothing is sent to anyone for you. The drafted email is yours to edit and send yourself. You decide whom to contact.", "A high score is a hint, not a promise that the site will link to you."],
   },
   "/dashboard/backlinks": {
     area: "SEO workspace",
@@ -205,7 +205,7 @@ export const USER_HELP: Record<string, UserHelpEntry> = {
     title: "AI Content Studio",
     what: "Drafts outreach emails, bios, article ideas, outlines, titles and more, based on your project.",
     why: "It gets you past the blank page; you then edit the draft into your own words.",
-    how: ["Choose what you want to write and the project", "Press generate, then edit the draft", "Save the ones you want to keep"],
+    how: ["Choose what you want to write and the project (coming from Opportunity Finder, the outreach email form is already filled in)", "Press generate, then edit the draft", "Save the ones you want to keep"],
     watch: ["Nothing is posted or sent for you.", "Check facts and names in every draft before you use it."],
   },
   "/dashboard/links": {

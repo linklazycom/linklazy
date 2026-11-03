@@ -38,11 +38,11 @@ function download(name: string, text: string, mime: string) {
   URL.revokeObjectURL(url);
 }
 
-export function ContentStudio({ projects, initialDoc }: { projects: { id: string; name: string }[]; initialDoc: StudioDoc | null }) {
+export function ContentStudio({ projects, initialDoc, prefill = null }: { projects: { id: string; name: string }[]; initialDoc: StudioDoc | null; prefill?: { projectId: string | null; values: Record<string, string> } | null }) {
   const router = useRouter();
   const [kind, setKind] = useState<ContentKind>(initialDoc?.kind ?? "outreach_email");
-  const [values, setValues] = useState<Record<string, string>>({});
-  const [projectId, setProjectId] = useState<string>(initialDoc?.project_id ?? "");
+  const [values, setValues] = useState<Record<string, string>>(initialDoc ? {} : (prefill?.values ?? {}));
+  const [projectId, setProjectId] = useState<string>(initialDoc?.project_id ?? prefill?.projectId ?? "");
   const [body, setBody] = useState(initialDoc?.body ?? "");
   const [title, setTitle] = useState(initialDoc?.title ?? "");
   const [docId, setDocId] = useState<string | null>(initialDoc?.id ?? null);

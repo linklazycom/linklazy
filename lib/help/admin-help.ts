@@ -35,7 +35,7 @@ export const ADMIN_HELP: Record<string, HelpEntry> = {
     what: "যেসব বাইরের সার্ভিস LinkLazy-র ফিচারগুলোকে চালায় তাদের চাবি (API key) এখানে রাখা হয়: AI লেখা, স্টক ছবি ও ওয়েব সার্চ।",
     why: "AI Content Studio-র জন্য AI প্রোভাইডার, Opportunity Finder-এর জন্য Web search প্রোভাইডার লাগে। এখানে না বসালে ফিচারগুলো \"not set up\" দেখায়।",
     how: [
-      "Add provider চাপুন, ধরন (AI / Stock images / Web search) ও অ্যাডাপ্টার বাছুন, API key বসান",
+      "Add provider চাপুন, ধরন (AI / Stock images / Web search) ও অ্যাডাপ্টার বাছুন, API key বসান (Web search-এ এখন Tavily, Google, SearXNG, Brave ও Custom JSON আছে; Custom JSON-এ Base URL ঘরে `{query}`সহ পূর্ণ https ঠিকানা দিতে হয়)",
       "\"Test connection\" চাপুন; সফল হলে \"Enable\" করুন",
       "একই ধরনের একাধিক থাকলে priority দিয়ে ক্রম ঠিক করুন; একটি ব্যর্থ হলে পরেরটি চেষ্টা হয়",
       "দৈনিক/মাসিক সীমা দিলে ফ্রি কোটা ফুরিয়ে যাওয়া ঠেকানো যায়",
@@ -122,7 +122,8 @@ export const ADMIN_HELP: Record<string, HelpEntry> = {
     title: "রিপ্লাই (টিকেট)",
     what: "যারা আপনার আউটরিচ ইমেইলের উত্তর দিয়েছে তাদের তালিকা। প্রতিজন একটি টিকেট।",
     why: "কেউ আগ্রহ দেখালে হারিয়ে না যায়; কেউ থামতে বললে এক ক্লিকে তাকে আর মেইল না করা যায়।",
-    how: ["টিকেট খুলে তার উত্তর পড়ুন", "উত্তর দিন Saleshandy ইনবক্স থেকে (টিকেটে conversation id দেওয়া আছে)", "এখানে স্ট্যাটাস ও নোট রাখুন; থামতে বললে \"Do not email again\""],
+    how: ["টিকেট খুলে তার উত্তর পড়ুন", "উত্তর দিন Saleshandy ইনবক্স থেকে (টিকেটে conversation id দেওয়া আছে; ওপরের ফর্মে লিংক-টেমপ্লেট সেভ করলে \"Open in Saleshandy\" বোতামও আসে)", "এখানে স্ট্যাটাস ও নোট রাখুন; থামতে বললে \"Do not email again\"", "ওপরের ফর্মে \"Email me when someone replies\" টিক থাকলে নতুন রিপ্লাই এলে সাইটের contact email-এ ইমেইল যায় (অটো-উত্তর বাদে)"],
+    watch: ["Saleshandy কথোপকথনের লিংকের ফরম্যাট আমি তাদের ডকসে নিশ্চিত করতে পারিনি, তাই এটি আপনার নিজের কপি করা ঠিকানা থেকে বানাতে হয়; এক-দুটি টিকেটে খুলে মিলিয়ে নিন।", "রিপ্লাই-ইমেইল পাঠাতে Resend সেটআপ (Admin > Operations > Email) দরকার।"],
   },
   "/admin/outreach": {
     title: "Outreach (আউটরিচ) ওভারভিউ",

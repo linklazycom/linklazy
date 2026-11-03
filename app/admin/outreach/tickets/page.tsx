@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
+import { ReplySettingsForm } from "@/components/admin/outreach/reply-settings-form";
+import { OUTREACH_INBOX_LINK_KEY, OUTREACH_NOTIFY_KEY, isNotifyOn } from "@/lib/outreach/notify";
 import { TICKET_KINDS, TICKET_KIND_LABELS, TICKET_STATUSES, TICKET_STATUS_LABELS, isTicketKind, isTicketStatus } from "@/lib/outreach/reply";
 
 export const metadata = { title: "Admin · Outreach replies" };
@@ -34,10 +37,14 @@ export default async function AdminOutreachTicketsPage({ searchParams }: { searc
   else if (open) q = q.neq("status", "closed");
   if (kind) q = q.eq("kind", kind);
 
-  const [{ data, count, error }, newCount] = await Promise.all([
+  const [{ data, count, error }, newCount, { data: settingRows }] = await Promise.all([
     q,
     supabase.from("outreach_tickets").select("id", { count: "exact", head: true }).eq("status", "new"),
+    createServiceClient().from("site_settings").select("key, value").in("key", [OUTREACH_NOTIFY_KEY, OUTREACH_INBOX_LINK_KEY]),
   ]);
+  const settingMap = new Map((settingRows ?? []).map((r) => [r.key as string, r.value]));
+  const notifyOn = isNotifyOn(settingMap.get(OUTREACH_NOTIFY_KEY));
+  const inboxTemplate = typeof settingMap.get(OUTREACH_INBOX_LINK_KEY) === "string" ? (settingMap.get(OUTREACH_INBOX_LINK_KEY) as string) : "";
   if (error) throw new Error("Could not load tickets. Has SQL 052 been run?");
 
   const total = count ?? 0;
@@ -57,8 +64,10 @@ export default async function AdminOutreachTicketsPage({ searchParams }: { searc
       <Link href="/admin/outreach" className="text-sm text-muted underline">← Outreach</Link>
       <div>
         <h1 className="font-display text-2xl font-medium">Replies ({total}{open ? " open" : ""}) · {newCount.count ?? 0} new</h1>
-        <p className="text-sm text-muted">Everyone who answered an outreach email. A person who replied is never emailed again by any campaign. Answer them from your Saleshandy inbox (the ticket shows the conversation id); come back here to set the status and keep notes.</p>
+        <p className="text-sm text-muted">Everyone who answered an outreach email. A person who replied is never emailed again by any campaign. Answer them from your Saleshandy inbox (open a ticket for the conversation id and, once you save the link below, an &ldquo;Open in Saleshandy&rdquo; button); come back here to set the status and keep notes.</p>
       </div>
+
+      <ReplySettingsForm notify={notifyOn} template={inboxTemplate} />
 
       <form method="get" className="flex flex-wrap items-end gap-2 rounded-chip border border-line bg-white p-3 text-sm">
         <select name="status" defaultValue={status} aria-label="Status" className="rounded-chip border border-line px-2 py-1">

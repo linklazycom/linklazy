@@ -4,11 +4,13 @@ import { ContentStudio, type StudioDoc } from "@/components/content/studio";
 import { ContentDeleteButton } from "@/components/content/delete-button";
 import { KIND_DEFS, isContentKind } from "@/lib/content/kinds";
 import { isUuid } from "@/lib/content/documents";
+import { parseStudioPrefill } from "@/lib/content/prefill";
 
 export const metadata = { title: "AI Content Studio" };
 
-export default async function ContentStudioPage({ searchParams }: { searchParams: Promise<{ doc?: string }> }) {
-  const { doc: docParam } = await searchParams;
+export default async function ContentStudioPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const sp = await searchParams;
+  const docParam = typeof sp.doc === "string" ? sp.doc : undefined;
   const supabase = await createClient();
   const {
     data: { user },
@@ -27,6 +29,9 @@ export default async function ContentStudioPage({ searchParams }: { searchParams
     if (data && isContentKind(data.kind)) initialDoc = { id: data.id, kind: data.kind, title: data.title, body: data.body, project_id: data.project_id };
   }
 
+  // An opened saved document wins; otherwise an Opportunity Finder link can pre-fill an outreach email.
+  const prefill = initialDoc ? null : parseStudioPrefill(sp, (projects ?? []).map((p) => p.id as string));
+
   return (
     <div className="max-w-3xl space-y-8">
       <div>
@@ -34,7 +39,7 @@ export default async function ContentStudioPage({ searchParams }: { searchParams
         <p className="text-sm text-muted">Draft outreach emails, bios, article ideas, outlines, titles and more. You edit, you publish: nothing is posted or sent for you.</p>
       </div>
 
-      <ContentStudio key={initialDoc?.id ?? "new"} projects={projects ?? []} initialDoc={initialDoc} />
+      <ContentStudio key={initialDoc?.id ?? (prefill ? `prefill-${prefill.values.recipient ?? ""}` : "new")} projects={projects ?? []} initialDoc={initialDoc} prefill={prefill} />
 
       <section className="space-y-3">
         <h2 className="font-display text-lg font-medium">Saved documents</h2>
